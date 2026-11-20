@@ -4,14 +4,24 @@ import { useState } from "react";
 import Link from "next/link";
 import { segVar } from "@/components/Anatomy";
 import { LessonRunner } from "@/components/LessonRunner";
-import { LESSONS, UPCOMING, XP_PER_LESSON } from "@/data/curriculum";
+import { LESSONS, XP_PER_LESSON } from "@/data/curriculum";
 import { ITEM, ITEMS } from "@/lib/items";
 import { GUEST, useAppState } from "@/components/AppState";
 const LEVELS = ["초급", "중급", "고급"];
-const XP_TO_NEXT_LEVEL = LESSONS.length * XP_PER_LESSON;
 const MASTERY_STEP = 20;
+const lessonsAt = (level) => LESSONS.filter((l) => l.level === level);
+const nextLevel = (level) => LEVELS[LEVELS.indexOf(level) + 1] ?? null;
+// 지금 수준의 강의를 모두 통과했으면 다음 수준으로 올린다. 이미 끝낸 위 단계가 있으면 그만큼 더 오른다.
+function levelAfter(level, completed) {
+  let lv = level;
+  while (nextLevel(lv) && lessonsAt(lv).every((l) => completed.includes(l.id))) lv = nextLevel(lv);
+  return lv;
+}
 function RecordPanel({ record, level }) {
-  const progress = Math.min(100, Math.round((record.xp / XP_TO_NEXT_LEVEL) * 100));
+  const track = lessonsAt(level);
+  const done = track.filter((l) => record.completed.includes(l.id)).length;
+  const next = nextLevel(level);
+  const progress = Math.round((done / track.length) * 100);
   const weakest = ITEMS.reduce((min, item) => (record.mastery[item.id] < record.mastery[min.id] ? item : min));
   return (
     <aside className="card record" aria-label="학습 기록">
@@ -23,7 +33,9 @@ function RecordPanel({ record, level }) {
         <span style={{ width: `${progress}%` }} />
       </span>
       <p className="small muted">
-        {level === "초급" ? `중급까지 ${Math.max(0, XP_TO_NEXT_LEVEL - record.xp)} XP` : `지금 수준: ${level}`}
+        {next
+          ? `다음 수준(${next})까지 ${(track.length - done) * XP_PER_LESSON} XP`
+          : `${level} 강의 ${done}/${track.length}`}
       </p>
 
       <h3>요소별 숙련도</h3>
@@ -63,12 +75,16 @@ function RecordPanel({ record, level }) {
 export default function Learn() {
   const { profile, setProfile, record, updateRecord } = useAppState();
   const me = profile ?? GUEST;
-  // 지금은 초급 레슨만 있어서, 진단 수준과 상관없이 초급 탭에서 시작한다.
-  const [tab, setTab] = useState("초급");
+  const myLevel = LEVELS.includes(me.level) ? me.level : "초급";
+  // 탭을 직접 고르기 전에는 내 수준 탭을 연다. 저장된 수준은 마운트 뒤에 읽히니 null로 둔다.
+  const [tab, setTab] = useState(null);
+  const shown = tab ?? myLevel;
   const [openId, setOpenId] = useState(null);
-  const [leveledUp, setLeveledUp] = useState(false);
-  const openIndex = LESSONS.findIndex((l) => l.id === openId);
-  const lesson = openIndex >= 0 ? LESSONS[openIndex] : null;
+  // { from, to }: 방금 끝낸 단계와 새 단계. 고급을 모두 마치면 to는 null.
+  const [leveledUp, setLeveledUp] = useState(null);
+  const lesson = LESSONS.find((l) => l.id === openId) ?? null;
+  const track = lesson ? lessonsAt(lesson.level) : [];
+  const openIndex = track.findIndex((l) => l.id === openId);
   function recordAttempt(l, grade) {
     const firstPass = grade.passed && !record.completed.includes(l.id);
     updateRecord((r) => {
@@ -83,22 +99,29 @@ export default function Learn() {
         history: [{ lessonId: l.id, title: l.title, passed: grade.passed, tries }, ...r.history].slice(0, 6),
       };
     });
-    const finishesTrack = firstPass && LESSONS.every((x) => x.id === l.id || record.completed.includes(x.id));
-    if (finishesTrack && me.level === "초급") {
-      setProfile({ ...me, level: "중급" });
-      setLeveledUp(true);
+    if (!firstPass) return;
+    // 레벨업은 올리기만 한다. 진단으로 정해진 수준보다 낮아지지 않는다.
+    const completed = [...record.completed, l.id];
+    const level = levelAfter(myLevel, completed);
+    if (level !== myLevel) {
+      setProfile({ ...me, level });
+      setLeveledUp({ from: myLevel, to: level });
+      setTab(null);
+    } else if (!nextLevel(myLevel) && l.level === myLevel && lessonsAt(myLevel).every((x) => completed.includes(x.id))) {
+      setLeveledUp({ from: myLevel, to: null });
     }
   }
   function openNext() {
     window.scrollTo({ top: 0 });
-    setOpenId(openIndex < LESSONS.length - 1 ? LESSONS[openIndex + 1].id : null);
+    setOpenId(openIndex < track.length - 1 ? track[openIndex + 1].id : null);
   }
   return (
     <div className="page">
       <header className="page-head">
         <h1 className="display">짧게 배우고, 바로 써 보기</h1>
         <p className="lede">
-          강의 하나, 실습 문제 하나, 평가와 피드백까지 5분이면 끝나요. 다섯 요소를 하나씩 익히면 다음 단계가 열려요.
+          강의 하나, 실습 문제 하나, 평가와 피드백까지 5분이면 끝나요. 지금 수준의 강의를 모두 마치면 다음 수준으로
+          올라가요.
         </p>
       </header>
 
@@ -109,7 +132,9 @@ export default function Learn() {
       )}
       {leveledUp && (
         <p className="levelup" role="status">
-          초급 다섯 레슨을 모두 마쳤어요. 이제 중급이에요.
+          {leveledUp.to
+            ? `${leveledUp.from} 다섯 레슨을 모두 마쳤어요. 이제 ${leveledUp.to}이에요.`
+            : `${leveledUp.from} 다섯 레슨까지 모두 마쳤어요. 이제 실제 업무에 써 보세요.`}
         </p>
       )}
 
@@ -120,7 +145,7 @@ export default function Learn() {
               key={lesson.id}
               lesson={lesson}
               alreadyDone={record.completed.includes(lesson.id)}
-              isLast={openIndex === LESSONS.length - 1}
+              isLast={openIndex === track.length - 1}
               onExit={() => setOpenId(null)}
               onAttempt={(grade) => recordAttempt(lesson, grade)}
               onNext={openNext}
@@ -134,75 +159,47 @@ export default function Learn() {
                     type="button"
                     role="tab"
                     className="chip"
-                    aria-selected={tab === lv}
+                    aria-selected={shown === lv}
                     onClick={() => setTab(lv)}
                   >
                     {lv}
-                    {lv === me.level && <span className="mine">내 수준</span>}
+                    {lv === myLevel && <span className="mine">내 수준</span>}
                   </button>
                 ))}
               </div>
 
-              {tab === "초급" && me.level !== "초급" && (
+              {LEVELS.indexOf(shown) > LEVELS.indexOf(myLevel) && (
                 <p className="notice">
-                  진단 결과는 {me.level}이에요. 지금은 초급 레슨으로 교육 흐름을 체험해 보세요.
+                  내 수준보다 어려운 단계예요. {myLevel} 강의를 먼저 마치면 더 수월해요.{" "}
+                  <button type="button" className="link" onClick={() => setTab(myLevel)}>
+                    {myLevel} 보기
+                  </button>
                 </p>
               )}
-              {tab === "초급" ? (
-                <ol className="path">
-                  {LESSONS.map((l, i) => {
-                    const done = record.completed.includes(l.id);
-                    const open = i === 0 || record.completed.includes(LESSONS[i - 1].id);
-                    const state = done ? "done" : open ? "current" : "locked";
-                    return (
-                      <li key={l.id}>
-                        <button
-                          type="button"
-                          className={`node ${state}`}
-                          style={segVar(ITEM[l.focus].color)}
-                          disabled={state === "locked"}
-                          onClick={() => setOpenId(l.id)}
-                        >
-                          <span className="node-dot">{done ? "✓" : ITEM[l.focus].name}</span>
-                          <span className="node-body">
-                            <strong>{l.title}</strong>
-                            <span>{l.summary}</span>
-                            <span className="node-meta">
-                              {done
-                                ? `완료 · +${XP_PER_LESSON} XP`
-                                : state === "locked"
-                                  ? "앞 레슨을 마치면 열려요"
-                                  : "시작하기 →"}
-                            </span>
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ol>
-              ) : (
-                <>
-                  <p className="notice">
-                    지금은 초급 레슨만 체험할 수 있어요.{" "}
-                    <button type="button" className="link" onClick={() => setTab("초급")}>
-                      초급 보기
-                    </button>
-                  </p>
-                  <ol className="path">
-                    {UPCOMING[tab].map((u) => (
-                      <li key={u.id}>
-                        <div className="node locked" style={segVar(ITEM[u.focus].color)}>
-                          <span className="node-dot">{ITEM[u.focus].name}</span>
-                          <span className="node-body">
-                            <strong>{u.title}</strong>
-                            <span className="node-meta">준비 중</span>
-                          </span>
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                </>
-              )}
+              <ol className="path">
+                {lessonsAt(shown).map((l) => {
+                  const done = record.completed.includes(l.id);
+                  // 시연을 위해 잠그지 않는다. 아직 안 끝낸 첫 강의만 '지금 할 강의'로 강조한다.
+                  const current = !done && lessonsAt(shown).find((x) => !record.completed.includes(x.id))?.id === l.id;
+                  return (
+                    <li key={l.id}>
+                      <button
+                        type="button"
+                        className={`node ${done ? "done" : current ? "current" : "open"}`}
+                        style={segVar(ITEM[l.focus].color)}
+                        onClick={() => setOpenId(l.id)}
+                      >
+                        <span className="node-dot">{done ? "✓" : ITEM[l.focus].name}</span>
+                        <span className="node-body">
+                          <strong>{l.title}</strong>
+                          <span>{l.summary}</span>
+                          <span className="node-meta">{done ? `완료 · +${XP_PER_LESSON} XP` : "시작하기 →"}</span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
             </>
           )}
         </div>

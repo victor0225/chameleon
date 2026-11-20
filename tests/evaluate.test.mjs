@@ -68,3 +68,16 @@ test("Gemini가 실패하면 규칙 기반으로 대신한다", async () => {
     console.warn = quiet;
   }
 });
+
+test("기준에 question이 있으면 그 질문으로 코칭한다", async () => {
+  const m1 = findLesson("m1");
+  const ask = async () => ({
+    found: ["goal"],
+    criteriaMet: m1.criteria.map((c, index) => ({ index, met: c.item !== m1.focus })),
+    output: "",
+  });
+  const r = await runEvaluation({ lessonId: "m1", prompt: "요약해 줘" }, { ask });
+  const first = m1.criteria.find((c) => c.item === m1.focus);
+  assert.equal(r.coaching.item, m1.focus);
+  assert.equal(r.coaching.question, first.question);
+});

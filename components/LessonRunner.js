@@ -62,7 +62,9 @@ export function LessonRunner({ lesson, alreadyDone, isLast, onExit, onAttempt, o
       </div>
 
       <div className="runner-title">
-        <p className="kicker focus-kicker">{focus.name} 익히기</p>
+        <p className="kicker focus-kicker">
+          {lesson.level} · {focus.name} 익히기
+        </p>
         <h2 id="lesson-title" className="display">
           {lesson.title}
         </h2>
@@ -151,7 +153,7 @@ export function LessonRunner({ lesson, alreadyDone, isLast, onExit, onAttempt, o
             <div className="stack">
               <p className="label">통과 기준</p>
               <ul className="criteria">
-                {grade.criteria.map((c) => (
+                {grade.criteria.map((c, i) => (
                   <li key={c.label} className={c.met ? "met" : "miss"}>
                     <span className="mark" aria-label={c.met ? "충족" : "미충족"}>
                       {c.met ? "✓" : "✗"}
@@ -159,7 +161,8 @@ export function LessonRunner({ lesson, alreadyDone, isLast, onExit, onAttempt, o
                     <span>{c.label}</span>
                     {!c.met && (
                       <span className="cause" style={segVar(ITEM[c.item].color)}>
-                        원인: {ITEM[c.item].name} 빠짐
+                        {/* check로 판정한 기준은 요소가 빠진 게 아니라 쓰는 법을 고칠 일이라 '다시 보기'로 쓴다. */}
+                        {lesson.criteria[i]?.check ? `${ITEM[c.item].name} 다시 보기` : `원인: ${ITEM[c.item].name} 빠짐`}
                       </span>
                     )}
                   </li>
