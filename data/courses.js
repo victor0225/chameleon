@@ -1,14 +1,17 @@
-// AI 활용 교육 여섯 과정과, 과정 2~4의 강의. 과정 1(프롬프트 작성)의 15강은 data/curriculum.js의 LESSONS 그대로다.
-// 강의의 kind가 실습 칸 모양과 채점 방법을 정한다.
+// AI 활용 교육 여섯 과정과 과정 2~6의 미션(코드 이름은 lesson). 과정 1(프롬프트 작성)의 15개는 data/curriculum.js의 LESSONS 그대로다.
+// 과정 2~6은 미션 3개씩이다. 처음 만든 다섯 개(mem1, mem2, file1, ver1, tool1)는 여기에, 더한 열 개는 data/moreMissions.js에 있다.
+// 미션의 kind가 실습 칸 모양과 채점 방법을 정한다.
 //   prompt: 프롬프트를 쓰고 기준으로 채점한다(Gemini, 키가 없으면 check 정규식). material이 있으면 자료 칸을 같이 보여 준다.
 //   sort:   카드를 칸으로 나눈다. 정답표로 채점한다(lib/server/practice.js, LLM 안 씀).
 //   choose: 상황 카드마다 방법을 하나 고른다. 채점은 sort와 같다.
 //   spot:   AI 답변에서 문제 있는 문장을 고르고 빠진 내용을 적는다. 정답표로 채점한다.
-//   file:   파일을 붙이고 프롬프트를 쓴다. 프롬프트는 기준으로, 예시 파일일 때 결과물은 보고서 숫자로 확인한다.
+//   file:   파일을 붙이고 프롬프트를 쓴다. 프롬프트는 기준으로, 예시 파일(samples)일 때 결과물은 check의 숫자로 확인한다.
 // 기준의 item이 null이면 다섯 요소가 아닌 기준이다. 색 없이 그리고, 개인화 엔진의 요소 숙련도에 섞지 않는다.
 // 통과 숫자(pass)는 팀이 정한 값이다(2026-11-20). file1의 "보고서에 없는 숫자"는 표시만 하고 통과에는 넣지 않는다.
 import { FILE_MENTION } from "../lib/fileSignals.js";
+import { FORMAT_CHECK, NO_MADE_UP_CHECK } from "./checks.js";
 import { LESSONS } from "./curriculum.js";
+import { MORE_MISSIONS, TOOL_BINS, TOOL_COACHING } from "./moreMissions.js";
 
 export const COURSE_LESSONS = [
   {
@@ -64,6 +67,7 @@ export const COURSE_LESSONS = [
       once: "이번 작업에만 쓰더라도, 대화 기록은 서비스에 남을 수 있어요.",
       keep: "기억시킨 정보는 내가 지우기 전까지 남아 다음 대화에도 쓰여요.",
     },
+    mustNote: "기억시키면 안 되는 정보는 한 장도 빠짐없이 맞혀야 통과예요.",
   },
   {
     id: "mem2",
@@ -157,21 +161,29 @@ export const COURSE_LESSONS = [
       good: "첨부한 보고서에서 팀장님께 올릴 핵심 세 가지를 번호 목록으로 뽑아 줘. 보고서에 없는 숫자는 지어내지 말고 '보고서에 없음'이라고 적어 줘.",
     },
     mission: "첨부한 보고서를 읽고 팀장님께 올릴 핵심 세 가지를 뽑아 달라고 AI에게 부탁해 보세요.",
-    sample: {
-      url: "/samples/cs-report-q3.pdf",
-      name: "3분기_고객문의_보고서.pdf",
-      pages: 2,
-      title: "3분기 고객 문의 분석 보고서",
-      preview: ["총 문의 1,240건, 전 분기보다 12% 늘었다.", "유형: 배송 지연 38%, 환불 24%, 사용법 21%, 기타 17%"],
-      // 보고서에 실린 숫자. 결과물의 숫자가 여기에 없으면 "보고서에 없는 숫자"로 표시한다.
+    sampleLabel: "예시 보고서",
+    samples: [
+      {
+        url: "/samples/cs-report-q3.pdf",
+        name: "3분기_고객문의_보고서.pdf",
+        type: "application/pdf",
+        pages: 2,
+        title: "3분기 고객 문의 분석 보고서",
+        preview: ["총 문의 1,240건, 전 분기보다 12% 늘었다.", "유형: 배송 지연 38%, 환불 24%, 사용법 21%, 기타 17%"],
+      },
+    ],
+    // 예시 파일로 받은 결과물 확인. numbers에 없는 숫자는 unknownLabel로 표시하고, core 중 coreMin개 이상이면 "핵심을 담았다"고 본다.
+    check: {
       numbers: ["1240", "12", "38", "24", "21", "17", "9", "212", "3"],
-      // 핵심 세 가지 중 2개 이상이 결과물에 있어야 "핵심을 담았다"고 본다.
       core: [
         { label: "총 문의 1,240건", check: /1,?240/ },
         { label: "배송 지연 38%", check: /배송\s*지연[^\n]{0,12}38/ },
         { label: "개선 제안", check: /제안|도입|개편|제작/ },
       ],
       coreMin: 2,
+      unknownLabel: "보고서에 없는 숫자",
+      unknownNote: "없는 숫자는 AI가 지어냈을 가능성이 커요.",
+      compareNote: "보고서에 실린 숫자와 하나씩 맞춰 봤어요.",
     },
     criteria: [
       {
@@ -189,13 +201,13 @@ export const COURSE_LESSONS = [
       {
         label: "받을 모양을 정했다",
         item: "format",
-        check: /목록|번호|표로|표 형식|불릿|항목|한 줄|\d+\s*줄|(한|두|세)\s*(줄|문장)|이내/,
+        check: FORMAT_CHECK,
         question: "팀장님께 올리려면 결과를 어떤 모양으로 받으면 좋을까요?",
       },
       {
         label: "보고서에 없는 내용은 지어내지 말라고 했다",
         item: "criteria",
-        check: /없는\s*(내용|숫자|정보)|지어내|추측|모르(면|는)|확인\s*필요|확실하지|있는\s*(내용|숫자)만|나온\s*(내용|숫자)만|근거/,
+        check: NO_MADE_UP_CHECK,
         question: "보고서에 없는 내용이 필요해지면 AI가 어떻게 해야 하나요?",
         hint: "말해 주지 않으면 AI는 그럴듯한 숫자로 빈칸을 채워요.",
       },
@@ -237,6 +249,10 @@ export const COURSE_LESSONS = [
         "다음 회의 날짜는 정하지 않았다.",
       ],
     },
+    // 화면과 코칭에 쓰는 이름: 맞춰 볼 자료, AI가 쓴 글, 그 글 칸의 제목
+    source: "회의록",
+    answerName: "요약",
+    answerTitle: "AI가 쓴 회의 요약",
     kinds: [
       { id: "wrong", name: "틀린 정보" },
       { id: "made", name: "지어낸 내용" },
@@ -298,12 +314,7 @@ export const COURSE_LESSONS = [
       ],
     },
     mission: "업무 상황 카드가 여섯 장 있어요. 상황마다 AI를 어떻게 쓸지 골라 보세요.",
-    bins: [
-      { id: "ask", title: "그냥 질문" },
-      { id: "search", title: "검색 켜기" },
-      { id: "file", title: "파일 붙여 분석" },
-      { id: "no", title: "AI에게 맡기지 않기" },
-    ],
+    bins: TOOL_BINS,
     cards: [
       { id: "rate", text: "이번 주 환율 변동 정리", answer: "search" },
       { id: "rival", text: "오늘 발표된 경쟁사 신제품 정리", answer: "search" },
@@ -318,22 +329,21 @@ export const COURSE_LESSONS = [
       { label: "6장 중 5장 이상 맞게 골랐다", item: null },
       { label: "AI에게 맡기지 않을 일은 꼭 맞혔다", item: null },
     ],
-    coaching: {
-      no: { question: "{card} AI의 답대로 끝내도 되는 일일까요?" },
-      search: { question: "이 일에 필요한 정보는 AI가 배울 때 이미 있었을까요?" },
-      file: { question: "AI가 이 일을 하려면 무엇을 읽어야 하나요?" },
-      ask: { question: "이 일에 새로 찾을 정보나 읽을 파일이 꼭 필요할까요?" },
-    },
+    coaching: TOOL_COACHING,
     mustDetail: "결과에 책임을 지는 사람이 누구인지 생각해 보세요.",
+    mustNote: "AI에게 맡기지 않을 일은 꼭 맞혀야 통과예요.",
   },
+  ...MORE_MISSIONS,
 ];
 
 export const ALL_LESSONS = [...LESSONS.map((l) => ({ course: "prompt", kind: "prompt", ...l })), ...COURSE_LESSONS];
 export const findAnyLesson = (id) => ALL_LESSONS.find((l) => l.id === id) ?? null;
 
+// short: 이유 문장에 쓰는 짧은 부문 이름("검증 부문이 50점이에요")
 export const COURSES = [
   {
     id: "prompt",
+    short: "프롬프트",
     no: 1,
     title: "프롬프트 작성",
     summary: "명확한 질문과 조건 정하기",
@@ -344,55 +354,59 @@ export const COURSES = [
   },
   {
     id: "memory",
+    short: "대화·메모리",
     no: 2,
     title: "대화·메모리 관리",
     summary: "문맥 유지, 기억시킬 정보 고르기",
     lede: "긴 대화에서 앞 내용을 잃지 않고, AI에게 무엇을 기억시킬지 고르는 법을 배워요.",
     note: "여기서 말하는 메모리는 Gemini, ChatGPT 같은 AI 서비스가 나에 대해 기억해 두는 기능이에요. 카멜레온이 저장하는 내 설정이나 학습 기록과는 달라요.",
-    lessons: ["mem1", "mem2"],
+    lessons: ["mem1", "mem2", "mem3"],
     related: ["a3"],
     ready: true,
   },
   {
     id: "file",
+    short: "파일",
     no: 3,
     title: "파일 활용",
     summary: "문서를 붙이고 AI에게 분석 맡기기",
     lede: "보고서, 회의록 같은 파일을 붙이고, AI가 그걸로 무엇을 할지 분명하게 맡기는 법을 배워요.",
-    lessons: ["file1"],
+    lessons: ["file1", "file2", "file3"],
     related: ["m1"],
     ready: true,
   },
   {
     id: "verify",
+    short: "검증",
     no: 4,
     title: "AI 결과 검증",
     summary: "틀린 정보, 지어낸 내용, 출처 확인하기",
     lede: "AI가 쓴 결과에서 틀린 정보, 지어낸 내용, 확인 안 되는 출처를 찾아내는 법을 배워요.",
-    lessons: ["ver1"],
+    lessons: ["ver1", "ver2", "ver3"],
     related: ["a2"],
     ready: true,
   },
   {
     id: "tool",
+    short: "도구",
     no: 5,
     title: "AI 도구 활용",
     summary: "작업에 맞는 기능 고르기: 검색, 파일 분석, 그냥 질문",
     lede: "그냥 질문, 검색, 파일 분석 중에서 일에 맞는 방법을 고르고, AI에게 맡기지 않을 일을 가려내는 법을 배워요.",
-    lessons: ["tool1"],
+    lessons: ["tool1", "tool2", "tool3"],
     related: [],
     ready: true,
   },
   {
     id: "flow",
+    short: "자동화",
     no: 6,
     title: "업무 자동화",
     summary: "반복 작업 흐름 짜기: 자료 요약 → 보고서 초안 → 검토",
     lede: "자료 요약 → 보고서 초안 → 검토처럼 반복되는 일을 흐름으로 짜는 법을 배워요.",
-    // 강의는 준비 중이다. 과정 화면에서 같이 보면 좋은 강의(m3, a1)로 먼저 연습한다.
-    lessons: [],
+    lessons: ["flow1", "flow2", "flow3"],
     related: ["m3", "a1"],
-    ready: false,
+    ready: true,
   },
 ];
 

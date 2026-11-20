@@ -6,6 +6,7 @@ import { segVar } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
 import { AuthLinks } from "@/components/AuthLinks";
 import { ScoreLine } from "@/components/ScoreLine";
+import { Tour } from "@/components/Tour";
 import { SETTINGS_KEY, applyLargeText } from "@/components/Header";
 import { LESSONS } from "@/data/curriculum";
 import { EXPERIENCE, JOB } from "@/data/jobs";
@@ -94,6 +95,32 @@ function Avatar() {
   );
 }
 
+// 진단 변화(작업 I-3): 로그인했고 첫 진단보다 요소를 더 채웠을 때만 한 줄을 보인다. 계산은 lib/diagnosisTrend.js
+function DiagnosisGrowth({ at }) {
+  const { user } = useAppState();
+  const [trend, setTrend] = useState(null);
+  useEffect(() => {
+    if (!user) return;
+    let live = true;
+    fetch("/api/me/trend", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => live && setTrend(d))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [user, at]);
+  if (!user || !(trend?.growth > 0)) return null;
+  return (
+    <p className={`small ${styles.growth}`} data-tour="mypage-growth">
+      처음 진단보다 요소 <strong className="mono">{trend.growth}</strong>개를 더 채웠어요{" "}
+      <span className="muted">
+        (<span className="mono">{trend.from}</span>개 → <span className="mono">{trend.to}</span>개)
+      </span>
+    </p>
+  );
+}
+
 function Profile({ profile, diagnosis, name }) {
   const lastDate = formatDate(diagnosis?.at);
   return (
@@ -130,6 +157,7 @@ function Profile({ profile, diagnosis, name }) {
               <dd>{lastDate ?? "기록 없음"}</dd>
             </div>
           </dl>
+          <DiagnosisGrowth at={diagnosis?.at} />
           <div className={styles.actions}>
             {diagnosis && (
               <Link href="/diagnosis/result" className="btn small">
@@ -159,13 +187,13 @@ function Progress({ record }) {
   const done = LESSONS.filter((l) => record.completed.includes(l.id)).length;
   return (
     <>
-      <div className={styles.stats}>
+      <div className={styles.stats} data-tour="mypage-stats">
         <p className="xp">
           <span className="mono">{record.xp}</span>XP
         </p>
         <ScoreLine />
         <p className="small muted">
-          완료한 레슨 <span className="mono">{done}</span> / <span className="mono">{LESSONS.length}</span>
+          완료한 미션 <span className="mono">{done}</span> / <span className="mono">{LESSONS.length}</span>
         </p>
       </div>
       <span className="bar" aria-hidden="true">
@@ -258,7 +286,7 @@ export default function Mypage() {
   }
 
   function clearAll() {
-    const where = user ? " 계정에 저장된 기록도 함께 지워져요. 랭킹 점수(강의마다 처음 받은 점수)는 남아요." : "";
+    const where = user ? " 계정에 저장된 기록도 함께 지워져요. 랭킹 점수(미션마다 처음 받은 점수)는 남아요." : "";
     if (!window.confirm(`진단 결과, 학습 기록, 페이지 설정을 모두 지울까요?${where} 지우면 되돌릴 수 없어요.`)) return;
     reset();
     try {
@@ -274,6 +302,7 @@ export default function Mypage() {
   return (
     <div className="page">
       {/* 한 줄로 쌓아 아래로 스크롤하며 본다. 맨 위는 이름과 사진 자리에 내 정보를 담는다. */}
+      <Tour id="mypage" when={ready} />
       <div className={styles.column}>
         <h1 className={`display ${styles.pageTitle}`}>마이페이지</h1>
 
@@ -336,7 +365,7 @@ export default function Mypage() {
               <Switch
                 id="notify-study"
                 label="학습 알림 받기"
-                desc="정한 시간에 오늘 할 레슨을 알려 드려요."
+                desc="정한 시간에 오늘 할 미션을 알려 드려요."
                 checked={settings.studyReminder}
                 onChange={(v) => update({ studyReminder: v })}
               />

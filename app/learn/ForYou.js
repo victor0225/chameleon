@@ -6,14 +6,21 @@ import { useEffect, useState } from "react";
 import { useAppState } from "@/components/AppState";
 import { ElementChip } from "@/components/LessonRunner";
 import { AuthLinks } from "@/components/AuthLinks";
+import { COURSE } from "@/data/courses";
 import { josa } from "@/lib/josa";
 import { ITEM } from "@/lib/items";
 import s from "./learn.module.css";
 
+// "과정 3 파일 활용", 과정 1이면 "과정 1 프롬프트 작성 · 중급"
+const courseLabel = (item) => {
+  const course = COURSE[item.course ?? "prompt"];
+  return [course && `과정 ${course.no} ${course.title}`, item.level].filter(Boolean).join(" · ");
+};
+
 export function ForYou({ onOpen }) {
   const { authChecked, user, login, flush, record, diagnosis } = useAppState();
   const [plan, setPlan] = useState(null);
-  // 강의를 마치거나 새로 진단하면 다시 고른다.
+  // 미션을 마치거나 새로 진단하면 다시 고른다.
   const key = [user?.id, diagnosis?.at, record.completed.join(","), JSON.stringify(record.history[0] ?? null)].join("|");
 
   useEffect(() => {
@@ -34,10 +41,10 @@ export function ForYou({ onOpen }) {
 
   if (!user) {
     return (
-      <section className={s.forYouCta} aria-labelledby="for-you-title">
+      <section className={s.forYouCta} aria-labelledby="for-you-title" data-tour="learn-foryou">
         <div>
           <h2 id="for-you-title">나를 위한 커리큘럼</h2>
-          <p className={s.muted}>로그인하면 진단과 실습 기록을 보고, 지금 나에게 필요한 강의를 골라 드려요.</p>
+          <p className={s.muted}>로그인하면 진단과 실습 기록을 보고, 지금 나에게 필요한 미션을 골라 드려요.</p>
         </div>
         <AuthLinks next="/learn" />
       </section>
@@ -46,7 +53,7 @@ export function ForYou({ onOpen }) {
 
   const focus = plan?.focus ? ITEM[plan.focus] : null;
   return (
-    <section className={s.forYou} aria-labelledby="for-you-title" aria-busy={!plan}>
+    <section className={s.forYou} aria-labelledby="for-you-title" aria-busy={!plan} data-tour="learn-foryou">
       <div className={s.forYouHead}>
         <h2 id="for-you-title">나를 위한 커리큘럼</h2>
         {focus && (
@@ -67,7 +74,7 @@ export function ForYou({ onOpen }) {
         </div>
       )}
       {plan?.error && <p className={s.muted}>커리큘럼을 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.</p>}
-      {plan?.items?.length === 0 && <p className={s.muted}>모든 강의를 마쳤어요. 프롬프트 도우미에서 실제 업무에 써 보세요.</p>}
+      {plan?.items?.length === 0 && <p className={s.muted}>모든 미션을 마쳤어요. 프롬프트 도우미에서 실제 업무에 써 보세요.</p>}
       {plan?.items?.length > 0 && (
         <ol className={s.forYouList}>
           {plan.items.map((item, i) => (
@@ -75,8 +82,8 @@ export function ForYou({ onOpen }) {
               <button type="button" className={s.forYouItem} onClick={() => onOpen(item.lessonId)}>
                 <span className={s.forYouTop}>
                   <span className={s.no}>{i + 1}</span>
-                  <ElementChip id={item.focus} />
-                  <span className={s.forYouLevel}>{item.level}</span>
+                  {item.focus && <ElementChip id={item.focus} />}
+                  <span className={s.forYouLevel}>{courseLabel(item)}</span>
                 </span>
                 <span className={s.rowTitle}>{item.title}</span>
                 <ul className={s.forYouReasons}>

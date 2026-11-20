@@ -6,6 +6,7 @@ import * as api from "@/lib/api";
 import { AnatomyText, ScaleBar, segVar } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
 import { AttachedLine, ClipIcon, ExpiredNotice } from "@/components/FileAttach";
+import { Tour } from "@/components/Tour";
 import { courseSignals } from "@/lib/courseSignals";
 import { fileCoaching } from "@/lib/fileSignals";
 import { COURSE } from "@/data/courses";
@@ -136,7 +137,7 @@ function GuessSection({ guess, error, onRetry, notice }) {
   }
 
   return (
-    <section className={s.section} aria-labelledby="result-guess">
+    <section className={s.section} aria-labelledby="result-guess" data-tour="result-guess">
       <h2 id="result-guess">AI는 이렇게 추측했어요</h2>
       {body}
       <div className={`${s.guessActions} ${s.noPrint}`}>
@@ -221,6 +222,7 @@ export default function DiagnosisResult() {
 
   return (
     <div className={s.wrap}>
+      <Tour id="result" />
       <div className={s.noPrint}>
         <Progress step={3} />
       </div>
@@ -261,7 +263,7 @@ export default function DiagnosisResult() {
           </p>
         </section>
 
-        <section className={s.section} aria-labelledby="result-prompt">
+        <section className={s.section} aria-labelledby="result-prompt" data-tour="result-prompt">
           <h2 id="result-prompt">내가 쓴 프롬프트</h2>
           <AnatomyText text={prompt} segments={segments} className={s.promptBox} />
           <AttachedLine files={files} />
@@ -303,7 +305,7 @@ export default function DiagnosisResult() {
       </article>
 
       {diagnosis.before ? (
-        <section className={`${s.compareCta} ${s.noPrint}`} aria-labelledby="compare-cta">
+        <section className={`${s.compareCta} ${s.noPrint}`} aria-labelledby="compare-cta" data-tour="result-compare">
           <div>
             <h2 id="compare-cta">고친 프롬프트로 결과가 어떻게 달라졌을까요?</h2>
             <p className="small muted">고치기 전 프롬프트와 내가 고친 프롬프트로 같은 일을 시켜, 두 결과를 나란히 보여 줘요.</p>
@@ -314,7 +316,7 @@ export default function DiagnosisResult() {
         </section>
       ) : (
         missing.length > 0 && (
-          <section className={`${s.compareCta} ${s.noPrint}`} aria-labelledby="compare-cta">
+          <section className={`${s.compareCta} ${s.noPrint}`} aria-labelledby="compare-cta" data-tour="result-compare">
             <div>
               <h2 id="compare-cta">빠진 요소를 채우면 결과가 어떻게 달라질까요?</h2>
               <p className="small muted">AI가 다듬은 프롬프트로 같은 일을 시켜, 두 결과를 나란히 보여 줘요.</p>
@@ -353,7 +355,7 @@ export default function DiagnosisResult() {
           <Link href="/learn" className={`service-card ${s.service}`}>
             <span className="service-no">서비스 2</span>
             <strong>AI 활용 교육</strong>
-            <span className="flow">짧은 강의 → 문제 풀이 → 평가·피드백 → 레벨 상승</span>
+            <span className="flow">배우기 → 해 보기 → 피드백 → 레벨 상승</span>
           </Link>
         </div>
       </section>
@@ -373,7 +375,7 @@ function NextCourses({ diagnosis, survey }) {
   }, [shown]);
   if (!shown) return null;
   return (
-    <section ref={ref} className={`${s.next} ${s.nextCourses} ${s.noPrint}`} aria-labelledby="next-course">
+    <section ref={ref} className={`${s.next} ${s.nextCourses} ${s.noPrint}`} aria-labelledby="next-course" data-tour="result-next">
       <div className={s.nextHead}>
         <h2 id="next-course" className="display">
           다음에 배울 과정

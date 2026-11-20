@@ -7,6 +7,7 @@ import { ScaleBar, segVar } from "@/components/Anatomy";
 import { JOB } from "@/data/jobs";
 import { ITEM } from "@/lib/items";
 import { GUEST, useAppState } from "@/components/AppState";
+import { Tour } from "@/components/Tour";
 const SHAPES = [
   { id: "auto", name: "정하지 않음" },
   { id: "text", name: "글" },
@@ -125,6 +126,7 @@ export default function PromptHelper() {
         </p>
       )}
 
+      <Tour id="helper" />
       <div className="helper">
         <form
           className="card helper-form"
@@ -133,7 +135,7 @@ export default function PromptHelper() {
             generate();
           }}
         >
-          <div className="field">
+          <div className="field" data-tour="helper-input">
             <label htmlFor="purpose">무엇을 하고 싶나요?</label>
             <textarea
               id="purpose"
@@ -187,7 +189,7 @@ export default function PromptHelper() {
           )}
         </form>
 
-        <section className="card output-card" aria-live="polite" aria-busy={busy !== ""}>
+        <section className="card output-card" aria-live="polite" aria-busy={busy !== ""} data-tour="helper-questions">
           {busy === "generate" ? (
             <div className="skeleton" aria-label="프롬프트를 만드는 중">
               {[72, 90, 64, 84, 58].map((w) => (

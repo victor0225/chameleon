@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { findAnyLesson } from "../data/courses.js";
+import { COURSES, findAnyLesson } from "../data/courses.js";
 import { gradeSort, gradeSpot } from "../lib/server/practice.js";
-import { areaScores, lessonPoints, nicknameError, rankRows } from "../lib/scoreboard.js";
+import { areaScores, buildRanking, lessonPoints, nicknameError, rankRows } from "../lib/scoreboard.js";
 
 const lesson = (id) => findAnyLesson(id);
 const met = (...flags) => ({ criteria: flags.map((m) => ({ label: "", item: null, met: m })) });
@@ -31,23 +31,24 @@ test("spot 강의: 맞는 문장을 틀렸다고 고른 만큼 빼고, 0 아래�
   assert.equal(lessonPoints(ver1, { score: { found: 1, total: 4, falsePicks: 3 } }), 0);
 });
 
-test("부문 점수: 푼 강의들의 평균, 안 푼 부문은 0점, 같이 보면 좋은 강의는 원래 과정에만 센다", () => {
-  const r = areaScores({ b1: 100, m3: 50, mem1: 88, ver1: 75, nope: 100 });
+test("부문 점수: 푼 미션들의 평균, 안 푼 부문은 0점, 같이 해 보면 좋은 미션은 원래 과정에만 센다", () => {
+  const r = areaScores({ b1: 100, m3: 50, mem1: 88, mem3: 60, ver1: 75, flow2: 40, nope: 100 });
   const score = Object.fromEntries(r.areas.map((a) => [a.course, a.score]));
-  // m3는 과정 6의 같이 보면 좋은 강의지만 과정 1(prompt)에만 들어간다.
-  assert.deepEqual(score, { prompt: 75, memory: 88, file: 0, verify: 75, tool: 0, flow: null });
-  assert.equal(r.total, 75 + 88 + 75);
-  assert.equal(r.done, 4, "모르는 강의 id는 세지 않는다");
+  // m3는 과정 6의 같이 해 보면 좋은 미션이지만 과정 1(prompt)에만 들어간다.
+  assert.deepEqual(score, { prompt: 75, memory: 74, file: 0, verify: 75, tool: 0, flow: 40 });
+  assert.equal(r.total, 75 + 74 + 75 + 40);
+  assert.equal(r.done, 6, "모르는 미션 id는 세지 않는다");
 });
 
-test("준비 중 과정은 합계와 만점에서 빼고, 만점은 열린 과정 수 × 100", () => {
+test("여섯 과정이 모두 열려 만점은 600점, 준비 중 과정은 합계와 만점에서 뺀다", () => {
   const empty = areaScores({});
   assert.equal(empty.total, 0);
-  assert.equal(empty.max, 500);
-  assert.deepEqual(
-    empty.areas.find((a) => a.course === "flow"),
-    { course: "flow", score: null, done: 0 },
-  );
+  assert.equal(empty.max, 600);
+  const notReady = COURSES.map((c) => (c.id === "flow" ? { ...c, ready: false } : c));
+  const r = areaScores({ b1: 100, flow1: 100 }, notReady);
+  assert.equal(r.max, 500);
+  assert.equal(r.total, 100);
+  assert.deepEqual(r.areas.find((a) => a.course === "flow"), { course: "flow", score: null, done: 0 });
 });
 
 test("순위: 합계가 높은 순, 같으면 푼 강의가 많은 순, 그래도 같으면 같은 순위", () => {
@@ -71,4 +72,31 @@ test("별명: 2~12자, 한글·영문·숫자·띄어쓰기만", () => {
   assert.match(nicknameError("열세글자가넘는아주긴별명이에요"), /2~12자/);
   assert.match(nicknameError("<script>"), /한글, 영문, 숫자/);
   assert.match(nicknameError(42), /2~12자/);
+});
+
+test("가짜 행으로 랭킹 만들기: 참여한 사람만 표에, 나는 참여 전이어도 점수가 있고, 직무로 거른다", () => {
+  const people = [
+    { id: "u1", nickname: "예시 사용자 1", ranked: true, demo: true, job: "office" },
+    { id: "u2", nickname: "별명2", ranked: true, demo: false, job: "marketing" },
+    { id: "me", nickname: null, ranked: false, demo: false, job: "office" },
+  ];
+  const firstRows = [
+    { user_id: "u1", lesson_id: "b1", score: 100 },
+    { user_id: "u1", lesson_id: "mem1", score: 50 },
+    { user_id: "u2", lesson_id: "tool1", score: 83 },
+    { user_id: "me", lesson_id: "ver1", score: 75 },
+  ];
+  const all = buildRanking({ people, firstRows, meId: "me" });
+  assert.deepEqual(
+    all.top.map((r) => [r.rank, r.nickname, r.total, r.demo, r.me]),
+    [
+      [1, "예시 사용자 1", 150, true, false],
+      [2, "별명2", 83, false, false],
+    ],
+  );
+  assert.equal(all.me.total, 75);
+  assert.equal(all.me.rank, null, "참여 전이면 순위가 없다");
+  assert.deepEqual(buildRanking({ people, firstRows, job: "marketing" }).top.map((r) => r.nickname), ["별명2"]);
+  assert.equal(buildRanking({ people, firstRows, limit: 1 }).top.length, 1);
+  assert.equal(buildRanking({ people, firstRows }).me, null, "로그인 전이면 me가 없다");
 });

@@ -24,7 +24,7 @@ test("약한 요소: 진단에서 빠진 요소와 최근 실습에서 못 넘�
   );
   const criteria = weak.find((w) => w.id === "criteria");
   assert.equal(criteria.missed, 2);
-  assert.match(criteria.reasons[0], /기준 기준을 2번 못 넘었어요/);
+  assert.match(criteria.reasons[0], /최근 실습에서 기준을 2번 못 넘었어요/);
   assert.match(weak[0].reasons.join(), /형식이 빠져 있었어요/);
 });
 
@@ -55,7 +55,7 @@ test("커리큘럼: 끝낸 강의는 빼고, 지난번에 못 넘은 강의는 �
   const ids = plan.items.map((i) => i.lessonId);
   assert.ok(!ids.includes("b1") && !ids.includes("b3"));
   assert.equal(ids[0], "b2");
-  assert.equal(plan.items[0].reasons[0], "지난번에 이 강의를 통과하지 못했어요");
+  assert.equal(plan.items[0].reasons[0], "지난번에 이 미션을 통과하지 못했어요");
 });
 
 test("커리큘럼: 내 수준을 다 마치면 다음 단계 강의를 고르고, 위 단계는 미리 고르지 않는다", () => {

@@ -122,7 +122,7 @@ test("랭킹: 강의마다 점수가 있는 첫 기록만 세고, 참여한 사�
     // 참여 전에도 내 점수는 보이고, 순위는 없다.
     let r = await ranking.loadRanking(a.id, null);
     assert.equal(r.me.total, 128);
-    assert.equal(r.me.max, 500);
+    assert.equal(r.me.max, 600);
     assert.equal(r.me.rank, null);
 
     const nickA = `T${process.pid}`.slice(0, 12);
@@ -161,5 +161,66 @@ test("랭킹: 강의마다 점수가 있는 첫 기록만 세고, 참여한 사�
     assert.ok(!r.top.some((t) => t.nickname === nickA));
   } finally {
     await db.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [[a.id, b.id]]);
+  }
+});
+
+test("개인화 읽기: 최근 진단 다섯 개와 첫 진단, 내 부문 점수, 같은 직무 평균(5명부터)", { skip }, async () => {
+  const { db, users } = await load();
+  const ranking = await import("../lib/server/ranking.js");
+  const { recentDiagnoses } = await import("../lib/server/history.js");
+  const people = [];
+  try {
+    for (let i = 0; i < 5; i++) {
+      const u = await users.createUser({ loginId: `${ID}p${i}`, password: "12345678", name: "개인화" });
+      people.push(u.id);
+      await db.query("INSERT INTO profiles (user_id, job) VALUES ($1, 'dev')", [u.id]);
+      await users.recordAttempt(u.id, { lessonId: "file2", passed: true, found: [], missed: [], score: 100 });
+    }
+    const me = people[0];
+    for (let day = 1; day <= 7; day++) {
+      await db.query(
+        "INSERT INTO diagnoses (user_id, at, job, level, prompt, found, missing) VALUES ($1, $2, 'dev', '초급', '진단', $3, '{}')",
+        [me, `2026-11-0${day}T09:00:00Z`, ["goal", "context", "format"].slice(0, Math.min(day, 3))],
+      );
+    }
+    const list = await recentDiagnoses(me, 5);
+    assert.deepEqual(
+      list.map((d) => d.at.slice(0, 10)),
+      ["2026-11-07", "2026-11-06", "2026-11-05", "2026-11-04", "2026-11-03", "2026-11-01"],
+      "최근 다섯 개 뒤에 첫 진단",
+    );
+    assert.deepEqual(list.at(-1).found, ["goal"]);
+
+    const mine = await ranking.myAreas(me);
+    assert.equal(mine.areas.find((a) => a.course === "file").score, 100);
+    const averages = await ranking.jobAverages("dev");
+    assert.ok(averages.file.n >= 5);
+    assert.ok(Object.values(averages).every((a) => a.n >= 5), "5명보다 적은 부문은 평균이 없다");
+    assert.deepEqual(await ranking.jobAverages(null), {});
+  } finally {
+    await db.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [people]);
+  }
+});
+
+test("화면 안내 기록: 넣고 고치고, 합칠 때는 있는 줄을 그대로 둔다(tour_views 표가 있을 때만)", { skip }, async () => {
+  const { db, users } = await load();
+  const { rows } = await db.query("SELECT to_regclass('tour_views') AS t");
+  if (!rows[0].t) return; // 표는 팀원이 만든다. 아직 없으면 API가 off로 답한다(브라우저 기록만 씀).
+  const tour = await import("../lib/server/tour.js");
+  const u = await users.createUser({ loginId: `${ID}t`, password: "12345678", name: "안내" });
+  try {
+    await tour.saveTourView(u.id, { tourId: "mission", status: "skipped", step: 1, merge: false });
+    const first = (await db.query("SELECT first_at FROM tour_views WHERE user_id = $1", [u.id])).rows[0].first_at;
+    await tour.saveTourView(u.id, { tourId: "mission", status: "done", step: 2, merge: false });
+    await tour.saveTourView(u.id, { tourId: "mission", status: "skipped", step: 0, merge: true });
+    await tour.saveTourView(u.id, { tourId: "home", status: "done", step: 0, merge: true });
+    assert.deepEqual(await tour.loadTourViews(u.id), { mission: "done", home: "done" });
+    const row = (await db.query("SELECT step, first_at FROM tour_views WHERE user_id = $1 AND tour_id = 'mission'", [u.id])).rows[0];
+    assert.equal(row.step, 2);
+    assert.equal(row.first_at.getTime(), first.getTime(), "다시 봐도 처음 본 시각은 그대로");
+    await users.clearData(u.id);
+    assert.deepEqual(Object.keys(await tour.loadTourViews(u.id)).sort(), ["home", "mission"], "기록 지우기는 안내 기록을 지우지 않는다");
+  } finally {
+    await db.query("DELETE FROM users WHERE id = $1", [u.id]);
   }
 });

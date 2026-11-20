@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ElementChip, LessonRunner, itemVars } from "@/components/LessonRunner";
 import { GUEST, useAppState } from "@/components/AppState";
 import { ScoreLine } from "@/components/ScoreLine";
+import { Tour } from "@/components/Tour";
 import { LESSONS, XP_PER_LESSON } from "@/data/curriculum";
 import { COURSE, COURSES, findAnyLesson } from "@/data/courses";
 import { courseSignals } from "@/lib/courseSignals";
@@ -64,7 +65,7 @@ function RecordPanel({ record, myLevel, onOpen }) {
     openAt(weakest.id, myLevel) ?? LESSONS.find((l) => l.focus === weakest.id && !record.completed.includes(l.id)) ?? null;
 
   return (
-    <aside className={s.record} aria-labelledby="record-title">
+    <aside className={s.record} aria-labelledby="record-title" data-tour="learn-record">
       <h2 id="record-title">학습 기록</h2>
 
       <div className={s.section}>
@@ -82,7 +83,7 @@ function RecordPanel({ record, myLevel, onOpen }) {
             </>
           ) : (
             <>
-              {myLevel} 강의 <strong>{done}/{track.length}</strong>
+              {myLevel} 미션 <strong>{done}/{track.length}</strong>
             </>
           )}
         </span>
@@ -118,7 +119,7 @@ function RecordPanel({ record, myLevel, onOpen }) {
       <div className={s.section}>
         <h3>최근 기록</h3>
         {record.history.length === 0 ? (
-          <p className={s.muted}>아직 기록이 없어요. 첫 강의부터 시작해 보세요.</p>
+          <p className={s.muted}>아직 기록이 없어요. 첫 미션부터 시작해 보세요.</p>
         ) : (
           <ul className={s.recent}>
             {record.history.map((h, i) => (
@@ -139,7 +140,7 @@ function RecordPanel({ record, myLevel, onOpen }) {
 function LevelUpBanner({ from, onStart, onClose }) {
   const to = nextLevel(from);
   return (
-    <section className={s.levelup} aria-live="polite" aria-label="레벨업">
+    <section className={s.levelup} aria-live="polite" aria-label="레벨업" data-tour-wait="">
       <span className={s.bars} aria-hidden="true">
         {ITEMS.map((item) => (
           <span key={item.id} style={{ background: item.color }} />
@@ -148,8 +149,8 @@ function LevelUpBanner({ from, onStart, onClose }) {
       <div className={s.levelupText}>
         <p className={s.levelupTitle}>
           {to
-            ? `${from} 다섯 레슨을 모두 마쳤어요. 이제 ${josa(to, ["이에요", "예요"])}.`
-            : `${from} 다섯 레슨까지 모두 마쳤어요. 이제 실제 업무에 써 보세요.`}
+            ? `${from} 다섯 미션을 모두 마쳤어요. 이제 ${josa(to, ["이에요", "예요"])}.`
+            : `${from} 다섯 미션까지 모두 마쳤어요. 이제 실제 업무에 써 보세요.`}
         </p>
         <p className={s.levelupSub}>
           {to ? LEVEL_NEXT_LINE[to] : "프롬프트 도우미에서 내 업무 프롬프트를 바로 만들어 볼 수 있어요."}
@@ -157,7 +158,7 @@ function LevelUpBanner({ from, onStart, onClose }) {
       </div>
       {to ? (
         <button type="button" className={s.levelupCta} onClick={onStart}>
-          {to} 첫 강의 시작
+          {to} 첫 미션 시작
         </button>
       ) : (
         <Link href="/prompt" className={s.levelupCta} onClick={onClose}>
@@ -242,7 +243,7 @@ function CourseCard({ course, completed, recommended }) {
           <span style={{ width: `${Math.round((done / total) * 100)}%` }} />
         </span>
         <span className={s.courseCount}>
-          {done} / {total}강
+          {done} / {total}개
         </span>
       </span>
     </Link>
@@ -259,13 +260,13 @@ function CourseDetail({ course, completed, onOpen }) {
       {!course.ready && (
         <p className={s.notice}>
           <span className={s.soonTag}>준비 중</span>
-          강의를 준비하고 있어요. 지금은 아래 강의로 먼저 연습해 보세요.
+          미션을 준비하고 있어요. 지금은 아래 미션으로 먼저 연습해 보세요.
         </p>
       )}
       {lessons.length > 0 && (
         <section className={s.courseSection} aria-labelledby="course-lessons">
           <h2 id="course-lessons" className={s.coursesTitle}>
-            강의
+            미션
           </h2>
           <ol className={s.courseLessons}>
             {lessons.map((l, i) => {
@@ -284,7 +285,7 @@ function CourseDetail({ course, completed, onOpen }) {
                     </span>
                     <span className={s.rowBody}>
                       <span className={s.rowTitle}>{l.title}</span>
-                      <span className={s.rowSum}>실습: {l.summary}</span>
+                      <span className={s.rowSum}>해 보기: {l.summary}</span>
                     </span>
                     <span className={s.lessonEnd}>
                       <span className={s.lessonXp}>{done ? "완료" : `${l.xp ?? XP_PER_LESSON} XP`}</span>
@@ -303,7 +304,7 @@ function CourseDetail({ course, completed, onOpen }) {
       {related.length > 0 && (
         <section className={s.courseSection} aria-labelledby="course-related">
           <h2 id="course-related" className={s.coursesTitle}>
-            같이 보면 좋은 강의
+            같이 해 보면 좋은 미션
           </h2>
           <ul className={s.relatedList}>
             {related.map((l) => (
@@ -469,9 +470,10 @@ function Learn() {
     return (
       <div className={s.page}>
         {banner}
+        <Tour id="learn" />
 
         <h1 className={s.title}>AI 활용 교육</h1>
-        <p className={s.lede}>강의 하나는 강의 → 실습 → 평가·피드백 순서로 진행해요.</p>
+        <p className={s.lede}>미션 하나는 배우기 → 해 보기 → 피드백 순서로 진행해요.</p>
 
         {ready && !profile && (
           <p className={s.notice}>
@@ -488,7 +490,7 @@ function Learn() {
         <ForYou onOpen={(id) => open(findAnyLesson(id))} />
 
         <div className={s.layout}>
-          <section className={s.list} aria-labelledby="courses-title">
+          <section className={s.list} aria-labelledby="courses-title" data-tour="learn-courses">
             <h2 id="courses-title" className={s.coursesTitle}>
               여섯 과정
             </h2>

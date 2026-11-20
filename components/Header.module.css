@@ -69,3 +69,25 @@
 .login:hover {
   background: #24332c;
 }
+
+/* "화면 안내" 다시 보기(작업 J) */
+.tourButton {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tourButton:hover {
+  color: var(--ink);
+  background: var(--wash);
+}
+
+.tourButton:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}

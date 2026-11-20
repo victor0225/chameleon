@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAppState } from "@/components/AppState";
 import { AuthLinks } from "@/components/AuthLinks";
+import { Tour } from "@/components/Tour";
 import { COURSE } from "@/data/courses";
 import { JOB } from "@/data/jobs";
 import s from "./ranking.module.css";
@@ -37,7 +38,7 @@ function weakestArea(areas) {
 function MyScore({ me, onLeave, busy }) {
   const weak = weakestArea(me.areas);
   return (
-    <section className={`card ${s.mine}`} aria-labelledby="my-score">
+    <section className={`card ${s.mine}`} aria-labelledby="my-score" data-tour="ranking-me">
       <div className={s.mineHead}>
         <h2 id="my-score" className={s.cardTitle}>
           내 점수
@@ -55,9 +56,10 @@ function MyScore({ me, onLeave, busy }) {
         <span className="mono">{me.total}</span>
         <span className={s.max}>/ {me.max}</span>
       </p>
-      <ul className={s.areas} aria-label="부문 점수">
+      <ul className={s.areas} aria-label="부문 점수" data-tour="ranking-areas">
         {me.areas.map((a) => {
           const course = COURSE[a.course];
+          const avg = me.averages?.[a.course]?.avg;
           return (
             <li key={a.course}>
               <span className={s.areaName}>{course.title}</span>
@@ -68,10 +70,16 @@ function MyScore({ me, onLeave, busy }) {
                 </>
               ) : (
                 <>
-                  <span className="bar" aria-hidden="true">
-                    <span style={{ width: `${a.score}%` }} />
+                  <span className={s.barWrap} aria-hidden="true">
+                    <span className="bar">
+                      <span style={{ width: `${a.score}%` }} />
+                    </span>
+                    {avg !== undefined && <span className={s.avgLine} style={{ left: `${avg}%` }} />}
                   </span>
-                  <span className="mono">{a.score}</span>
+                  <span className="mono">
+                    {a.score}
+                    {avg !== undefined && <span className={s.srOnly}>, 같은 직무 평균 {avg}</span>}
+                  </span>
                 </>
               )}
             </li>
@@ -87,6 +95,12 @@ function MyScore({ me, onLeave, busy }) {
         </p>
       )}
       <p className="small muted">부문마다 처음 푼 점수의 평균이에요. 다시 푼 점수는 들어가지 않아요.</p>
+      {me.averages && Object.keys(me.averages).length > 0 && JOB[me.job] && (
+        <p className={`small muted ${s.avgNote}`}>
+          <span className={s.avgKey} aria-hidden="true" />
+          얇은 선은 같은 {JOB[me.job].name} 직무 평균이에요. 예시 사용자 포함
+        </p>
+      )}
     </section>
   );
 }
@@ -95,6 +109,7 @@ function JoinForm({ onJoin, busy, error }) {
   const [nickname, setNickname] = useState("");
   return (
     <form
+      data-tour="ranking-join"
       className={`card ${s.join}`}
       onSubmit={(e) => {
         e.preventDefault();
@@ -233,6 +248,7 @@ export default function RankingPage() {
 
   return (
     <div className="page">
+      <Tour id="ranking" when={Boolean(data)} />
       <div className={s.column}>
         {head}
 
@@ -258,7 +274,7 @@ export default function RankingPage() {
             {data.me && !data.me.ranked && (
               <JoinForm busy={busy} error={joinError} onJoin={(nickname) => change({ ranked: true, nickname })} />
             )}
-            <div className="seg-toggle" role="group" aria-label="랭킹 범위">
+            <div className="seg-toggle" role="group" aria-label="랭킹 범위" data-tour="ranking-tabs">
               <button type="button" aria-pressed={tab === "all"} onClick={() => setTab("all")}>
                 전체
               </button>
@@ -266,6 +282,7 @@ export default function RankingPage() {
                 내 직무{JOB[myJob] ? `(${JOB[myJob].name})` : ""}
               </button>
             </div>
+            {data.top.some((r) => r.demo) && <p className="small muted">시연용 예시 사용자가 들어 있어요.</p>}
             <Board top={data.top} me={data.me} />
           </section>
         )}

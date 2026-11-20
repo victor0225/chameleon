@@ -8,27 +8,29 @@ import { analyze } from "@/lib/anatomy";
 import { ITEMS } from "@/lib/items";
 import { Output } from "@/components/Anatomy";
 import { CoachCard, ElementChip, foundOf, marksOf, MetIcon, MiniBar, MissIcon, PromptEditor, PromptText } from "./lessonBits";
+import { Tour } from "./Tour";
 import { MaterialPanel, PracticeChoose, PracticeFile, PracticeSort, PracticeSpot } from "./Practice";
 import s from "./lesson.module.css";
 
 export { ElementChip, itemVars, marksOf, MiniBar, PromptText } from "./lessonBits";
 
 const STAGES = [
-  { id: "lecture", name: "강의" },
-  { id: "practice", name: "실습" },
-  { id: "result", name: "평가·피드백" },
+  { id: "lecture", name: "배우기" },
+  { id: "practice", name: "해 보기" },
+  { id: "result", name: "피드백" },
 ];
 const BLANK_NAMES = /\{\{([^{}\n]+)\}\}/g;
 
 function Steps({ index }) {
   return (
-    <ol className={s.steps} aria-label="강의 진행">
+    <ol className={s.steps} aria-label="미션 진행" data-tour="mission-steps">
       {STAGES.map((st, i) => (
         <Fragment key={st.id}>
           {i > 0 && <li aria-hidden="true" className={`${s.stepLine} ${i <= index ? s.lineDone : ""}`} />}
           <li
             className={`${s.step} ${i === index ? s.now : i < index ? s.done : ""}`}
             aria-current={i === index ? "step" : undefined}
+            data-tour={st.id === "practice" ? "mission-try" : undefined}
           >
             {i < index ? (
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -173,7 +175,7 @@ export function LessonRunner({
     setError,
     go,
     onNext,
-    nextLabel: nextLabel ?? (isLast ? "강의 목록으로" : "다음 강의"),
+    nextLabel: nextLabel ?? (isLast ? "미션 목록으로" : "다음 미션"),
     onOpenCourse,
   };
 
@@ -193,10 +195,14 @@ export function LessonRunner({
 
   const metCount = grade?.criteria.filter((c) => c.met).length ?? 0;
   const coachCriterion = grade?.coaching ? lesson.criteria.find((c) => c.question === grade.coaching.question) : null;
-  const outputNote = grade?.source === "rule" && !grade.passed ? lesson.outputs?.weakNote : null;
+  // noRun 미션(tool2)은 늘 미리 만든 예시라 안내를 늘 붙인다. 나머지는 키 없이 채점해 통과하지 못했을 때만.
+  const outputNote = lesson.noRun || (grade?.source === "rule" && !grade.passed) ? lesson.outputs?.weakNote : null;
 
   return (
     <div className={`${s.wrap} ${stage === "lecture" ? s.narrow : ""} ${stage === "result" ? s.result : ""}`}>
+      {/* 화면 안내(작업 J): 미션을 처음 열 때, 피드백을 처음 볼 때 */}
+      <Tour id="mission" when={stage !== "result"} />
+      <Tour id="feedback" when={stage === "result" && Boolean(grade)} />
       <div className={s.top}>
         <button type="button" className={s.back} onClick={onExit}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -215,11 +221,13 @@ export function LessonRunner({
           {lesson.focus && <ElementChip id={lesson.focus} />}
         </p>
         <h1 className={s.title}>{lesson.title}</h1>
+        {/* 화면 안내를 건너뛰어도 첫 시도 점수 규칙은 늘 보이게 한다(작업 J). */}
+        {stage === "practice" && <p className={s.firstNote}>처음 푼 점수가 부문 점수에 들어가요.</p>}
       </div>
 
       {stage === "lecture" && (
         <>
-          <section className={`${s.card} ${s.core}`} aria-labelledby="lesson-core">
+          <section className={`${s.card} ${s.core}`} aria-labelledby="lesson-core" data-tour="mission-learn">
             <h2 id="lesson-core" className={s.smallTitle}>
               핵심
             </h2>
@@ -254,7 +262,7 @@ export function LessonRunner({
           <section className={`${s.card} ${s.mission}`} aria-labelledby="lesson-mission">
             <div>
               <h2 id="lesson-mission" className={s.missionTitle}>
-                미션
+                할 일
               </h2>
               <p className={s.missionText}>{lesson.mission}</p>
             </div>
@@ -264,7 +272,7 @@ export function LessonRunner({
             </div>
             <div className={s.actions}>
               <button type="button" className={s.primary} onClick={() => go("practice")}>
-                실습하러 가기
+                해 보러 가기
               </button>
               <button type="button" className={s.secondary} onClick={onExit}>
                 목록으로
@@ -285,7 +293,7 @@ export function LessonRunner({
         <>
           <section className={`${s.card} ${s.missionCard}`} aria-labelledby="practice-mission">
             <h2 id="practice-mission" className={s.smallTitle}>
-              미션
+              할 일
             </h2>
             <p>{lesson.mission}</p>
           </section>
@@ -384,7 +392,7 @@ export function LessonRunner({
 
       {stage === "result" && grade && !Practice && (
         <>
-          <section className={`${s.card} ${s.verdict}`} aria-live="polite" aria-labelledby="verdict">
+          <section className={`${s.card} ${s.verdict}`} aria-live="polite" aria-labelledby="verdict" data-tour="feedback-score">
             <h2 id="verdict" className={s.verdictTitle}>
               {grade.passed ? "통과했어요" : "아직이에요"}
             </h2>
@@ -400,7 +408,7 @@ export function LessonRunner({
             </span>
             {grade.passed &&
               (wasDone ? (
-                <span className={s.note}>이미 마친 강의라 XP는 그대로예요</span>
+                <span className={s.note}>이미 마친 미션이라 XP는 그대로예요</span>
               ) : (
                 <span className={s.xpPill}>+{grade.xp} XP</span>
               ))}
@@ -434,7 +442,7 @@ export function LessonRunner({
                       다시 써 보기
                     </button>
                     <button type="button" className={s.secondary} onClick={() => go("lecture")}>
-                      강의 다시 보기
+                      배우기 다시 보기
                     </button>
                   </div>
                 </>
@@ -451,7 +459,7 @@ export function LessonRunner({
                       {runner.nextLabel}
                     </button>
                     <button type="button" className={s.secondary} onClick={() => go("lecture")}>
-                      강의 다시 보기
+                      배우기 다시 보기
                     </button>
                   </div>
                 </>
@@ -470,7 +478,7 @@ export function LessonRunner({
               </section>
               <section className={`${s.card} ${s.outCard}`} aria-labelledby="out">
                 <h2 id="out" className={s.cardTitle}>
-                  AI 결과물 예시
+                  {lesson.tryAsk ? `이 설정으로 "${lesson.tryAsk}"라고 물으면` : "AI 결과물 예시"}
                 </h2>
                 <div className={s.outWrap}>
                   <Output text={grade.output} />

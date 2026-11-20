@@ -7,7 +7,7 @@ import { findLesson, runEvaluation, validateEvaluation } from "../lib/server/eva
 const lesson = findLesson("b2");
 
 test("요청 검사: 없는 강의, 빈 프롬프트", () => {
-  assert.match(validateEvaluation({ lessonId: "zz", prompt: "a" }), /없는 강의/);
+  assert.match(validateEvaluation({ lessonId: "zz", prompt: "a" }), /없는 미션/);
   assert.match(validateEvaluation({ lessonId: "b2", prompt: "" }), /프롬프트를 써야/);
   assert.equal(validateEvaluation({ lessonId: "b2", prompt: "회의록 정리해 줘" }), null);
 });

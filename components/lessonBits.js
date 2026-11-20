@@ -114,7 +114,7 @@ export function PromptEditor({ value, onChange, inputRef, label }) {
 // 평가·피드백의 코칭 질문(보드 2-E 모양). 정답 대신 질문 하나와 도움말 한 줄.
 export function CoachCard({ question, hint }) {
   return (
-    <section className={`${s.card} ${s.coach}`} aria-labelledby="coach">
+    <section className={`${s.card} ${s.coach}`} aria-labelledby="coach" data-tour="feedback-coach">
       <h2 id="coach" className={`${s.cardTitle} ${s.smallTitle}`}>
         <svg
           width="16"

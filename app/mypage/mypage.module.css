@@ -306,3 +306,11 @@
     text-align: right;
   }
 }
+
+/* 진단 변화 한 줄(작업 I-3) */
+.growth {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--wash);
+}

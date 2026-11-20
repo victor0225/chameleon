@@ -13,6 +13,7 @@ import { ITEM } from "@/lib/items";
 import { RULE_REASONS } from "@/lib/server/guess";
 import s from "./compare.module.css";
 import { SelfCompare } from "./SelfCompare";
+import { Tour } from "@/components/Tour";
 import {
   Arrow,
   Bar,
@@ -40,8 +41,16 @@ export default function ComparePage() {
   const [aiCompare, setAiCompare] = useState(false);
   useLayoutEffect(() => () => setAiCompare(false), []);
 
-  if (ready && diagnosis?.before && !aiCompare) return <SelfCompare onAiCompare={() => setAiCompare(true)} />;
-  return <RefineCompare onSelfCompare={diagnosis?.before ? () => setAiCompare(false) : null} />;
+  return (
+    <>
+      <Tour id="compare" when={ready} />
+      {ready && diagnosis?.before && !aiCompare ? (
+        <SelfCompare onAiCompare={() => setAiCompare(true)} />
+      ) : (
+        <RefineCompare onSelfCompare={diagnosis?.before ? () => setAiCompare(false) : null} />
+      )}
+    </>
+  );
 }
 
 function RefineCompare({ onSelfCompare }) {
