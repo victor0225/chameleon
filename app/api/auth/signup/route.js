@@ -1,5 +1,6 @@
-// POST /api/auth/signup { loginId, password, passwordConfirm, name } → { user }  가입하면 바로 로그인된다.
-// 실패: 400 { error, field } 입력 규칙, 409 { error, field: "loginId" } 이미 쓰는 아이디, 503 DB 연결 전
+// POST /api/auth/signup { loginId, password, passwordConfirm, name, job } → { user }  가입하면 바로 로그인된다.
+// job은 관심 직무 id(data/jobs.js)이고 필수다. profiles.job에 같이 저장한다.
+// 실패: 400 { error, field } 입력 규칙(직무를 안 고르면 field "job"), 409 { error, field: "loginId" } 이미 쓰는 아이디, 503 DB 연결 전
 import { checkSignup } from "@/lib/credentials";
 import { hasDatabase } from "@/lib/server/db";
 import { hasSessionSecret, startSession } from "@/lib/server/session";
@@ -22,7 +23,7 @@ export async function POST(request) {
   const invalid = checkSignup(body ?? {});
   if (invalid) return Response.json({ error: invalid.message, field: invalid.field }, { status: 400 });
 
-  const user = await createUser({ loginId: body.loginId, password: body.password, name: body.name });
+  const user = await createUser({ loginId: body.loginId, password: body.password, name: body.name, job: body.job });
   if (!user) return Response.json({ error: "이미 쓰는 아이디. 다른 아이디 고르기.", field: "loginId" }, { status: 409 });
   await startSession(user.id);
   return Response.json({ user });

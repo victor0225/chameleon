@@ -4,6 +4,7 @@
 // LessonRunner와 kind별 실습 칸(components/Practice.js)이 같이 쓴다.
 import { Fragment, useState } from "react";
 import { analyze } from "@/lib/anatomy";
+import { JOB } from "@/data/jobs";
 import { ITEM, ITEMS } from "@/lib/items";
 import { ChevronIcon, InfoIcon } from "./Common";
 import s from "./lesson.module.css";
@@ -152,11 +153,10 @@ export function CoachCard({ question, hint }) {
 }
 
 // 피드백 머리 칸(공통 칸 ⑥): 상태 아이콘 · 제목 · 점수 · 주 버튼 · 첫 점수 줄. 미션 종류와 상관없이 같은 모양이다.
-// got/total: 점수, action: { label, onClick, icon }, retry: 이번이 다시 푼 것(랭킹에 들어가지 않음)
-export function FeedbackHead({ passed, desc, got, total, xp, wasDone, retry, action }) {
-  const note = retry
-    ? "다시 해 본 점수 · 부문 점수와 랭킹 미반영"
-    : `첫 풀이 점수 · 부문 점수와 랭킹에 반영${passed ? "" : ". 다시 해 본 점수는 미반영."}`;
+// got/total: 점수, action: { label, onClick, icon, iconAfter }. 미션은 XP만 올리고 랭킹과 무관하다.
+// 아래 줄: 통과면 규칙 한 문장, 아직이면 다시 해 봐도 XP가 없다는 말까지(보드 D4·D10).
+export function FeedbackHead({ passed, desc, got, total, xp, wasDone, action }) {
+  const note = passed ? "처음 통과할 때만 +30 XP" : "처음 통과할 때만 +30 XP · 다시 해 본 미션은 XP 없음";
   return (
     <section className={s.fh} aria-live="polite" aria-labelledby="feedback-title" data-tour="feedback-score">
       <span className={`${s.fhState} ${passed ? s.fhPass : s.fhFail}`} aria-hidden="true">
@@ -185,8 +185,9 @@ export function FeedbackHead({ passed, desc, got, total, xp, wasDone, retry, act
       </div>
       {action && (
         <button type="button" className={s.primary} onClick={action.onClick}>
-          {action.icon}
+          {!action.iconAfter && action.icon}
           {action.label}
+          {action.iconAfter && action.icon}
         </button>
       )}
       <p className={s.fhNote}>
@@ -297,6 +298,11 @@ export function PencilIcon() {
 }
 
 // 해 보기·피드백 위 '할 일' 한 줄 카드. children은 할 일 아래에 붙는 조작 안내(분류·오류 찾기).
+// 관심 직무로 바꾼 미션이면 할 일 위에 직무 칩(보드 K7).
+export function JobChip({ job }) {
+  return <span className={s.jobChip}>{JOB[job]?.name}</span>;
+}
+
 export function TodoCard({ lesson, children }) {
   return (
     <section className={`${s.card} ${s.todoRow}`} aria-labelledby="practice-mission">
@@ -304,6 +310,7 @@ export function TodoCard({ lesson, children }) {
         할 일
       </h2>
       <div>
+        {lesson.job && <JobChip job={lesson.job} />}
         <p>{lesson.mission}</p>
         {children}
       </div>

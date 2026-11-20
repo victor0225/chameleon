@@ -588,9 +588,9 @@ export const MORE_MISSIONS = [
     },
     mission: "월간 고객 문의 보고를 AI로 자동화. 단계마다 맡을 주체 고르기.",
     bins: [
-      { id: "auto", title: "AI에게 맡기고 그대로 쓰기" },
+      { id: "auto", title: "AI에게 맡기고 그대로 사용" },
       { id: "check", title: "AI가 하고 사람이 확인" },
-      { id: "human", title: "사람이 직접 하기" },
+      { id: "human", title: "사람이 직접" },
     ],
     cards: [
       { id: "titles", text: "보고서 제목 후보 세 개 내기", answer: "auto" },

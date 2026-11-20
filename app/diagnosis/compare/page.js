@@ -138,7 +138,7 @@ function RefineCompare({ onSelfCompare }) {
         <div className={s.empty}>
           <h1 className="display">아직 진단 결과 없음</h1>
           <p className={s.sub}>프롬프트를 한 번 진단받으면 다듬은 프롬프트와 결과 비교 가능</p>
-          <Link href="/diagnosis" className={s.primary}>
+          <Link href="/" className={s.primary}>
             진단하러 가기
           </Link>
         </div>
@@ -400,9 +400,6 @@ function RefineCompare({ onSelfCompare }) {
                   이전
                 </button>
                 <p className="display">이제 내 프롬프트 직접 고치기</p>
-                <Link href="/prompt" className={s.textLink}>
-                  프롬프트 도우미에서 이어서 다듬기
-                </Link>
                 <button type="button" className={s.secondary} onClick={copyImproved} aria-live="polite">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden="true">
                     <rect x="5" y="5" width="8.5" height="8.5" rx="2" />
@@ -410,7 +407,7 @@ function RefineCompare({ onSelfCompare }) {
                   </svg>
                   {copied ? "복사함" : "다듬은 프롬프트 복사"}
                 </button>
-                <Link href="/diagnosis/prompt?edit=1" className={`${s.cta} ${s.ctaBig}`}>
+                <Link href="/?edit=1" className={`${s.cta} ${s.ctaBig}`}>
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M12.5 2.5l3 3L6 15H3v-3z" />
                   </svg>

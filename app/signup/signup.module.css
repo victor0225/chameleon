@@ -1,0 +1,69 @@
+/* 회원가입(보드 K4): 가운데 제목 아래 카드 하나. 관심 직무 줄이 길어 로그인보다 넓다. */
+
+.wrap {
+  max-width: 768px;
+  margin: 0 auto;
+  padding: 36px 24px 96px;
+}
+
+.title {
+  text-align: center;
+  font-size: clamp(30px, 4vw, 40px);
+  line-height: 1.25;
+}
+
+/* 전역 .card와 같은 모양을 여기서 다 정한다(전역 .card와 CSS 순서가 바뀌어도 여백이 같게). */
+.card {
+  margin-top: 24px;
+  padding: 28px 32px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.fields {
+  display: grid;
+  gap: 16px;
+}
+
+.fields input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.job {
+  display: grid;
+  gap: 6px;
+  margin-top: 24px;
+}
+
+.cap {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.submit {
+  width: 100%;
+  height: 48px;
+  margin-top: 24px;
+}
+
+.switch {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.switch a {
+  margin-left: 6px;
+  color: var(--ink);
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 24px 20px;
+  }
+}

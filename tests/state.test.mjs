@@ -23,7 +23,7 @@ test("저장 전 검사: 모르는 직무·강의·요소는 버리고 숫자는
     record: {
       xp: -5,
       completed: ["b1", "b1", "zz", "mem1"],
-      tries: { b1: 2, zz: 9, m1: "a" },
+      tries: { b1: 2, zz: 9, m2: "a" },
       mastery: { goal: 140, format: 30, mood: 50 },
       history: [{ lessonId: "b1", title: "x", passed: true, tries: 1, xp: 30, extra: "drop" }],
       levelUpSeen: ["초급", "최고급"],
@@ -35,7 +35,7 @@ test("저장 전 검사: 모르는 직무·강의·요소는 버리고 숫자는
   assert.deepEqual(value.diagnosis.detail.segments, [{ text: "신제품 SNS 글 써 줘", items: ["goal"] }]);
   // 과정 2~4 강의 id도 남는다.
   assert.deepEqual(value.record.completed, ["b1", "mem1"]);
-  assert.deepEqual(value.record.tries, { b1: 2, m1: 0 });
+  assert.deepEqual(value.record.tries, { b1: 2, m2: 0 });
   assert.equal(value.record.xp, 0);
   assert.deepEqual(value.record.mastery, { goal: 0, context: 0, constraint: 0, format: 30, criteria: 0 });
   assert.deepEqual(value.record.history, [{ lessonId: "b1", title: "x", passed: true, tries: 1, xp: 30 }]);
@@ -87,3 +87,31 @@ test("설문 3번 답(used)은 아는 것만 한 번씩 남기고, 없으면 넣
   assert.deepEqual(cleanState({ survey: { job: "office", experience: "often" } }).value.survey, { job: "office", experience: "often" });
 });
 
+
+test("관심 직무: 진단 전이라 수준 없이 직무만 있어도 받고, 모르는 직무·수준은 null로 둔다", () => {
+  assert.deepEqual(cleanState({ profile: { job: "dev" } }).value.profile, { job: "dev", experience: null, level: null });
+  assert.deepEqual(cleanState({ profile: { job: "pilot", level: "중급" } }).value.profile, { job: null, experience: null, level: "중급" });
+  assert.deepEqual(cleanState({ profile: { job: "dev", level: "최고급" } }).value.profile, { job: "dev", experience: null, level: null });
+  assert.equal(cleanState({ profile: { job: "pilot" } }).value.profile, null);
+  assert.equal(cleanState({ profile: { job: "toString", level: "만렙" } }).value.profile, null);
+  assert.equal(cleanState({ profile: "dev" }).value.profile, null);
+});
+
+test("로그인할 때 관심 직무: 계정에 있으면 계정 것, 없으면 손님 때 고른 것", () => {
+  const record = null;
+  const guest = { profile: { job: "dev" }, survey: null, diagnosis: null, record };
+  // 계정 직무가 이긴다. 다른 프로필 칸은 원래 규칙(최근 진단 쪽)을 따른다.
+  const account = { profile: { job: "marketing", experience: null, level: null }, survey: null, diagnosis: null, record };
+  assert.equal(mergeStates(guest, account).profile.job, "marketing");
+  const diagnosed = { ...guest, profile: { job: "dev", experience: "none", level: "중급" }, diagnosis: diagnosis("2026-11-20T12:00:00.000Z") };
+  assert.deepEqual(mergeStates(diagnosed, account).profile, { job: "marketing", experience: "none", level: "중급" });
+  // 계정에 직무가 없으면 손님 직무를 남긴다.
+  assert.deepEqual(mergeStates(guest, { ...account, profile: null }).profile, { job: "dev" });
+  assert.deepEqual(mergeStates(guest, { ...account, profile: { job: null, experience: null, level: "고급" } }).profile, {
+    job: "dev",
+    experience: null,
+    level: "고급",
+  });
+  // 둘 다 없으면 프로필도 없다.
+  assert.equal(mergeStates({ ...guest, profile: null }, { ...account, profile: null }).profile, null);
+});

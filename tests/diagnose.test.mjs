@@ -14,12 +14,13 @@ const body = {
   prompt: "신제품 출시 SNS 글을 써 줘. 20대 고객이 읽을 거야. 세 줄 이내로 써 줘.",
 };
 
-test("요청 검사: 직무, 경험, 빈 프롬프트, 너무 긴 프롬프트", () => {
+test("요청 검사: 직무·경험은 없어도 되지만 보냈다면 아는 값, 빈 프롬프트, 너무 긴 프롬프트", () => {
   assert.equal(validateDiagnosis(null), "요청 형식이 올바르지 않음.");
-  assert.equal(validateDiagnosis({ ...body, job: "nope" }), "관심 직무 고르기");
-  assert.equal(validateDiagnosis({ ...body, experience: "x" }), "AI 사용 경험 고르기");
-  assert.equal(validateDiagnosis({ ...body, experience: "toString" }), "AI 사용 경험 고르기");
-  assert.equal(validateDiagnosis({ ...body, job: "constructor" }), "관심 직무 고르기");
+  assert.equal(validateDiagnosis({ ...body, job: "nope" }), "모르는 관심 직무");
+  assert.equal(validateDiagnosis({ ...body, experience: "x" }), "모르는 AI 사용 경험");
+  assert.equal(validateDiagnosis({ ...body, experience: "toString" }), "모르는 AI 사용 경험");
+  assert.equal(validateDiagnosis({ ...body, job: "constructor" }), "모르는 관심 직무");
+  assert.equal(validateDiagnosis({ prompt: body.prompt }), null, "설문이 없어져 직무·경험 없이도 진단");
   assert.match(validateDiagnosis({ ...body, prompt: "   " }), /한 줄 이상/);
   assert.match(validateDiagnosis({ ...body, prompt: "가".repeat(3001) }), /3000자/);
   assert.equal(validateDiagnosis(body), null);

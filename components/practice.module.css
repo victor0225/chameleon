@@ -98,7 +98,9 @@ section.material {
 }
 
 .materialSub {
-  font-weight: 600;
+  margin-top: -10px;
+  font-size: 13px;
+  color: var(--ink-2);
 }
 
 .lines {
@@ -107,6 +109,20 @@ section.material {
   display: grid;
   gap: 6px;
   font-size: 15px;
+}
+
+/* 값이 있는 줄: 글머리 기호 없이 이름은 왼쪽, 값은 오른쪽 고정폭 숫자 */
+.lines .valueLine {
+  margin-left: -18px;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.value {
+  font-family: var(--font-mono);
+  white-space: nowrap;
 }
 
 .chat {

@@ -4,8 +4,9 @@ import { Fragment } from "react";
 import { ITEMS } from "@/lib/items";
 import c from "./common.module.css";
 
-export const RULE_TEXT = "처음 푼 점수만 부문 점수와 랭킹에 반영";
-export const RETRY_TEXT = "다시 푸는 중 · 이번 점수는 랭킹 미반영";
+// 미션은 경험치(XP)만 올린다. 처음 통과할 때 한 번 30 XP. 미션 점수는 랭킹과 무관하다(랭킹은 직무별 시험).
+export const RULE_TEXT = "처음 통과하면 +30 XP";
+export const RETRY_TEXT = "이미 통과한 미션 · XP 그대로";
 // 예시 결과 칩 옆에 붙이는 한 줄. AI가 연결되지 않아 미리 만든 결과를 보여 줄 때 모든 화면이 같은 말을 쓴다.
 export const NO_AI_TEXT = "AI 미연결 · 미리 만든 예시 결과";
 
@@ -50,12 +51,18 @@ export function ChevronIcon({ open = false, size = 16 }) {
   );
 }
 
-// 첫 점수 규칙 칩: 해 보기 위, 랭킹에서 같은 문장. retry면 이미 푼 미션을 다시 푸는 중이라는 칩.
+// XP 규칙 칩: 해 보기 위(보드 K7). retry면 이미 통과한 미션을 다시 푸는 중이라는 칩.
 export function RuleChip({ retry = false, className = "" }) {
   return (
     <p className={`${c.rule} ${retry ? c.retry : ""} ${className}`}>
       <InfoIcon size={18} />
-      {retry ? RETRY_TEXT : RULE_TEXT}
+      {retry ? (
+        RETRY_TEXT
+      ) : (
+        <span>
+          처음 통과하면 <b className={c.mono}>+30 XP</b>
+        </span>
+      )}
     </p>
   );
 }

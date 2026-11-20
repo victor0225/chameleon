@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkLogin, checkSignup } from "../lib/credentials.js";
+import { checkLogin, checkName, checkPasswordChange, checkSignup } from "../lib/credentials.js";
 import { safeNext } from "../lib/safeNext.js";
 import { hashPassword, verifyPassword } from "../lib/server/password.js";
 import { hasSessionSecret, readSession, signSession } from "../lib/server/sessionToken.js";
 
 // DB 없이 가입·로그인 판단 로직을 검사한다.
-const ok = { loginId: "chameleon01", password: "12345678", passwordConfirm: "12345678", name: "카멜레온" };
+const ok = { loginId: "chameleon01", password: "12345678", passwordConfirm: "12345678", name: "카멜레온", job: "marketing" };
 
 test("가입 규칙: 아이디는 영문 소문자·숫자 4~20자, 비밀번호는 8자 이상이고 다른 조건은 없다", () => {
   assert.equal(checkSignup(ok), null);
@@ -19,6 +19,33 @@ test("가입 규칙: 아이디는 영문 소문자·숫자 4~20자, 비밀번호
   assert.equal(checkSignup({ ...ok, name: "   " })?.field, "name");
   assert.equal(checkSignup({ ...ok, name: "가".repeat(21) })?.field, "name");
   assert.equal(checkSignup({})?.field, "loginId");
+});
+
+test("가입 규칙: 관심 직무는 다섯 직무 중 하나를 꼭 고르고, 다른 칸이 먼저 틀리면 그 칸부터 알린다", () => {
+  for (const job of ["office", "marketing", "cs", "sales", "dev"]) assert.equal(checkSignup({ ...ok, job }), null, job);
+  for (const job of [undefined, null, "", "pilot", "toString", 3]) {
+    assert.deepEqual(checkSignup({ ...ok, job }), { field: "job", message: "관심 직무를 하나 고르기" }, String(job));
+  }
+  assert.equal(checkSignup({ ...ok, job: null, name: "" })?.field, "name");
+});
+
+test("이름 바꾸기: 가입과 같은 규칙(빈 이름, 20자 넘는 이름은 막음)", () => {
+  assert.equal(checkName("김하늘"), null);
+  assert.equal(checkName(" 김하늘 "), null);
+  assert.equal(checkName("  ")?.field, "name");
+  assert.equal(checkName("가".repeat(21))?.field, "name");
+  assert.equal(checkName(undefined)?.field, "name");
+});
+
+test("비밀번호 바꾸기: 지금 비밀번호, 새 비밀번호 8자 이상, 확인 일치, 지금과 다른 비밀번호", () => {
+  const change = { current: "12345678", next: "abcdefgh", confirm: "abcdefgh" };
+  assert.equal(checkPasswordChange(change), null);
+  assert.equal(checkPasswordChange({ ...change, current: "" })?.field, "current");
+  assert.equal(checkPasswordChange({ ...change, next: "abc", confirm: "abc" })?.field, "next");
+  assert.equal(checkPasswordChange({ ...change, next: "a".repeat(101), confirm: "a".repeat(101) })?.field, "next");
+  assert.equal(checkPasswordChange({ ...change, confirm: "abcdefgx" })?.field, "confirm");
+  assert.equal(checkPasswordChange({ ...change, next: "12345678", confirm: "12345678" })?.field, "next");
+  assert.equal(checkPasswordChange({})?.field, "current");
 });
 
 test("로그인 규칙: 빈 칸만 막고, 맞는지는 서버가 DB로 본다", () => {

@@ -47,7 +47,7 @@ export function AuthShell({ title, lede, children }) {
   else if (user)
     body = (
       <p>
-        {user.name}님으로 로그인됨. <Link href="/mypage">마이페이지로 가기</Link>
+        {user.name}님으로 로그인됨. <Link href="/mypage">내 정보로 가기</Link>
       </p>
     );
   else if (!login.ready) body = <p className="muted">아직 로그인 사용 불가. 서버에 DB 설정 필요.</p>;

@@ -29,7 +29,9 @@ export const entriesFrom = (files) =>
 
 let seq = 0;
 
-export function FileAttach({ entries, setEntries, disabled = false, children }) {
+// bare: 테두리 없는 모양(첫 화면 입력 카드 안). footer({ open, full, disabled })를 주면 아래 도구 줄 대신 그것을 그린다
+// (첫 화면은 '파일·그림 첨부' 버튼을 진단하기 왼쪽에 둔다, 보드 K2).
+export function FileAttach({ entries, setEntries, disabled = false, bare = false, footer, children }) {
   const inputId = useId();
   const input = useRef(null);
   const full = entries.length >= MAX_FILES;
@@ -59,13 +61,30 @@ export function FileAttach({ entries, setEntries, disabled = false, children }) 
 
   const remove = (id) => setEntries((list) => list.filter((e) => e.id !== id));
 
+  const hiddenInput = (
+    <input
+      ref={input}
+      id={inputId}
+      type="file"
+      accept={ACCEPT}
+      multiple
+      className={s.input}
+      onChange={pick}
+      disabled={disabled || full}
+      tabIndex={-1}
+      aria-hidden="true"
+    />
+  );
+  // footer가 그리는 버튼에도 넘기려고 ref 대신 id로 찾는다(그리는 중에 ref를 넘기지 않게).
+  const open = () => document.getElementById(inputId)?.click();
+
   return (
-    <div className={`${s.frame} ${disabled ? s.frameDisabled : ""}`}>
+    <div className={`${bare ? s.bare : s.frame} ${disabled ? s.frameDisabled : ""}`}>
       {children}
       {entries.length > 0 && (
         <ul className={s.chips} aria-label="첨부한 파일">
           {entries.map((e) => (
-            <Chip key={e.id} entry={e} onRemove={() => remove(e.id)} onRetry={() => upload(e.id, e.file)} />
+            <Chip key={e.id} entry={e} onRemove={() => remove(e.id)} onRetry={() => upload(e.id, e.file)} disabled={disabled} />
           ))}
           {entries.some((e) => e.status === "nokey") && (
             <li className={s.item}>
@@ -74,44 +93,32 @@ export function FileAttach({ entries, setEntries, disabled = false, children }) 
           )}
         </ul>
       )}
-      <div className={s.tools}>
-        <input
-          ref={input}
-          id={inputId}
-          type="file"
-          accept={ACCEPT}
-          multiple
-          className={s.input}
-          onChange={pick}
-          disabled={disabled || full}
-          tabIndex={-1}
-          aria-hidden="true"
-        />
-        <button
-          type="button"
-          className={s.attach}
-          onClick={() => input.current?.click()}
-          disabled={disabled || full}
-          data-tour="file-attach"
-        >
-          <ClipIcon />
-          파일 첨부
-        </button>
-        <span className={s.hint}>
-          {full ? `파일은 ${MAX_FILES}개까지. 하나 지우면 더 붙이기 가능` : `PDF · 그림 · 텍스트 파일 · 하나에 4MB`}
-        </span>
-        <span className={`${s.count} ${full ? s.countFull : ""}`} aria-label={`파일 ${entries.length}개 붙임, ${MAX_FILES}개까지`}>
-          파일 {entries.length}/{MAX_FILES}
-        </span>
-      </div>
+      {hiddenInput}
+      {footer ? (
+        footer({ open, full, disabled })
+      ) : (
+        <div className={s.tools}>
+          <button type="button" className={s.attach} onClick={open} disabled={disabled || full} data-tour="file-attach">
+            <ClipIcon />
+            파일 첨부
+          </button>
+          <span className={s.hint}>
+            {full ? `파일은 ${MAX_FILES}개까지. 하나 지우면 더 붙이기 가능` : `PDF · 그림 · 텍스트 파일 · 하나에 4MB`}
+          </span>
+          <span className={`${s.count} ${full ? s.countFull : ""}`} aria-label={`파일 ${entries.length}개 붙임, ${MAX_FILES}개까지`}>
+            파일 {entries.length}/{MAX_FILES}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
 
-function Chip({ entry: e, onRemove, onRetry }) {
+function Chip({ entry: e, onRemove, onRetry, disabled }) {
   const error = FILE_ERROR[e.status];
+  // 진단하는 중에는 첨부를 잠근다(빼기 버튼도).
   const removeButton = (
-    <button type="button" className={s.remove} onClick={onRemove} aria-label={`${e.name} 지우기`}>
+    <button type="button" className={s.remove} onClick={onRemove} disabled={disabled} aria-label={`${e.name} 빼기`}>
       <CloseIcon />
     </button>
   );
