@@ -1,7 +1,6 @@
 "use client";
 
 // 결과 비교 화면의 두 모드(AI가 다듬은 프롬프트, 내가 고친 프롬프트)가 같이 쓰는 조각.
-import { ExampleChip, NO_AI_TEXT } from "@/components/Common";
 import { ExpiredNotice } from "@/components/FileAttach";
 import { countSentences, markRanges, splitBlanks } from "@/lib/compareText";
 import { ITEM, ITEMS } from "@/lib/items";
@@ -87,8 +86,7 @@ export function MarkedOutput({ output, marks, solid, numOf, focus }) {
   );
 }
 
-// sample: AI 미연결로 미리 만든 예시 결과면 길이 줄 끝에 같은 한 줄을 붙인다(캔버스 A5: 제목 아래가 아니라 결과 카드 안).
-export function LengthLine({ output, solid, numOf, focus, sample = false }) {
+export function LengthLine({ output, solid, numOf, focus }) {
   const n = numOf("constraint");
   const tone = focus ? (focus === "constraint" ? ` ${s.hot}` : ` ${s.dim}`) : "";
   return (
@@ -104,7 +102,6 @@ export function LengthLine({ output, solid, numOf, focus, sample = false }) {
       ) : (
         <span>{countSentences(output)}문장</span>
       )}
-      {sample && ` · ${NO_AI_TEXT}`}
     </p>
   );
 }
@@ -120,10 +117,6 @@ export function PromptText({ segments, prompt }) {
       <span key={i}>{seg.text}</span>
     ),
   );
-}
-
-export function SampleBadge({ on }) {
-  return on ? <ExampleChip /> : null;
 }
 
 export function Arrow({ back }) {
@@ -173,26 +166,28 @@ export function FailBar({ failure, onRetry, onReupload }) {
   );
 }
 
-// 바뀐 점: 요소마다 칩 · 전 → 후 한 줄. 누르면 두 결과에서 그 요소만 밝힌다(onFocus가 없으면 누르지 못하는 줄).
-// same: 두 프롬프트 모두 있던 요소 → "같음" 줄.
+// 바뀐 점: 요소마다 한 줄. 전은 왼쪽 칸 아래, 후는 오른쪽 칸 아래에 맞춘다(위 두 칸과 같은 좌우).
+// 누르면 두 결과에서 그 요소만 밝힌다(onFocus가 없으면 누르지 못하는 줄). same: 두 프롬프트 모두 있던 요소 → "같음" 줄.
 export function DiffList({ diffs, same, numOf, focus, onFocus }) {
   return (
     <section className={s.diffs} aria-labelledby="diff-h">
-      <h2 id="diff-h" className={s.sectionTitle}>
-        바뀐 점
-      </h2>
+      <div className={s.diffsHead}>
+        <h2 id="diff-h" className={s.sectionTitle}>
+          바뀐 점
+        </h2>
+        {onFocus && <span className={s.hint}>누르면 두 결과에 표시</span>}
+      </div>
       <ul className={s.diffList}>
         {diffs.map((d) => {
           const on = focus === d.item;
           const body = (
             <>
-              <span className={s.diffTop}>
+              <span className={s.diffSide}>
                 <Chip id={d.item} />
                 <Num id={d.item} n={numOf(d.item)} />
+                <span className={s.before}>{d.before}</span>
               </span>
-              <span className={s.before}>{d.before}</span>
-              <Arrow />
-              <span className={s.after}>{d.after}</span>
+              <span className={`${s.diffSide} ${s.after}`}>{d.after}</span>
             </>
           );
           return (
@@ -210,12 +205,12 @@ export function DiffList({ diffs, same, numOf, focus, onFocus }) {
           );
         })}
         {same.map((id) => (
-          <li key={id} className={s.same}>
-            <span className={s.diffTop}>
+          <li key={id} className={`${s.diff} ${s.same}`}>
+            <span className={s.diffSide}>
               <Chip id={id} />
+              <span className={s.before}>두 프롬프트 모두 있음</span>
             </span>
-            <span>두 프롬프트 모두 있음</span>
-            <b>같음</b>
+            <span className={s.diffSide}>같음</span>
           </li>
         ))}
       </ul>

@@ -1,7 +1,8 @@
 "use client";
 
-// 나를 위한 추천 미션(보드 K6-1): 개인화 엔진(lib/personalize.js)이 고른 미션 세 개와 고른 이유.
-// 과정 카드와 같은 모양 카드 세 장(표지: 추천 번호·요소 칩·미션 이름 / 아래: 이유 한 줄·시작)이고 1번에만 진한 '시작'.
+// 진단 추천: 개인화 엔진(lib/personalize.js)이 고른 미션 세 개와 고른 이유.
+// 아래 교육 과정 카드(회색 표지)와 헷갈리지 않게 카드가 아니라 한 칸 안의 목록 줄 세 개다(번호 · 요소 칩·과정 / 미션 이름 / 이유 · 시작).
+// 1번 줄에만 진한 '시작'.
 // 교육 탭과 결과 비교 화면 아래가 이 컴포넌트를 같이 써서 같은 세 장을 보여 준다(작업 O-2, 일부러 중복).
 //   로그인: /api/me/curriculum(DB 기록). 손님: 같은 엔진을 브라우저 진단·기록으로(lib/guestPlan.js).
 //   읽는 동안이나 못 읽었을 때는 진단에서 빠진 요소의 과정 1 초급 미션으로 자리를 채운다(카드 자리가 비면 안 된다).
@@ -55,7 +56,7 @@ export function ForYou({ onOpen, tour = "learn-foryou" }) {
     <section aria-labelledby={`${tour}-title`} aria-busy={!loaded} data-tour={tour}>
       <div className={s.forYouHead}>
         <h2 id={`${tour}-title`} className={s.h2}>
-          나를 위한 추천 미션
+          진단 추천
         </h2>
         {focus && (
           <span className={s.forYouFocus}>
@@ -69,7 +70,7 @@ export function ForYou({ onOpen, tour = "learn-foryou" }) {
           {loaded?.error ? (
             <p className={s.cap}>추천 미션을 불러오지 못함. 잠시 뒤 다시 열기.</p>
           ) : (
-            <div className={s.forYouCards} aria-hidden="true">
+            <div className={s.forYouList} aria-hidden="true">
               {[0, 1, 2].map((k) => (
                 <span key={k} className={s.forYouSkeleton} />
               ))}
@@ -78,33 +79,26 @@ export function ForYou({ onOpen, tour = "learn-foryou" }) {
         </>
       )}
       {!allDone && items.length > 0 && (
-        <ol className={s.forYouCards}>
+        <ol className={s.forYouList}>
           {items.map((item, i) => (
             <li key={item.lessonId}>
-              <button type="button" className={`${s.courseCard} ${s.forYouCard}`} onClick={() => onOpen(item.lessonId)}>
-                <span className={`${s.cover} ${s.forYouCover}`}>
-                  <span className={s.coverNo}>추천 {i + 1}</span>
-                  {item.focus && (
-                    <span className={s.forYouChip}>
-                      <ElementChip id={item.focus} />
-                    </span>
-                  )}
-                  <b>{item.title}</b>
-                </span>
-                <span className={s.cardBody}>
-                  <span className={s.cardSum}>
-                    {courseLabel(item)} · {item.reasons.join(" · ")}
+              <button type="button" className={s.forYouRow} onClick={() => onOpen(item.lessonId)}>
+                <span className={s.forYouNo}>{i + 1}</span>
+                <span className={s.forYouMain}>
+                  <span className={s.forYouMeta}>
+                    {item.focus && <ElementChip id={item.focus} />}
+                    {courseLabel(item)}
                   </span>
-                  <span className={s.forYouGo}>
-                    {i === 0 ? (
-                      <span className={s.goBtn}>시작</span>
-                    ) : (
-                      <span className={s.goLink}>
-                        시작<span aria-hidden="true"> →</span>
-                      </span>
-                    )}
-                  </span>
+                  <b className={s.forYouTitle}>{item.title}</b>
+                  <span className={s.forYouWhy}>{item.reasons.join(" · ")}</span>
                 </span>
+                {i === 0 ? (
+                  <span className={s.goBtn}>시작</span>
+                ) : (
+                  <span className={s.goLink}>
+                    시작<span aria-hidden="true"> →</span>
+                  </span>
+                )}
               </button>
             </li>
           ))}

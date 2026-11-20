@@ -7,7 +7,7 @@
 //   다듬은 결과: run을 { prompt: before.prompt, missing: before.missing, improved: 새 프롬프트, before: 처음 결과물 }로 부른다.
 // 받은 결과는 diagnosis.before.guess와 diagnosis.compareBefore에 붙여 저장한다.
 // 키가 없으면 결과물 없이, 비어 있던 요소가 채워졌는지로 바뀐 점을 보여 준다.
-// 고쳐 보는 게 목적이라 "한 번 더 고쳐 보기"를 보조 링크로 둔다. 빠진 요소가 없으면 추천 대신 "교육 과정 보기"가 주 버튼.
+// 고쳐 보는 게 목적이라 "한 번 더 고쳐 보기"를 제목 옆 보조 링크로 둔다. 빠진 요소가 없으면 추천 대신 "교육 과정 보기"가 주 버튼.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -109,12 +109,17 @@ export function SelfCompare({ onAiCompare }) {
 
       <div className={s.top}>
         <h1 className={`display ${s.title}`}>같은 일, 두 결과</h1>
-        {diagnosis.missing?.length > 0 && (
-          <button type="button" className={s.textLink} onClick={onAiCompare}>
-            AI가 다듬은 프롬프트와도 비교해 보기
-            <Arrow />
-          </button>
-        )}
+        <span className={s.topLinks}>
+          <Link href="/?edit=1" className={s.textLink}>
+            한 번 더 고쳐 보기
+          </Link>
+          {diagnosis.missing?.length > 0 && (
+            <button type="button" className={s.textLink} onClick={onAiCompare}>
+              AI가 다듬은 프롬프트와도 비교해 보기
+              <Arrow />
+            </button>
+          )}
+        </span>
       </div>
       {rule && <p className={s.note}>AI 미연결 · 결과물 없이 두 프롬프트에서 채워진 요소만 비교</p>}
 
@@ -129,62 +134,28 @@ export function SelfCompare({ onAiCompare }) {
         />
       )}
 
-      {/* 1행 두 프롬프트, 2행 두 결과(키가 없으면 결과 행 없음) */}
-      <div className={s.sides} data-tour="compare-sides">
-        <section className={`${s.card} ${s.sideCard}`} aria-labelledby="before-p">
-          <div className={s.cardHead}>
-            <h3 id="before-p">고치기 전 · {dateOf(before.at)} 진단</h3>
+      {/* 왼쪽 고치기 전, 오른쪽 내가 고친 프롬프트. 키가 없으면 받은 결과 줄은 없다. */}
+      <div className={s.board} data-tour="compare-sides">
+        <section className={s.col} aria-labelledby="before-p">
+          <div className={s.colHead}>
+            <h2 id="before-p">고치기 전 · {dateOf(before.at)} 진단</h2>
             <Bar on={before.found} />
           </div>
-          <p className={s.prompt}>
-            <PromptText segments={before.segments} prompt={before.prompt} />
-          </p>
-          <FilesLine files={before.files} />
-          {compared.length > 0 && (
-            <div className={s.empties}>
-              <span>비어 있던 요소</span>
-              {compared.map((id) => (
-                <span key={id} className={s.emptyChip}>
-                  {ITEM[id].name}
-                </span>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className={`${s.card} ${s.sideCard}`} aria-labelledby="mine-fixed">
-          <div className={s.cardHead}>
-            <h3 id="mine-fixed">
-              내가 고친 프롬프트
-              {added.length > 0 && (
-                <span className={s.newCount} data-tour="compare-new">
-                  새로 채움 {added.length}
-                </span>
-              )}
-            </h3>
-            <Bar on={diagnosis.found} />
+          <div className={s.colPrompt}>
+            <p className={s.prompt}>
+              <PromptText segments={before.segments} prompt={before.prompt} />
+            </p>
+            <FilesLine files={before.files} />
+            {compared.length > 0 && (
+              <p className={s.missingLine}>비어 있던 요소 {compared.map((id) => ITEM[id].name).join(", ")}</p>
+            )}
           </div>
-          <p className={s.prompt}>
-            <PromptText segments={diagnosis.segments} prompt={diagnosis.prompt} />
-          </p>
-          <FilesLine files={diagnosis.files} />
-          <ul className={s.filled} aria-label="다섯 요소">
-            {IDS.map((id) => (
-              <li key={id} className={diagnosis.found.includes(id) ? undefined : s.notFilled}>
-                <Chip id={id} />
-                {added.includes(id) && <span className={s.added}>새로</span>}
-                {!diagnosis.found.includes(id) && <span>아직 비어 있음</span>}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {!rule && (
-          <>
-            <section className={`${s.card} ${s.sideCard}`} aria-labelledby="c-before">
-              <div className={s.cardHead}>
-                <h3 id="c-before">고치기 전 결과</h3>
-              </div>
+          {!rule && (
+            <div className={s.colResult}>
+              <p className={s.resultHead}>
+                <b>받은 결과</b>
+                <span>점선 = 정보가 없어 AI가 임의로 정한 부분</span>
+              </p>
               {mineOut ? (
                 <>
                   <MarkedOutput output={mineOut.output} marks={mineOut.guesses} numOf={numOf} focus={lit} />
@@ -193,11 +164,43 @@ export function SelfCompare({ onAiCompare }) {
               ) : (
                 <Making failed={Boolean(fail)} />
               )}
-            </section>
-            <section className={`${s.card} ${s.sideCard}`} aria-labelledby="c-after">
-              <div className={s.cardHead}>
-                <h3 id="c-after">내가 고친 프롬프트로 받은 결과</h3>
-              </div>
+            </div>
+          )}
+        </section>
+
+        <section className={s.col} aria-labelledby="mine-fixed">
+          <div className={s.colHead}>
+            <h2 id="mine-fixed">
+              내가 고친 프롬프트
+              {added.length > 0 && (
+                <span className={s.newCount} data-tour="compare-new">
+                  {added.length}개 새로 채움
+                </span>
+              )}
+            </h2>
+            <Bar on={diagnosis.found} />
+          </div>
+          <div className={s.colPrompt}>
+            <p className={s.prompt}>
+              <PromptText segments={diagnosis.segments} prompt={diagnosis.prompt} />
+            </p>
+            <FilesLine files={diagnosis.files} />
+            <ul className={s.filled} aria-label="다섯 요소">
+              {IDS.map((id) => (
+                <li key={id} className={diagnosis.found.includes(id) ? undefined : s.notFilled}>
+                  <Chip id={id} />
+                  {added.includes(id) && <span className={s.added}>새로</span>}
+                  {!diagnosis.found.includes(id) && <span>아직 비어 있음</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+          {!rule && (
+            <div className={s.colResult}>
+              <p className={s.resultHead}>
+                <b>받은 결과</b>
+                <span>실선 = 고친 프롬프트로 정해진 부분</span>
+              </p>
               {run ? (
                 <>
                   <MarkedOutput output={run.output} marks={run.marks} solid numOf={numOf} focus={lit} />
@@ -206,9 +209,9 @@ export function SelfCompare({ onAiCompare }) {
               ) : (
                 <Making failed={Boolean(fail)} />
               )}
-            </section>
-          </>
-        )}
+            </div>
+          )}
+        </section>
       </div>
 
       {diffs && (
@@ -233,13 +236,6 @@ export function SelfCompare({ onAiCompare }) {
           </Link>
         </div>
       )}
-
-      <div className={s.foot}>
-        {!rule && <span className={s.note}>점선 = 정보가 없어 AI가 임의로 정한 부분</span>}
-        <Link href="/?edit=1" className={s.secondary}>
-          한 번 더 고쳐 보기
-        </Link>
-      </div>
     </div>
   );
 }

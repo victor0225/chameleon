@@ -27,12 +27,12 @@ export const TOURS = {
     steps: [
       { target: "compare-sides", title: "두 결과 나란히", body: "왼쪽 내 프롬프트, 오른쪽 다듬은 프롬프트." },
       { target: "compare-new", title: "새로 채움", body: "고치면서 새로 채운 요소." },
-      { target: "compare-foryou", title: "추천 미션", body: "빠진 요소부터 바로 연습." },
+      { target: "compare-foryou", title: "진단 추천", body: "빠진 요소부터 바로 연습." },
     ],
   },
   learn: {
     steps: [
-      { target: "learn-foryou", title: "추천 미션", body: "진단과 미션 기록에 맞춘 다음 미션. 여기서 바로 시작." },
+      { target: "learn-foryou", title: "진단 추천", body: "진단과 미션 기록에 맞춘 다음 미션. 여기서 바로 시작." },
       { target: "learn-courses", title: "교육 과정", body: "과정마다 미션 묶음. 과정 1은 초급·중급·고급으로 구분." },
       { target: "learn-record", title: "학습 기록", body: "처음 통과한 미션마다 XP 30 적립. 다음 수준까지 남은 XP 표시." },
     ],
