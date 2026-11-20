@@ -1,16 +1,13 @@
 "use client";
 
 // 결과 비교 화면의 두 모드(AI가 다듬은 프롬프트, 내가 고친 프롬프트)가 같이 쓰는 조각.
-import { CheckIcon, ExampleChip, NO_AI_TEXT } from "@/components/Common";
-import Link from "next/link";
+import { ExampleChip, NO_AI_TEXT } from "@/components/Common";
 import { ExpiredNotice } from "@/components/FileAttach";
 import { countSentences, markRanges, splitBlanks } from "@/lib/compareText";
 import { ITEM, ITEMS } from "@/lib/items";
 import s from "./compare.module.css";
 
 export const IDS = ITEMS.map((item) => item.id);
-export const PHASES = ["내 프롬프트 실행", "프롬프트 다듬기", "다듬은 프롬프트 실행"];
-export const COUNT_WORD = ["", "한", "두", "세", "네", "다섯"];
 
 export const vars = (id) => ({ "--c": ITEM[id].color, "--t": ITEM[id].text });
 export const joinSentences = (sentences) => sentences.map((x) => x.text).join("\n");
@@ -143,99 +140,85 @@ export function FilesLine({ files }) {
   return <p className={s.files}>첨부: {files.map((f) => f.name).join(", ")}</p>;
 }
 
-export function Pending({ phase, failure, onRetry, onReupload, phases = PHASES, title = "두 프롬프트를 AI에게 보내는 중" }) {
+// 결과 자리마다 받는 동안(또는 받지 못했을 때) 보이는 표시. 화면을 단계로 나누지 않고 자리마다 채운다(작업 O-1).
+export function Making({ failed = false }) {
   return (
-    <>
-      <section className={s.pending} aria-live="polite">
-        {failure ? (
-          <div className={s.pendingHead}>
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-              <circle cx="11" cy="11" r="9" />
-              <path d="M11 6.5v5.5M11 15.2v.3" />
-            </svg>
-            <p className={s.failText} role="alert">
-              {failure.message || "결과를 받지 못함. 잠시 뒤 다시 시도."}
-            </p>
-          </div>
-        ) : (
-          <div className={s.pendingHead}>
-            <svg className={s.spin} width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-              <circle cx="11" cy="11" r="9" stroke="var(--wash)" strokeWidth="3" />
-              <path d="M11 2a9 9 0 0 1 9 9" stroke="var(--ink)" strokeWidth="3" strokeLinecap="round" />
-            </svg>
-            <p>{title}</p>
-          </div>
-        )}
-        <ol className={s.phases}>
-          {phases.map((label, i) => {
-            const state = i < phase ? "done" : i > phase ? "wait" : failure ? "fail" : "now";
-            return (
-              <li key={label}>
-                <span className={`${s.dot} ${s[state]}`}>{state === "done" ? "✓" : state === "fail" ? "!" : i + 1}</span>
-                <span className={s.phaseText}>
-                  <strong>{label}</strong>
-                  <span className={state === "fail" ? s.failSub : undefined}>
-                    {{ done: "끝남", now: "진행 중", fail: "응답 없음", wait: "기다리는 중" }[state]}
-                  </span>
-                </span>
-                {i < phases.length - 1 && <span className={`${s.phaseLine}${state === "done" ? ` ${s.done}` : ""}`} aria-hidden="true" />}
-              </li>
-            );
-          })}
-        </ol>
-        {failure?.expired && <ExpiredNotice onDone={onReupload} />}
-        {failure && !failure.expired && (
-          <div className={s.pendingActions}>
-            <button type="button" className={s.primary} onClick={onRetry}>
-              다시 시도
-            </button>
-            <Link href="/diagnosis/result" className={s.secondary}>
-              진단 결과로
-            </Link>
-          </div>
-        )}
-      </section>
-      {!failure && (
-        <div className={s.skeletons} aria-hidden="true">
-          {[0, 1].map((k) => (
-            <div key={k} className={s.skel}>
-              <span style={{ width: "40%", height: 14 }} />
-              <span />
-              <span style={{ width: "92%" }} />
-              <span className={s.skelBox} />
-              <span style={{ width: "70%" }} />
-            </div>
-          ))}
-        </div>
+    <div className={s.making} role="status">
+      {!failed && (
+        <svg className={s.spin} width="18" height="18" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+          <circle cx="11" cy="11" r="9" stroke="var(--wash)" strokeWidth="3" />
+          <path d="M11 2a9 9 0 0 1 9 9" stroke="var(--ink)" strokeWidth="3" strokeLinecap="round" />
+        </svg>
       )}
-    </>
+      <span>{failed ? "받지 못함" : "만드는 중…"}</span>
+    </div>
   );
 }
 
-// 비교 단계 이동. 누르면 그 단계로 간다. 단계 표시에 번호는 쓰지 않는다(보드 A5).
-export function FlowNav({ labels, step, onStep }) {
+// 받다가 실패했을 때 격자 위 한 줄: 이유와 다시 시도. 첨부 파일이 만료됐으면 다시 올리기.
+export function FailBar({ failure, onRetry, onReupload }) {
   return (
-    <nav aria-label="비교 단계" className={s.flow} data-tour="compare-steps">
-      <ol>
-        {labels.map((label, i) => {
-          const n = i + 1;
-          const state = n === step ? "current" : n < step ? "done" : "wait";
+    <div className={s.failBar}>
+      <p className={s.failText} role="alert">
+        {failure.message || "결과를 받지 못함. 잠시 뒤 다시 시도."}
+      </p>
+      {failure.expired ? (
+        <ExpiredNotice onDone={onReupload} />
+      ) : (
+        <button type="button" className={s.secondary} onClick={onRetry}>
+          다시 시도
+        </button>
+      )}
+    </div>
+  );
+}
+
+// 바뀐 점: 요소마다 칩 · 전 → 후 한 줄. 누르면 두 결과에서 그 요소만 밝힌다(onFocus가 없으면 누르지 못하는 줄).
+// same: 두 프롬프트 모두 있던 요소 → "같음" 줄.
+export function DiffList({ diffs, same, numOf, focus, onFocus }) {
+  return (
+    <section className={s.diffs} aria-labelledby="diff-h">
+      <h2 id="diff-h" className={s.sectionTitle}>
+        바뀐 점
+      </h2>
+      <ul className={s.diffList}>
+        {diffs.map((d) => {
+          const on = focus === d.item;
+          const body = (
+            <>
+              <span className={s.diffTop}>
+                <Chip id={d.item} />
+                <Num id={d.item} n={numOf(d.item)} />
+              </span>
+              <span className={s.before}>{d.before}</span>
+              <Arrow />
+              <span className={s.after}>{d.after}</span>
+            </>
+          );
           return (
-            <li key={label}>
-              <button
-                type="button"
-                className={`${s.flowBtn} ${s[state]}`}
-                aria-current={n === step ? "step" : undefined}
-                onClick={() => onStep(n)}
-              >
-                {state === "done" && <CheckIcon />}
-                {label}
-              </button>
-              {n < labels.length && <span className={s.flowLine} aria-hidden="true" />}
+            <li key={d.item}>
+              {onFocus ? (
+                <button type="button" className={s.diff} style={vars(d.item)} aria-pressed={on} onClick={() => onFocus(on ? null : d.item)}>
+                  {body}
+                </button>
+              ) : (
+                <div className={s.diff} style={vars(d.item)}>
+                  {body}
+                </div>
+              )}
             </li>
           );
         })}
-      </ol>
-    </nav>
+        {same.map((id) => (
+          <li key={id} className={s.same}>
+            <span className={s.diffTop}>
+              <Chip id={id} />
+            </span>
+            <span>두 프롬프트 모두 있음</span>
+            <b>같음</b>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

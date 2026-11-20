@@ -1,16 +1,19 @@
 "use client";
 
-// 결과 비교: 내 프롬프트로 받은 결과와, 빠진 요소를 채운 프롬프트로 받은 결과를 나란히 보여 준다.
+// 결과 비교: 내 프롬프트로 받은 결과와, 빠진 요소를 채운 프롬프트로 받은 결과를 한 화면에 나란히 보여 준다(작업 O-1).
 // 고쳐서 다시 진단해 diagnosis.before가 있으면 먼저 "내가 고친 프롬프트" 모드(SelfCompare.js)로 연다.
-// 한 화면에 세 단계(내 결과 → 다듬은 프롬프트 → 두 결과 비교)를 두고 단계마다 내용을 바꾼다.
-// 세 단계 결과는 진단 결과(diagnosis.compare)에 붙여 저장해서, 다시 들어와도 AI를 다시 부르지 않는다.
+// 위에서 아래로: 두 프롬프트(1행)와 두 결과(2행) 격자 → 바뀐 점 → 나를 위한 추천 미션 → 점선 설명·복사.
+// 결과는 세 번 나눠 받고(내 결과 → 다듬기 → 다듬은 결과) 자리마다 "만드는 중…"을 보이다가 채운다.
+// 받은 결과는 진단 결과(diagnosis.compare)에 붙여 저장해서, 다시 들어와도 AI를 다시 부르지 않는다.
+// 추천 미션은 진단만으로 고르니 결과를 기다리지 않고 먼저 보인다. 주 버튼은 추천 1번의 '시작' 하나다.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import * as api from "@/lib/api";
 import { useAppState } from "@/components/AppState";
+import { ForYou } from "@/app/learn/ForYou";
 import { COMPARE_SAMPLE } from "@/data/compareSample";
 import { ITEM } from "@/lib/items";
-import { RULE_REASONS } from "@/lib/server/guess";
 import s from "./compare.module.css";
 import { SelfCompare } from "./SelfCompare";
 import { Tour } from "@/components/Tour";
@@ -18,21 +21,19 @@ import {
   Arrow,
   Bar,
   Chip,
+  DiffList,
+  FailBar,
   FilesLine,
-  FlowNav,
   IDS,
   joinSentences,
   LengthLine,
+  Making,
   MarkedOutput,
-  Num,
-  Pending,
   PromptText,
   SampleBadge,
   vars,
   WithBlanks,
 } from "./parts";
-
-const FLOW = ["내 프롬프트 결과", "다듬은 프롬프트", "두 결과 비교"];
 
 export default function ComparePage() {
   const { ready, diagnosis } = useAppState();
@@ -54,7 +55,7 @@ export default function ComparePage() {
 
 function RefineCompare({ onSelfCompare }) {
   const { ready, diagnosis, setDiagnosis } = useAppState();
-  const [step, setStep] = useState(1);
+  const router = useRouter();
   const [focus, setFocus] = useState(null);
   // 실패와 예시 모드는 어느 진단에서 생겼는지(at)와 함께 둔다.
   const [failure, setFailure] = useState(null);
@@ -63,10 +64,9 @@ function RefineCompare({ onSelfCompare }) {
   const running = useRef(null);
 
   // cacheComponents에서는 다른 화면으로 가도 이 화면을 숨겨 두고 상태를 그대로 둔다.
-  // 숨겨질 때 단계와 강조를 처음으로 돌리고, 실패와 예시 모드를 풀어 다시 들어오면 새로 받아 오게 한다.
+  // 숨겨질 때 강조를 풀고, 실패와 예시 모드를 풀어 다시 들어오면 새로 받아 오게 한다.
   useLayoutEffect(
     () => () => {
-      setStep(1);
       setFocus(null);
       setFailure(null);
       setSampleAt(null);
@@ -179,10 +179,10 @@ function RefineCompare({ onSelfCompare }) {
         refined: saved?.refined,
         run: saved?.run,
       };
-  const done = sample || phase === 3;
   const compared = IDS.filter((id) => data.missing.includes(id));
   const numOf = (id) => compared.indexOf(id) + 1;
-  const lit = step === 3 ? focus : null;
+  const lit = data.run ? focus : null;
+  const addedCount = data.refined?.sentences.filter((x) => x.added).length ?? 0;
 
   async function copyImproved() {
     try {
@@ -196,13 +196,10 @@ function RefineCompare({ onSelfCompare }) {
 
   return (
     <div className={s.wrap}>
-      <div className={s.mtop}>
-        <Link href="/diagnosis/result" className={s.back}>
-          <Arrow back />
-          진단 결과로
-        </Link>
-        {done && <FlowNav labels={FLOW} step={step} onStep={setStep} />}
-      </div>
+      <Link href="/diagnosis/result" className={s.back}>
+        <Arrow back />
+        진단 결과로
+      </Link>
 
       <div className={s.top}>
         <h1 className={`display ${s.title}`}>두 프롬프트 결과 비교</h1>
@@ -214,9 +211,8 @@ function RefineCompare({ onSelfCompare }) {
         )}
       </div>
 
-      {!done && (
-        <Pending
-          phase={fail ? fail.phase : phase}
+      {fail && (
+        <FailBar
           failure={fail}
           onRetry={() => setFailure(null)}
           onReupload={(files) => {
@@ -227,197 +223,110 @@ function RefineCompare({ onSelfCompare }) {
         />
       )}
 
-      {done && (
-        <>
-          {step === 1 && (
+      {/* 1행 두 프롬프트, 2행 두 결과. 격자라 두 결과가 같은 높이에서 시작한다. */}
+      <div className={s.sides} data-tour="compare-sides">
+        <section className={`${s.card} ${s.sideCard}`} aria-labelledby="mine-p">
+          <div className={s.cardHead}>
+            <h3 id="mine-p">{sample ? "예시 프롬프트" : "내 프롬프트"}</h3>
+            <Bar on={data.found} />
+          </div>
+          <p className={s.prompt}>
+            <PromptText segments={data.segments} prompt={data.prompt} />
+          </p>
+          <FilesLine files={data.files} />
+          <div className={s.empties}>
+            <span>비어 있음</span>
+            {compared.map((id) => (
+              <span key={id} className={s.emptyChip}>
+                {ITEM[id].name}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <section className={`${s.card} ${s.sideCard}`} aria-labelledby="fixed-p">
+          <div className={s.cardHead}>
+            <h3 id="fixed-p">
+              다듬은 프롬프트
+              {addedCount > 0 && <span className={s.newCount}>새로 채움 {addedCount}</span>}
+            </h3>
+            {data.refined && <Bar on={data.refined.sentences.map((x) => x.item)} />}
+          </div>
+          {data.refined ? (
+            <ol className={s.sentences}>
+              {data.refined.sentences.map((x) => (
+                <li key={x.item}>
+                  <span className={s.tags}>
+                    <Chip id={x.item} />
+                  </span>
+                  <span className={`${s.sentence} ${s.mark} ${s.solid}`} style={vars(x.item)}>
+                    <WithBlanks text={x.text} />
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <Making failed={Boolean(fail)} />
+          )}
+        </section>
+
+        <section className={`${s.card} ${s.sideCard}`} aria-labelledby="c-mine">
+          <div className={s.cardHead}>
+            <h3 id="c-mine">내 프롬프트로 받은 결과</h3>
+            <SampleBadge on={sample} />
+          </div>
+          {data.mine ? (
             <>
-              <div className={s.row}>
-                <section className={`${s.card} ${s.mineCard}`} aria-labelledby="mine-p">
-                  <h3 id="mine-p" className={s.lbl}>
-                    {sample ? "예시 프롬프트" : "내 프롬프트"}
-                  </h3>
-                  <p className={s.prompt}>
-                    <PromptText segments={data.segments} prompt={data.prompt} />
-                  </p>
-                  <FilesLine files={data.files} />
-                  <Bar on={data.found} />
-                  <div className={s.empties}>
-                    <span>비어 있음</span>
-                    {compared.map((id) => (
-                      <span key={id} className={s.emptyChip}>
-                        {ITEM[id].name}
-                      </span>
-                    ))}
-                  </div>
-                </section>
-                <section className={`${s.card} ${s.mineResult}`} aria-labelledby="mine-r">
-                  <div className={s.cardHead}>
-                    <h3 id="mine-r" className={s.lbl}>
-                      내 프롬프트로 받은 결과
-                    </h3>
-                    <SampleBadge on={sample} />
-                  </div>
-                  <MarkedOutput output={data.mine.output} marks={data.mine.guesses} numOf={numOf} />
-                  <LengthLine output={data.mine.output} numOf={numOf} sample={sample} />
-                  <ul className={s.bubbles}>
-                    {compared.map((id) => (
-                      <li key={id} style={vars(id)}>
-                        <span className={s.whyChip} style={vars(id)}>
-                          {numOf(id)} {ITEM[id].name}
-                        </span>
-                        <span>{data.mine.guesses.find((g) => g.item === id)?.reason ?? RULE_REASONS[id]}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              </div>
-              <div className={s.nextRow}>
-                <span className={s.note}>점선 밑줄 = 정보가 없어 AI가 임의로 정한 부분</span>
-                <button type="button" className={s.cta} onClick={() => setStep(2)}>
-                  다듬은 프롬프트 보기
-                  <Arrow />
-                </button>
-              </div>
+              <MarkedOutput output={data.mine.output} marks={data.mine.guesses} numOf={numOf} focus={lit} />
+              <LengthLine output={data.mine.output} numOf={numOf} focus={lit} sample={sample} />
             </>
+          ) : (
+            <Making failed={Boolean(fail)} />
           )}
+        </section>
 
-          {step === 2 && (
-            <div className={s.narrow}>
-              <div className={s.stepHead}>
-                <h2 className="display">빠진 요소 {compared.length}개 채움</h2>
-                <p>새 문장마다 넣은 이유 표시</p>
-              </div>
-              <div className={s.orig}>
-                <span className={s.origLabel}>원래 프롬프트</span>
-                <span className={s.origText}>
-                  <PromptText segments={data.segments} prompt={data.prompt} />
-                </span>
-                <Bar on={data.found} />
-              </div>
-              <section className={`${s.card} ${s.fixed}`} aria-labelledby="fixed-p">
-                <div className={s.cardHead}>
-                  <h3 id="fixed-p">다섯 요소를 채운 프롬프트</h3>
-                  <Bar on={data.refined.sentences.map((x) => x.item)} />
-                </div>
-                <ol className={s.sentences}>
-                  {data.refined.sentences.map((x) => (
-                    <li key={x.item}>
-                      <span className={s.tags}>
-                        <Chip id={x.item} />
-                        {x.added && <span className={s.added}>추가</span>}
-                      </span>
-                      <span className={s.sentenceBody}>
-                        <span className={`${s.sentence} ${s.mark} ${s.solid}`} style={vars(x.item)}>
-                          <WithBlanks text={x.text} />
-                        </span>
-                        <span className={s.why}>{x.why}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-              <div className={`${s.nextRow} ${s.between}`}>
-                <button type="button" className={s.secondary} onClick={() => setStep(1)}>
-                  <Arrow back />
-                  이전
-                </button>
-                <button type="button" className={s.cta} onClick={() => setStep(3)}>
-                  두 결과 비교하기
-                  <Arrow />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
+        <section className={`${s.card} ${s.sideCard}`} aria-labelledby="c-fixed">
+          <div className={s.cardHead}>
+            <h3 id="c-fixed">다듬은 프롬프트로 받은 결과</h3>
+            <SampleBadge on={sample} />
+          </div>
+          {data.run ? (
             <>
-              <div className={s.stepHead}>
-                <h2 className="display">두 결과 나란히 보기</h2>
-                <p>달라진 점을 누르면 양쪽 결과에 함께 표시</p>
-              </div>
-              <div className={s.compareRow}>
-                <section className={`${s.card} ${s.side}`} aria-labelledby="c-mine">
-                  <div className={s.cardHead}>
-                    <h3 id="c-mine">내 프롬프트로 받은 결과</h3>
-                    <SampleBadge on={sample} />
-                  </div>
-                  <MarkedOutput output={data.mine.output} marks={data.mine.guesses} numOf={numOf} focus={lit} />
-                  <LengthLine output={data.mine.output} numOf={numOf} focus={lit} sample={sample} />
-                </section>
-
-                <section className={s.diffCol} aria-labelledby="diff-h">
-                  <h3 id="diff-h" className="display">
-                    무엇이 달라졌나
-                  </h3>
-                  {data.run.diffs.map((d) => {
-                    const on = lit === d.item;
-                    return (
-                      <button
-                        key={d.item}
-                        type="button"
-                        className={s.diff}
-                        style={vars(d.item)}
-                        aria-pressed={on}
-                        onClick={() => setFocus(on ? null : d.item)}
-                      >
-                        <span className={s.diffTop}>
-                          <Chip id={d.item} />
-                          <Num id={d.item} n={numOf(d.item)} />
-                        </span>
-                        <span className={s.before}>
-                          <b>전</b>
-                          <span>{d.before}</span>
-                        </span>
-                        <span className={s.after}>
-                          <b>후</b>
-                          <span>{d.after}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                  {IDS.filter((id) => data.found.includes(id)).map((id) => (
-                    <div key={id} className={s.same}>
-                      <Chip id={id} />
-                      <span>두 프롬프트 모두 있음</span>
-                      <b>같음</b>
-                    </div>
-                  ))}
-                </section>
-
-                <section className={`${s.card} ${s.side}`} aria-labelledby="c-fixed">
-                  <div className={s.cardHead}>
-                    <h3 id="c-fixed">다듬은 프롬프트로 받은 결과</h3>
-                    <SampleBadge on={sample} />
-                  </div>
-                  <MarkedOutput output={data.run.output} marks={data.run.marks} solid numOf={numOf} focus={lit} />
-                  <LengthLine output={data.run.output} solid numOf={numOf} focus={lit} sample={sample} />
-                </section>
-              </div>
-
-              <div className={s.ctaBar}>
-                <button type="button" className={s.textBtn} onClick={() => setStep(2)}>
-                  <Arrow back />
-                  이전
-                </button>
-                <p className="display">이제 내 프롬프트 직접 고치기</p>
-                <button type="button" className={s.secondary} onClick={copyImproved} aria-live="polite">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="5" y="5" width="8.5" height="8.5" rx="2" />
-                    <path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" />
-                  </svg>
-                  {copied ? "복사함" : "다듬은 프롬프트 복사"}
-                </button>
-                <Link href="/?edit=1" className={`${s.cta} ${s.ctaBig}`}>
-                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M12.5 2.5l3 3L6 15H3v-3z" />
-                  </svg>
-                  내 프롬프트 직접 고쳐 보기
-                </Link>
-              </div>
+              <MarkedOutput output={data.run.output} marks={data.run.marks} solid numOf={numOf} focus={lit} />
+              <LengthLine output={data.run.output} solid numOf={numOf} focus={lit} sample={sample} />
             </>
+          ) : (
+            <Making failed={Boolean(fail)} />
           )}
-        </>
+        </section>
+      </div>
+
+      {data.run && (
+        <DiffList
+          diffs={data.run.diffs}
+          same={IDS.filter((id) => data.found.includes(id))}
+          numOf={numOf}
+          focus={lit}
+          onFocus={setFocus}
+        />
       )}
+
+      <div className={s.forYou}>
+        <ForYou tour="compare-foryou" onOpen={(id) => router.push(`/learn?mission=${id}`)} />
+      </div>
+
+      <div className={s.foot}>
+        <span className={s.note}>점선 = 정보가 없어 AI가 임의로 정한 부분</span>
+        {data.refined && (
+          <button type="button" className={s.secondary} onClick={copyImproved} aria-live="polite">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden="true">
+              <rect x="5" y="5" width="8.5" height="8.5" rx="2" />
+              <path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" />
+            </svg>
+            {copied ? "복사함" : "다듬은 프롬프트 복사"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
