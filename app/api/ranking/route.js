@@ -29,6 +29,10 @@ export async function GET(request) {
 
 export async function POST(request) {
   if (!isOn()) return Response.json({ error: "랭킹은 로그인 기능이 켜져 있을 때 쓸 수 있어요." }, { status: 503 });
+  // 다른 사이트의 폼은 JSON 형식으로 보낼 수 없으니, JSON 요청만 받아 몰래 바꾸는 요청을 막는다(가입·로그인과 같다).
+  if (!request.headers.get("content-type")?.startsWith("application/json")) {
+    return Response.json({ error: "요청 형식이 올바르지 않아요." }, { status: 415 });
+  }
   const user = await getSessionUser();
   if (!user) return Response.json({ error: "로그인이 필요해요." }, { status: 401 });
   const text = await request.text();

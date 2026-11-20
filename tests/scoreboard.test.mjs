@@ -44,7 +44,10 @@ test("준비 중 과정은 합계와 만점에서 빼고, 만점은 열린 과�
   const empty = areaScores({});
   assert.equal(empty.total, 0);
   assert.equal(empty.max, 500);
-  assert.deepEqual(empty.areas.find((a) => a.course === "flow"), { course: "flow", score: null, done: 0 });
+  assert.deepEqual(
+    empty.areas.find((a) => a.course === "flow"),
+    { course: "flow", score: null, done: 0 },
+  );
 });
 
 test("순위: 합계가 높은 순, 같으면 푼 강의가 많은 순, 그래도 같으면 같은 순위", () => {
