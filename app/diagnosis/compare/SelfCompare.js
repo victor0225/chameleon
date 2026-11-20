@@ -239,7 +239,11 @@ export function SelfCompare({ onAiCompare }) {
                 <div className={s.cardHead}>
                   <h3 id="mine-fixed">
                     내가 고친 프롬프트
-                    {added.length > 0 && <span className={s.newCount}>새로 채움 {added.length}</span>}
+                    {added.length > 0 && (
+                      <span className={s.newCount} data-tour="compare-new">
+                        새로 채움 {added.length}
+                      </span>
+                    )}
                   </h3>
                   <Bar on={diagnosis.found} />
                 </div>
@@ -347,7 +351,11 @@ export function SelfCompare({ onAiCompare }) {
                   <div className={s.cardHead}>
                     <h3 id="c-after">
                       내가 고친 프롬프트
-                      {added.length > 0 && <span className={s.newCount}>새로 채움 {added.length}</span>}
+                      {added.length > 0 && (
+                      <span className={s.newCount} data-tour="compare-new">
+                        새로 채움 {added.length}
+                      </span>
+                    )}
                     </h3>
                   </div>
                   {rule ? (

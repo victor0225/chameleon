@@ -756,3 +756,10 @@
 .side[hidden] {
   display: none;
 }
+
+/* 해 보기 단계 위 한 줄: 첫 시도 점수만 센다(작업 J) */
+.firstNote {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}

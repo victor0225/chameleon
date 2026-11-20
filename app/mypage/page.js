@@ -6,6 +6,7 @@ import { segVar } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
 import { AuthLinks } from "@/components/AuthLinks";
 import { ScoreLine } from "@/components/ScoreLine";
+import { Tour } from "@/components/Tour";
 import { SETTINGS_KEY, applyLargeText } from "@/components/Header";
 import { LESSONS } from "@/data/curriculum";
 import { EXPERIENCE, JOB } from "@/data/jobs";
@@ -111,7 +112,7 @@ function DiagnosisGrowth({ at }) {
   }, [user, at]);
   if (!user || !(trend?.growth > 0)) return null;
   return (
-    <p className={`small ${styles.growth}`}>
+    <p className={`small ${styles.growth}`} data-tour="mypage-growth">
       처음 진단보다 요소 <strong className="mono">{trend.growth}</strong>개를 더 채웠어요{" "}
       <span className="muted">
         (<span className="mono">{trend.from}</span>개 → <span className="mono">{trend.to}</span>개)
@@ -186,7 +187,7 @@ function Progress({ record }) {
   const done = LESSONS.filter((l) => record.completed.includes(l.id)).length;
   return (
     <>
-      <div className={styles.stats}>
+      <div className={styles.stats} data-tour="mypage-stats">
         <p className="xp">
           <span className="mono">{record.xp}</span>XP
         </p>
@@ -301,6 +302,7 @@ export default function Mypage() {
   return (
     <div className="page">
       {/* 한 줄로 쌓아 아래로 스크롤하며 본다. 맨 위는 이름과 사진 자리에 내 정보를 담는다. */}
+      <Tour id="mypage" when={ready} />
       <div className={styles.column}>
         <h1 className={`display ${styles.pageTitle}`}>마이페이지</h1>
 

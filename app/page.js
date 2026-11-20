@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AnatomyText, ScaleBar } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
+import { Tour } from "@/components/Tour";
 import { analyze } from "@/lib/anatomy";
 import s from "./home.module.css";
 const BEFORE = "보고서 써줘";
@@ -54,6 +55,7 @@ export default function Home() {
   const { diagnosis } = useAppState();
   return (
     <div className={`page ${s.home}`}>
+      <Tour id="home" />
       <section className="hero">
         <div>
           <h1 className="display">
@@ -66,7 +68,7 @@ export default function Home() {
             드리고, 프롬프트부터 파일·대화 기록 다루기, 결과 확인까지 수준에 맞춰 연습하게 도와드려요.
           </p>
           <div className="row">
-            <Link href="/diagnosis" className="btn">
+            <Link href="/diagnosis" className="btn" data-tour="home-start">
               내 수준 진단하기
             </Link>
             {diagnosis && (

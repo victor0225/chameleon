@@ -41,7 +41,7 @@ export function ForYou({ onOpen }) {
 
   if (!user) {
     return (
-      <section className={s.forYouCta} aria-labelledby="for-you-title">
+      <section className={s.forYouCta} aria-labelledby="for-you-title" data-tour="learn-foryou">
         <div>
           <h2 id="for-you-title">나를 위한 커리큘럼</h2>
           <p className={s.muted}>로그인하면 진단과 실습 기록을 보고, 지금 나에게 필요한 미션을 골라 드려요.</p>
@@ -53,7 +53,7 @@ export function ForYou({ onOpen }) {
 
   const focus = plan?.focus ? ITEM[plan.focus] : null;
   return (
-    <section className={s.forYou} aria-labelledby="for-you-title" aria-busy={!plan}>
+    <section className={s.forYou} aria-labelledby="for-you-title" aria-busy={!plan} data-tour="learn-foryou">
       <div className={s.forYouHead}>
         <h2 id="for-you-title">나를 위한 커리큘럼</h2>
         {focus && (

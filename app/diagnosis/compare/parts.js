@@ -212,7 +212,7 @@ export function Pending({ phase, failure, onRetry, onReupload, phases = PHASES, 
 // 비교 단계 이동. 누르면 그 단계로 간다.
 export function FlowNav({ labels, step, onStep }) {
   return (
-    <nav aria-label="비교 단계" className={s.flow}>
+    <nav aria-label="비교 단계" className={s.flow} data-tour="compare-steps">
       <ol>
         {labels.map((label, i) => {
           const n = i + 1;

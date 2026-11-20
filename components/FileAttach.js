@@ -81,7 +81,13 @@ export function FileAttach({ entries, setEntries, disabled = false, children }) 
           tabIndex={-1}
           aria-hidden="true"
         />
-        <button type="button" className={s.attach} onClick={() => input.current?.click()} disabled={disabled || full}>
+        <button
+          type="button"
+          className={s.attach}
+          onClick={() => input.current?.click()}
+          disabled={disabled || full}
+          data-tour="file-attach"
+        >
           <ClipIcon />
           파일 첨부
         </button>

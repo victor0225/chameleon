@@ -201,3 +201,26 @@ test("개인화 읽기: 최근 진단 다섯 개와 첫 진단, 내 부문 점�
     await db.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [people]);
   }
 });
+
+test("화면 안내 기록: 넣고 고치고, 합칠 때는 있는 줄을 그대로 둔다(tour_views 표가 있을 때만)", { skip }, async () => {
+  const { db, users } = await load();
+  const { rows } = await db.query("SELECT to_regclass('tour_views') AS t");
+  if (!rows[0].t) return; // 표는 팀원이 만든다. 아직 없으면 API가 off로 답한다(브라우저 기록만 씀).
+  const tour = await import("../lib/server/tour.js");
+  const u = await users.createUser({ loginId: `${ID}t`, password: "12345678", name: "안내" });
+  try {
+    await tour.saveTourView(u.id, { tourId: "mission", status: "skipped", step: 1, merge: false });
+    const first = (await db.query("SELECT first_at FROM tour_views WHERE user_id = $1", [u.id])).rows[0].first_at;
+    await tour.saveTourView(u.id, { tourId: "mission", status: "done", step: 2, merge: false });
+    await tour.saveTourView(u.id, { tourId: "mission", status: "skipped", step: 0, merge: true });
+    await tour.saveTourView(u.id, { tourId: "home", status: "done", step: 0, merge: true });
+    assert.deepEqual(await tour.loadTourViews(u.id), { mission: "done", home: "done" });
+    const row = (await db.query("SELECT step, first_at FROM tour_views WHERE user_id = $1 AND tour_id = 'mission'", [u.id])).rows[0];
+    assert.equal(row.step, 2);
+    assert.equal(row.first_at.getTime(), first.getTime(), "다시 봐도 처음 본 시각은 그대로");
+    await users.clearData(u.id);
+    assert.deepEqual(Object.keys(await tour.loadTourViews(u.id)).sort(), ["home", "mission"], "기록 지우기는 안내 기록을 지우지 않는다");
+  } finally {
+    await db.query("DELETE FROM users WHERE id = $1", [u.id]);
+  }
+});

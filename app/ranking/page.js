@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAppState } from "@/components/AppState";
 import { AuthLinks } from "@/components/AuthLinks";
+import { Tour } from "@/components/Tour";
 import { COURSE } from "@/data/courses";
 import { JOB } from "@/data/jobs";
 import s from "./ranking.module.css";
@@ -37,7 +38,7 @@ function weakestArea(areas) {
 function MyScore({ me, onLeave, busy }) {
   const weak = weakestArea(me.areas);
   return (
-    <section className={`card ${s.mine}`} aria-labelledby="my-score">
+    <section className={`card ${s.mine}`} aria-labelledby="my-score" data-tour="ranking-me">
       <div className={s.mineHead}>
         <h2 id="my-score" className={s.cardTitle}>
           내 점수
@@ -55,7 +56,7 @@ function MyScore({ me, onLeave, busy }) {
         <span className="mono">{me.total}</span>
         <span className={s.max}>/ {me.max}</span>
       </p>
-      <ul className={s.areas} aria-label="부문 점수">
+      <ul className={s.areas} aria-label="부문 점수" data-tour="ranking-areas">
         {me.areas.map((a) => {
           const course = COURSE[a.course];
           const avg = me.averages?.[a.course]?.avg;
@@ -108,6 +109,7 @@ function JoinForm({ onJoin, busy, error }) {
   const [nickname, setNickname] = useState("");
   return (
     <form
+      data-tour="ranking-join"
       className={`card ${s.join}`}
       onSubmit={(e) => {
         e.preventDefault();
@@ -246,6 +248,7 @@ export default function RankingPage() {
 
   return (
     <div className="page">
+      <Tour id="ranking" when={Boolean(data)} />
       <div className={s.column}>
         {head}
 
@@ -271,7 +274,7 @@ export default function RankingPage() {
             {data.me && !data.me.ranked && (
               <JoinForm busy={busy} error={joinError} onJoin={(nickname) => change({ ranked: true, nickname })} />
             )}
-            <div className="seg-toggle" role="group" aria-label="랭킹 범위">
+            <div className="seg-toggle" role="group" aria-label="랭킹 범위" data-tour="ranking-tabs">
               <button type="button" aria-pressed={tab === "all"} onClick={() => setTab("all")}>
                 전체
               </button>

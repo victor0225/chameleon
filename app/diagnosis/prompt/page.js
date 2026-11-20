@@ -7,6 +7,7 @@ import * as api from "@/lib/api";
 import { ScaleBar } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
 import { attachedFiles, entriesFrom, FileAttach, isUploading } from "@/components/FileAttach";
+import { Tour } from "@/components/Tour";
 import { JOB } from "@/data/jobs";
 import { analyze } from "@/lib/anatomy";
 import { Progress } from "../_components/Progress";
@@ -136,6 +137,7 @@ function DiagnosisPrompt() {
 
   return (
     <div className={s.wrap}>
+      <Tour id="diagnosis" />
       <Progress step={2} />
       <header className={s.head}>
         <h1 className="display">프롬프트 한 번 써 보기</h1>
@@ -149,6 +151,7 @@ function DiagnosisPrompt() {
             <FileAttach entries={entries} setEntries={setEntries} disabled={loading}>
               <textarea
                 id="diagnosis-prompt"
+                data-tour="diagnosis-input"
                 className={s.textarea}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
@@ -158,7 +161,7 @@ function DiagnosisPrompt() {
               />
             </FileAttach>
           </div>
-          <div className={s.live}>
+          <div className={s.live} data-tour="diagnosis-meter">
             <ScaleBar found={found} />
             <p className="small muted">
               쓰는 동안 들어간 요소가 색으로 채워져요.

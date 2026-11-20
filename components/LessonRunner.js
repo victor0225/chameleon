@@ -8,6 +8,7 @@ import { analyze } from "@/lib/anatomy";
 import { ITEMS } from "@/lib/items";
 import { Output } from "@/components/Anatomy";
 import { CoachCard, ElementChip, foundOf, marksOf, MetIcon, MiniBar, MissIcon, PromptEditor, PromptText } from "./lessonBits";
+import { Tour } from "./Tour";
 import { MaterialPanel, PracticeChoose, PracticeFile, PracticeSort, PracticeSpot } from "./Practice";
 import s from "./lesson.module.css";
 
@@ -22,13 +23,14 @@ const BLANK_NAMES = /\{\{([^{}\n]+)\}\}/g;
 
 function Steps({ index }) {
   return (
-    <ol className={s.steps} aria-label="미션 진행">
+    <ol className={s.steps} aria-label="미션 진행" data-tour="mission-steps">
       {STAGES.map((st, i) => (
         <Fragment key={st.id}>
           {i > 0 && <li aria-hidden="true" className={`${s.stepLine} ${i <= index ? s.lineDone : ""}`} />}
           <li
             className={`${s.step} ${i === index ? s.now : i < index ? s.done : ""}`}
             aria-current={i === index ? "step" : undefined}
+            data-tour={st.id === "practice" ? "mission-try" : undefined}
           >
             {i < index ? (
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -198,6 +200,9 @@ export function LessonRunner({
 
   return (
     <div className={`${s.wrap} ${stage === "lecture" ? s.narrow : ""} ${stage === "result" ? s.result : ""}`}>
+      {/* 화면 안내(작업 J): 미션을 처음 열 때, 피드백을 처음 볼 때 */}
+      <Tour id="mission" when={stage !== "result"} />
+      <Tour id="feedback" when={stage === "result" && Boolean(grade)} />
       <div className={s.top}>
         <button type="button" className={s.back} onClick={onExit}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -216,11 +221,13 @@ export function LessonRunner({
           {lesson.focus && <ElementChip id={lesson.focus} />}
         </p>
         <h1 className={s.title}>{lesson.title}</h1>
+        {/* 화면 안내를 건너뛰어도 첫 시도 점수 규칙은 늘 보이게 한다(작업 J). */}
+        {stage === "practice" && <p className={s.firstNote}>처음 푼 점수가 부문 점수에 들어가요.</p>}
       </div>
 
       {stage === "lecture" && (
         <>
-          <section className={`${s.card} ${s.core}`} aria-labelledby="lesson-core">
+          <section className={`${s.card} ${s.core}`} aria-labelledby="lesson-core" data-tour="mission-learn">
             <h2 id="lesson-core" className={s.smallTitle}>
               핵심
             </h2>
@@ -385,7 +392,7 @@ export function LessonRunner({
 
       {stage === "result" && grade && !Practice && (
         <>
-          <section className={`${s.card} ${s.verdict}`} aria-live="polite" aria-labelledby="verdict">
+          <section className={`${s.card} ${s.verdict}`} aria-live="polite" aria-labelledby="verdict" data-tour="feedback-score">
             <h2 id="verdict" className={s.verdictTitle}>
               {grade.passed ? "통과했어요" : "아직이에요"}
             </h2>

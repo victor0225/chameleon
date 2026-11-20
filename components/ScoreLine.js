@@ -25,7 +25,7 @@ export function ScoreLine({ className = "" }) {
 
   if (!authChecked || !login.ready) return null;
   return (
-    <p className={`small ${className}`}>
+    <p className={`small ${className}`} data-tour="score-line">
       {user && me && (
         <>
           내 점수 <strong className="mono">{me.total}</strong> / {me.max} ·{" "}

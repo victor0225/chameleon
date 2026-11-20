@@ -6,13 +6,14 @@ import { usePathname } from "next/navigation";
 import { Logo } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
 import { authHref } from "@/components/AuthLinks";
+import { replayTour, useCurrentTour } from "@/components/Tour";
 import { JOB } from "@/data/jobs";
 import styles from "./Header.module.css";
 
 const NAV = [
-  { href: "/", name: "진단", match: (path) => path === "/" || path.startsWith("/diagnosis") },
-  { href: "/prompt", name: "프롬프트 도우미", match: (path) => path === "/prompt" },
-  { href: "/learn", name: "AI 활용 교육", match: (path) => path === "/learn" },
+  { href: "/", name: "진단", tour: "nav-diagnosis", match: (path) => path === "/" || path.startsWith("/diagnosis") },
+  { href: "/prompt", name: "프롬프트 도우미", tour: "nav-helper", match: (path) => path === "/prompt" },
+  { href: "/learn", name: "AI 활용 교육", tour: "nav-learn", match: (path) => path === "/learn" },
 ];
 
 // 마이페이지의 "페이지 설정"을 이 브라우저에 저장하는 키.
@@ -29,6 +30,8 @@ export function Header() {
   const onAuthPage = pathname === "/login" || pathname === "/signup";
   const onMypage = pathname === "/mypage";
   const chipText = profile ? `${profile.level} · ${JOB[profile.job]?.name ?? "직무 미정"}` : "진단 전";
+  // 지금 화면에 안내(components/Tour.js)가 있으면 "화면 안내"로 다시 띄울 수 있다.
+  const tour = useCurrentTour();
 
   // 헤더는 모든 화면에 있으니, 처음 열 때 저장된 "글자 크게 보기"를 여기서 적용한다.
   useEffect(() => {
@@ -55,12 +58,18 @@ export function Header() {
                 href={item.href}
                 className={active ? "active" : undefined}
                 aria-current={active ? "page" : undefined}
+                data-tour={item.tour}
               >
                 {item.name}
               </Link>
             );
           })}
         </nav>
+        {tour && (
+          <button type="button" className={styles.tourButton} onClick={replayTour}>
+            화면 안내
+          </button>
+        )}
         <Link
           href="/mypage"
           className={`level-chip ${styles.chip}${onMypage ? ` ${styles.active}` : ""}`}

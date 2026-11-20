@@ -23,7 +23,7 @@ const counted = (n, unit) => (WORD[n] ? `${WORD[n]} ${unit}` : `${n}${unit}`);
 
 function ResultHead({ title, desc, score, grade, wasDone }) {
   return (
-    <section className={`${l.card} ${p.head}`} aria-live="polite" aria-labelledby="practice-result">
+    <section className={`${l.card} ${p.head}`} aria-live="polite" aria-labelledby="practice-result" data-tour="feedback-score">
       <div className={p.headText}>
         <h2 id="practice-result" className={p.headTitle}>
           {title}

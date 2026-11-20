@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ElementChip, LessonRunner, itemVars } from "@/components/LessonRunner";
 import { GUEST, useAppState } from "@/components/AppState";
 import { ScoreLine } from "@/components/ScoreLine";
+import { Tour } from "@/components/Tour";
 import { LESSONS, XP_PER_LESSON } from "@/data/curriculum";
 import { COURSE, COURSES, findAnyLesson } from "@/data/courses";
 import { courseSignals } from "@/lib/courseSignals";
@@ -64,7 +65,7 @@ function RecordPanel({ record, myLevel, onOpen }) {
     openAt(weakest.id, myLevel) ?? LESSONS.find((l) => l.focus === weakest.id && !record.completed.includes(l.id)) ?? null;
 
   return (
-    <aside className={s.record} aria-labelledby="record-title">
+    <aside className={s.record} aria-labelledby="record-title" data-tour="learn-record">
       <h2 id="record-title">학습 기록</h2>
 
       <div className={s.section}>
@@ -139,7 +140,7 @@ function RecordPanel({ record, myLevel, onOpen }) {
 function LevelUpBanner({ from, onStart, onClose }) {
   const to = nextLevel(from);
   return (
-    <section className={s.levelup} aria-live="polite" aria-label="레벨업">
+    <section className={s.levelup} aria-live="polite" aria-label="레벨업" data-tour-wait="">
       <span className={s.bars} aria-hidden="true">
         {ITEMS.map((item) => (
           <span key={item.id} style={{ background: item.color }} />
@@ -469,6 +470,7 @@ function Learn() {
     return (
       <div className={s.page}>
         {banner}
+        <Tour id="learn" />
 
         <h1 className={s.title}>AI 활용 교육</h1>
         <p className={s.lede}>미션 하나는 배우기 → 해 보기 → 피드백 순서로 진행해요.</p>
@@ -488,7 +490,7 @@ function Learn() {
         <ForYou onOpen={(id) => open(findAnyLesson(id))} />
 
         <div className={s.layout}>
-          <section className={s.list} aria-labelledby="courses-title">
+          <section className={s.list} aria-labelledby="courses-title" data-tour="learn-courses">
             <h2 id="courses-title" className={s.coursesTitle}>
               여섯 과정
             </h2>
