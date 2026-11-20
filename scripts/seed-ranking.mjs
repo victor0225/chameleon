@@ -59,10 +59,15 @@ try {
     await client.query("INSERT INTO profiles (user_id, job, experience) VALUES ($1, $2, 'often')", [uid, person.job]);
     // 며칠 전에 처음 푼 것으로 남긴다.
     for (const [lessonId, score] of Object.entries(person.scores)) {
+      const daysAgo = PEOPLE.length - i;
       await client.query(
         `INSERT INTO attempts (user_id, lesson_id, passed, found, missed, score, created_at)
          VALUES ($1, $2, $3, '{}', '{}', $4, now() - make_interval(days => $5))`,
-        [uid, lessonId, score >= 70, score, PEOPLE.length - i],
+        [uid, lessonId, score >= 70, score, daysAgo],
+      );
+      await client.query(
+        "INSERT INTO first_scores (user_id, lesson_id, score, created_at) VALUES ($1, $2, $3, now() - make_interval(days => $4))",
+        [uid, lessonId, score, daysAgo],
       );
     }
     const { total, max } = areaScores(person.scores);

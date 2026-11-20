@@ -148,6 +148,11 @@ test("랭킹: 강의마다 점수가 있는 첫 기록만 세고, 참여한 사�
     assert.ok(office.top.some((t) => t.nickname === nickA));
     assert.ok(!office.top.some((t) => t.nickname === nickB));
 
+    // 기록을 지우고 다시 풀어도 첫 점수는 그대로다.
+    await users.clearData(a.id);
+    await users.recordAttempt(a.id, { lessonId: "mem1", passed: true, found: [], missed: [], score: 100 });
+    assert.equal((await ranking.loadRanking(a.id, null)).me.total, 128);
+
     // 빠지면 표에서 사라지고 내 순위도 없다.
     await ranking.setRanking(a.id, { ranked: false });
     r = await ranking.loadRanking(a.id, null);

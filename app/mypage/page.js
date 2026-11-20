@@ -262,7 +262,7 @@ export default function Mypage() {
   }
 
   function clearAll() {
-    const where = user ? " 계정에 저장된 기록도 함께 지워져요." : "";
+    const where = user ? " 계정에 저장된 기록도 함께 지워져요. 랭킹 점수(강의마다 처음 받은 점수)는 남아요." : "";
     if (!window.confirm(`진단 결과, 학습 기록, 페이지 설정을 모두 지울까요?${where} 지우면 되돌릴 수 없어요.`)) return;
     reset();
     try {
