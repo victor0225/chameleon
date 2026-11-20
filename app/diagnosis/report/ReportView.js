@@ -18,13 +18,10 @@ function fileTitle(iso) {
   return `카멜레온_진단결과_${ymd}`;
 }
 
-// 빠진 요소를 연습하는 첫 강의. 없으면 아직 안 끝낸 첫 강의.
-function recommendLesson(missing, completed) {
-  return (
-    LESSONS.find((l) => missing.includes(l.focus) && !completed.includes(l.id)) ??
-    LESSONS.find((l) => !completed.includes(l.id)) ??
-    null
-  );
+// 내 수준 강의 가운데 빠진 요소를 다루는 아직 안 끝낸 첫 강의. 없으면 내 수준의 아직 안 끝낸 첫 강의.
+function recommendLesson(level, missing, completed) {
+  const track = LESSONS.filter((l) => l.level === level && !completed.includes(l.id));
+  return track.find((l) => missing.includes(l.focus)) ?? track[0] ?? null;
 }
 
 export default function ReportView() {
@@ -61,7 +58,7 @@ export default function ReportView() {
   const { level, found, missing, comment, prompt, job, experience, at } = diagnosis;
   const segments = diagnosis.segments ?? analyze(prompt).segments;
   const task = diagnosis.task ?? JOB[job]?.diagnosisTask;
-  const lesson = recommendLesson(missing, record.completed);
+  const lesson = recommendLesson(level, missing, record.completed);
   const date = new Date(at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
 
   return (
@@ -161,8 +158,8 @@ export default function ReportView() {
           <ol className={styles.next}>
             {lesson && (
               <li>
-                AI 활용 교육에서 <strong>「{lesson.title}」</strong> 강의부터 시작해 보세요. ({ITEM[lesson.focus].name}{" "}
-                익히기)
+                AI 활용 교육에서 <strong>「{lesson.title}」</strong> 강의부터 시작해 보세요. ({lesson.level} ·{" "}
+                {ITEM[lesson.focus].name} 익히기)
               </li>
             )}
             <li>프롬프트 작성 도우미에서 실제 업무 프롬프트를 만들어 보세요.</li>

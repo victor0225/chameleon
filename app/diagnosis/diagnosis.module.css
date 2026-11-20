@@ -350,6 +350,124 @@
   background: var(--paper);
 }
 
+/* AI는 이렇게 추측했어요: 결과물에서 AI가 마음대로 정한 부분을 빠진 요소 색으로 칠한다. */
+
+.guessOutput {
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  line-height: 1.9;
+}
+
+.guessMark {
+  color: inherit;
+  background-color: color-mix(in srgb, var(--seg) 16%, transparent);
+  border-radius: 3px;
+}
+
+.guessNum {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 2px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--seg);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1;
+  vertical-align: 0.5em;
+}
+
+.guessList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.guessList li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-left: 12px;
+  border-left: 3px solid var(--seg);
+  font-size: 15px;
+}
+
+.guessList li .guessNum {
+  margin: 3px 0 0;
+  vertical-align: 0;
+}
+
+.guessList strong {
+  margin-right: 6px;
+  color: color-mix(in srgb, var(--seg) 68%, var(--ink));
+}
+
+.guessList p {
+  margin: 2px 0 0;
+  color: var(--ink-2);
+}
+
+.guessNote {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  color: var(--ink-2);
+}
+
+.exampleTag {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px dashed var(--ink-3);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.guessError {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.guessActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding-top: 4px;
+}
+
+.compareCta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 20px 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.compareCta h2 {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.compareCta p {
+  margin-top: 2px;
+}
+
 .resultActions {
   display: flex;
   align-items: flex-start;

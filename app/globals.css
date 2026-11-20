@@ -14,6 +14,12 @@
   --c-constraint: #c98200;
   --c-format: #cf3c78;
   --c-criteria: #7046d6;
+  /* 요소 색을 글자에 쓸 때: 원래 색 68% + 글자색 32%. 흰 바탕에서 읽을 수 있는 대비가 나온다. */
+  --t-goal: #0e6b9b;
+  --t-context: #0e6f4f;
+  --t-constraint: #8f6309;
+  --t-format: #93335a;
+  --t-criteria: #533a9a;
 
   --radius: 16px;
   --font-display: var(--font-hahmlet), "Apple SD Gothic Neo", serif;
@@ -141,19 +147,8 @@ a {
 }
 
 .logo {
-  display: inline-flex;
-  gap: 3px;
-}
-
-.logo span {
-  width: 6px;
-  height: 18px;
-  border-radius: 4px;
-  background: var(--seg);
-}
-
-.logo span:nth-child(even) {
-  transform: translateY(4px);
+  display: block;
+  flex: none;
 }
 
 .nav {

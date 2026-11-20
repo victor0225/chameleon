@@ -1,6 +1,8 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import * as api from "@/lib/api";
 import { AnatomyText, ScaleBar, segVar } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
 import { EXPERIENCE, JOB } from "@/data/jobs";
@@ -11,8 +13,166 @@ import s from "../diagnosis.module.css";
 const formatDate = (iso) =>
   new Date(iso).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
 
+// output 안에서 guesses의 quote가 처음 나오는 자리를 찾아 [{ text, guess?, n? }] 조각으로 나눈다.
+// 앞에서 잡은 자리와 겹치면 그 뒤에 다시 나오는 자리를 찾고, 없으면 칠하지 않는다(이유 목록에는 남는다).
+function markQuotes(output, guesses) {
+  const ranges = [];
+  guesses.forEach((guess, i) => {
+    if (!guess.quote) return;
+    for (let from = 0; ; ) {
+      const start = output.indexOf(guess.quote, from);
+      if (start < 0) return;
+      const end = start + guess.quote.length;
+      if (ranges.every((r) => end <= r.start || start >= r.end)) {
+        ranges.push({ start, end, guess, n: i + 1 });
+        return;
+      }
+      from = start + 1;
+    }
+  });
+  ranges.sort((a, b) => a.start - b.start);
+  const parts = [];
+  let at = 0;
+  for (const r of ranges) {
+    if (r.start > at) parts.push({ text: output.slice(at, r.start) });
+    parts.push({ text: output.slice(r.start, r.end), guess: r.guess, n: r.n });
+    at = r.end;
+  }
+  if (at < output.length) parts.push({ text: output.slice(at) });
+  return parts;
+}
+
+function GuessSection({ guess, error, onRetry }) {
+  let body;
+  if (error) {
+    body = (
+      <div className={s.guessError}>
+        <p className="error" role="alert">
+          {error}
+        </p>
+        <button type="button" className="btn ghost" onClick={onRetry}>
+          다시 시도
+        </button>
+      </div>
+    );
+  } else if (!guess) {
+    body = (
+      <div className="skeleton" role="status" aria-label="AI가 프롬프트를 실행하는 중">
+        <span />
+        <span />
+        <span style={{ width: "62%" }} />
+      </div>
+    );
+  } else if (guess.output) {
+    body = (
+      <>
+        <p className="small muted">
+          이 프롬프트를 AI에게 그대로 보냈더니 이런 결과가 나왔어요. 색칠한 부분은 정보가 없어서 AI가 마음대로 정한
+          거예요.
+        </p>
+        <p className={`anatomy ${s.guessOutput}`}>
+          {markQuotes(guess.output, guess.guesses).map((part, i) =>
+            part.guess ? (
+              <mark
+                key={i}
+                className={`seg ${s.guessMark}`}
+                style={segVar(ITEM[part.guess.item].color)}
+                title={part.guess.reason}
+              >
+                {part.text}
+                <sup className={s.guessNum}>{part.n}</sup>
+              </mark>
+            ) : (
+              <span key={i}>{part.text}</span>
+            ),
+          )}
+        </p>
+        {guess.guesses.length > 0 ? (
+          <ol className={s.guessList}>
+            {guess.guesses.map((g, i) => (
+              <li key={i} style={segVar(ITEM[g.item].color)}>
+                <span className={s.guessNum}>{i + 1}</span>
+                <div>
+                  <strong>{ITEM[g.item].name}</strong> &ldquo;{g.quote}&rdquo;
+                  <p>{g.reason}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p>AI가 마음대로 정한 부분이 없어요. 필요한 정보가 프롬프트에 다 들어 있어요.</p>
+        )}
+      </>
+    );
+  } else {
+    body = (
+      <>
+        <p className={`small ${s.guessNote}`}>
+          <span className={s.exampleTag}>예시 설명</span>
+          AI가 실제로 실행한 결과가 아니에요. 빠진 요소 때문에 AI가 마음대로 정하게 되는 것을 보여 줘요.
+        </p>
+        {guess.guesses.length > 0 ? (
+          <ul className={s.guessList}>
+            {guess.guesses.map((g, i) => (
+              <li key={i} style={segVar(ITEM[g.item].color)}>
+                <div>
+                  <strong>{ITEM[g.item].name}</strong>
+                  <p>{g.reason}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>빠진 요소가 없어서 AI가 마음대로 정할 부분이 거의 없어요.</p>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <section className={s.section} aria-labelledby="result-guess">
+      <h2 id="result-guess">AI는 이렇게 추측했어요</h2>
+      {body}
+      <div className={`${s.guessActions} ${s.noPrint}`}>
+        <Link href="/diagnosis/prompt?edit=1" className="btn">
+          고쳐서 다시 진단하기
+        </Link>
+        <p className="small muted">빠진 요소를 채워 다시 진단하면 AI가 추측하는 부분이 줄어들어요.</p>
+      </div>
+    </section>
+  );
+}
+
 export default function DiagnosisResult() {
-  const { ready, diagnosis } = useAppState();
+  const { ready, diagnosis, setDiagnosis } = useAppState();
+  // 오류는 어느 진단에서 났는지(at)와 함께 둔다. 화면이 숨겨졌다 다시 보일 때 지난 진단의 오류를 띄우지 않는다.
+  const [guessError, setGuessError] = useState(null);
+  // 같은 진단으로 두 번 부르지 않게 마지막으로 부른 진단의 시각(at)을 기억한다.
+  const asked = useRef(null);
+  const needsGuess = Boolean(ready && diagnosis && !diagnosis.guess);
+
+  // 진단 결과에 guess가 없으면 한 번 불러서 그 진단에 붙여 저장한다.
+  const loadGuess = useCallback(
+    (target) => {
+      asked.current = target.at;
+      api
+        .guessAssumptions({ job: target.job, prompt: target.prompt })
+        .then((guess) => setDiagnosis((prev) => (prev?.at === target.at ? { ...prev, guess } : prev)))
+        .catch((err) =>
+          setGuessError({ at: target.at, message: err?.message || "AI가 추측한 부분을 불러오지 못했어요." }),
+        );
+    },
+    [setDiagnosis],
+  );
+
+  useEffect(() => {
+    if (needsGuess && asked.current !== diagnosis.at) loadGuess(diagnosis);
+  }, [needsGuess, diagnosis, loadGuess]);
+
+  function retryGuess() {
+    setGuessError(null);
+    loadGuess(diagnosis);
+  }
 
   if (!ready) {
     return (
@@ -88,6 +248,12 @@ export default function DiagnosisResult() {
           <ScaleBar found={found} />
         </section>
 
+        <GuessSection
+          guess={diagnosis.guess}
+          error={guessError?.at === at ? guessError.message : ""}
+          onRetry={retryGuess}
+        />
+
         {missing.length > 0 && (
           <section className={s.section} aria-labelledby="result-missing">
             <h2 id="result-missing">채우면 좋은 요소</h2>
@@ -104,6 +270,18 @@ export default function DiagnosisResult() {
 
         <p className={`small muted ${s.printOnly}`}>카멜레온에서 받은 프롬프트 진단 결과예요.</p>
       </article>
+
+      {missing.length > 0 && (
+        <section className={`${s.compareCta} ${s.noPrint}`} aria-labelledby="compare-cta">
+          <div>
+            <h2 id="compare-cta">빠진 요소를 채우면 결과가 어떻게 달라질까요?</h2>
+            <p className="small muted">AI가 다듬은 프롬프트로 같은 일을 시켜, 두 결과를 나란히 보여 줘요.</p>
+          </div>
+          <Link href="/diagnosis/compare" className="btn">
+            다듬은 프롬프트와 결과 비교하기
+          </Link>
+        </section>
+      )}
 
       <div className={`${s.resultActions} ${s.noPrint}`}>
         <div className={s.pdf}>

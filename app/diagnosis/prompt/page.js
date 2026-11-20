@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import * as api from "@/lib/api";
 import { ScaleBar } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
@@ -11,12 +11,49 @@ import { analyze } from "@/lib/anatomy";
 import { Progress } from "../_components/Progress";
 import s from "../diagnosis.module.css";
 
-export default function DiagnosisPrompt() {
+// 주소의 ?edit=1을 읽는 useSearchParams는 Suspense 안에 있어야 미리 렌더링할 수 있다.
+export default function DiagnosisPromptPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className={s.wrap}>
+          <Progress step={2} />
+        </div>
+      }
+    >
+      <DiagnosisPrompt />
+    </Suspense>
+  );
+}
+
+function DiagnosisPrompt() {
   const router = useRouter();
-  const { ready, survey, setProfile, setDiagnosis } = useAppState();
+  const editing = useSearchParams().get("edit") === "1";
+  const { ready, survey, diagnosis, setProfile, setDiagnosis } = useAppState();
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // 진단을 마치고 결과로 넘어갔는지. 쓰다가 "이전"으로 나간 글은 남기고, 진단을 마친 글만 비운다.
+  const submitted = useRef(false);
+  // cacheComponents에서는 다른 화면으로 가도 이 화면을 숨겨 두고 상태를 그대로 둔다.
+  // 숨겨질 때 진단 중 표시를 풀고, 진단을 마친 뒤라면 칸도 비워서 "다시 진단하기"가 빈 칸으로 시작하게 한다.
+  useLayoutEffect(
+    () => () => {
+      setLoading(false);
+      if (submitted.current) {
+        submitted.current = false;
+        setDraft("");
+        setError("");
+      }
+    },
+    [],
+  );
+  // "고쳐서 다시 진단하기", "내 프롬프트 직접 고쳐 보기"(?edit=1)로 들어오면 지난 프롬프트를 채워 둔다.
+  // 숨겨진 화면은 지난 주소로 다시 그려지기도 해서 그리는 중이 아니라, 화면이 보일 때 도는 effect에서 채운다.
+  useLayoutEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 화면이 다시 보일 때 한 번 채우는 것이라 effect가 맞다.
+    if (ready && editing && diagnosis?.prompt) setDraft(diagnosis.prompt);
+  }, [ready, editing, diagnosis?.prompt]);
   const found = useMemo(() => analyze(draft).found, [draft]);
   const target = survey ? JOB[survey.job] : null;
 
@@ -40,6 +77,7 @@ export default function DiagnosisPrompt() {
         experience,
         at: new Date().toISOString(),
       });
+      submitted.current = true;
       router.push("/diagnosis/result");
     } catch (err) {
       setLoading(false);
