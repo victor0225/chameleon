@@ -6,7 +6,9 @@ import * as api from "@/lib/api";
 import { AnatomyText, ScaleBar, segVar } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
 import { AttachedLine, ClipIcon, ExpiredNotice } from "@/components/FileAttach";
+import { courseSignals } from "@/lib/courseSignals";
 import { fileCoaching } from "@/lib/fileSignals";
+import { COURSE } from "@/data/courses";
 import { EXPERIENCE, JOB } from "@/data/jobs";
 import { ITEM } from "@/lib/items";
 import { Progress } from "../_components/Progress";
@@ -336,6 +338,8 @@ export default function DiagnosisResult() {
         </Link>
       </div>
 
+      <NextCourses diagnosis={diagnosis} />
+
       <section className={`${s.next} ${s.noPrint}`} aria-labelledby="next-title">
         <h2 id="next-title" className="display">
           이제 둘 중 하나를 골라 시작하세요
@@ -354,5 +358,38 @@ export default function DiagnosisResult() {
         </div>
       </section>
     </div>
+  );
+}
+
+// 다음에 배울 과정(보드 1-3): 진단에서 보인 신호로 팀 규칙(lib/courseSignals.js)이 고른 과정 2~3개.
+// 비교 화면의 "다음에 배울 과정 보기"가 #next-course로 여기를 연다.
+function NextCourses({ diagnosis }) {
+  const picks = courseSignals({ diagnosis });
+  const ref = useRef(null);
+  const shown = picks.length > 0;
+  // 저장된 진단을 읽은 뒤에 그려져서, 주소의 #next-course로 브라우저가 스스로 내려오지 못한다. 그린 뒤에 내려 준다.
+  useEffect(() => {
+    if (shown && window.location.hash === "#next-course") ref.current?.scrollIntoView({ block: "start" });
+  }, [shown]);
+  if (!shown) return null;
+  return (
+    <section ref={ref} className={`${s.next} ${s.nextCourses} ${s.noPrint}`} aria-labelledby="next-course">
+      <div className={s.nextHead}>
+        <h2 id="next-course" className="display">
+          다음에 배울 과정
+        </h2>
+        <p className="muted">이번 진단에서 보인 것을 바탕으로 골랐어요.</p>
+      </div>
+      <div className={s.courses}>
+        {picks.map(({ course, reason }) => (
+          <Link key={course} href={`/learn?course=${course}`} className={s.course}>
+            <span className={s.courseNo}>과정 {COURSE[course].no}</span>
+            <strong>{COURSE[course].title}</strong>
+            <span className={s.courseWhy}>{reason}</span>
+            <span className={s.courseGo}>과정 보기{"\u00a0"}→</span>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }

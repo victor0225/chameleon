@@ -30,6 +30,11 @@ test("파일 이야기는 있는데 붙인 파일이 없을 때, 같은 과정�
   ]);
 });
 
+test("빠진 요소 수는 우리말로 센다", () => {
+  const r = courseSignals({ diagnosis: diag({ found: ["context"], missing: ["goal", "constraint", "format", "criteria"] }) });
+  assert.equal(r[0].reason, "빠진 요소가 네 개 있어요: 목표·조건·형식·기준");
+});
+
 test("빠진 요소가 없고 신호도 없으면 빈 목록, 세 개까지만", () => {
   assert.deepEqual(courseSignals({ diagnosis: diag({ missing: [] }) }), []);
   assert.deepEqual(courseSignals({ diagnosis: null }), []);
