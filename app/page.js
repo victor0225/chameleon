@@ -62,8 +62,8 @@ export default function Home() {
             일을 맡기는 법
           </h1>
           <p className="lede">
-            AI가 엉뚱한 답을 내는 건 대개 프롬프트에 무언가 빠졌기 때문이에요. 무엇이 빠졌는지 색으로 보여 드리고,
-            직무별 과제로 수준에 맞춰 연습하게 도와드려요.
+            AI가 엉뚱한 답을 내는 건 대개 무언가 빠졌기 때문이에요. 평소처럼 일을 맡겨 보면 무엇이 빠졌는지 색으로 보여
+            드리고, 프롬프트부터 파일·대화 기록 다루기, 결과 확인까지 수준에 맞춰 연습하게 도와드려요.
           </p>
           <div className="row">
             <Link href="/diagnosis" className="btn">
