@@ -221,7 +221,8 @@ function TimeUpDialog({ count, busy, error, onSubmit, onLeave }) {
   );
 }
 
-export function Taking({ title, questions, startedAt, deadline, practice, onSubmit, onLeave }) {
+// onGrade(answers): 답을 내고 채점 결과를 돌려준다(한 시간이 지난 시작 정보면 null). onShow(result): 결과 화면으로.
+export function Taking({ title, questions, startedAt, deadline, practice, onGrade, onShow, onLeave }) {
   const [answers, setAnswers] = useState(() => questions.map(() => null));
   const [index, setIndex] = useState(0);
   const [now, setNow] = useState(startedAt);
@@ -252,12 +253,23 @@ export function Taking({ title, questions, startedAt, deadline, practice, onSubm
     window.scrollTo({ top: 0 });
   }
 
+  // 시간이 끝나면 그때까지의 답을 바로 낸다. 서버는 5분이 조금 지나기 전에 낸 답만 처음 점수로 친다.
+  // 결과는 알림 창의 '결과 보기'를 누를 때 보인다. 내기에 실패했으면 누를 때 다시 낸다.
+  const early = useRef(null);
+  useEffect(() => {
+    if (!timeUp || early.current) return;
+    early.current = onGrade(answers);
+    early.current.catch(() => {});
+  }, [timeUp, answers, onGrade]);
+
   async function submit() {
     setBusy(true);
     setError("");
     try {
-      await onSubmit(answers);
+      const data = await (early.current ?? onGrade(answers));
+      if (data) onShow(data);
     } catch (e) {
+      early.current = null;
       setError(e.message);
       setBusy(false);
     }
