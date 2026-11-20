@@ -52,7 +52,7 @@ test("개인정보 패턴: 강의 a3 채점과 같은 목록을 쓴다", () => {
 
 const FULL = diag({ found: ["goal", "context", "constraint", "format", "criteria"], missing: [] });
 
-test("설문 3번에서 안 고른 기능의 과정을 파일·긴 대화·검색 순서로 고른다. 같은 일 반복은 고르지 않는다", () => {
+test("설문 3번에서 안 고른 기능의 과정을 파일·긴 대화·검색·같은 일 반복 순서로 고른다", () => {
   assert.deepEqual(courseSignals({ diagnosis: FULL, survey: { used: [] } }), [
     { course: "file", reason: "파일을 붙여 맡겨 본 적이 없다고 했어요" },
     { course: "memory", reason: "긴 대화를 이어 가 본 적이 없다고 했어요" },
@@ -60,6 +60,7 @@ test("설문 3번에서 안 고른 기능의 과정을 파일·긴 대화·검�
   ]);
   assert.deepEqual(courseSignals({ diagnosis: FULL, survey: { used: ["file", "search"] } }), [
     { course: "memory", reason: "긴 대화를 이어 가 본 적이 없다고 했어요" },
+    { course: "flow", reason: "같은 일을 반복해서 AI에게 맡겨 본 적이 없다고 했어요" },
   ]);
   assert.deepEqual(courseSignals({ diagnosis: FULL, survey: { used: ["file", "memory", "search", "repeat"] } }), []);
   // 답하기 전 설문(used 없음)은 건너뛴다.
@@ -72,7 +73,7 @@ test("설문 신호는 진단 신호 뒤에 붙고, 같은 과정이면 진단 �
   assert.deepEqual(r.map((x) => x.course), ["prompt", "verify", "file"]);
   assert.equal(r[2].reason, "파일을 붙여 맡겨 본 적이 없다고 했어요");
   // 개인정보로 대화·메모리 관리가 이미 들어왔으면 설문 이유로 바꾸지 않는다.
-  const pii = courseSignals({ diagnosis: { ...FULL, prompt: "김민수(010-1234-5678) 답장 써 줘" }, survey: { used: ["file"] } });
+  const pii = courseSignals({ diagnosis: { ...FULL, prompt: "김민수(010-1234-5678) 답장 써 줘" }, survey: { used: ["file", "repeat"] } });
   assert.deepEqual(pii, [
     { course: "memory", reason: "프롬프트에 전화번호가 들어 있어요" },
     { course: "tool", reason: "검색을 켜고 써 본 적이 없다고 했어요" },

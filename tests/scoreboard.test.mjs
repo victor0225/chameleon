@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { findAnyLesson } from "../data/courses.js";
+import { COURSES, findAnyLesson } from "../data/courses.js";
 import { gradeSort, gradeSpot } from "../lib/server/practice.js";
 import { areaScores, buildRanking, lessonPoints, nicknameError, rankRows } from "../lib/scoreboard.js";
 
@@ -31,23 +31,24 @@ test("spot 강의: 맞는 문장을 틀렸다고 고른 만큼 빼고, 0 아래�
   assert.equal(lessonPoints(ver1, { score: { found: 1, total: 4, falsePicks: 3 } }), 0);
 });
 
-test("부문 점수: 푼 강의들의 평균, 안 푼 부문은 0점, 같이 보면 좋은 강의는 원래 과정에만 센다", () => {
-  const r = areaScores({ b1: 100, m3: 50, mem1: 88, ver1: 75, nope: 100 });
+test("부문 점수: 푼 미션들의 평균, 안 푼 부문은 0점, 같이 해 보면 좋은 미션은 원래 과정에만 센다", () => {
+  const r = areaScores({ b1: 100, m3: 50, mem1: 88, mem3: 60, ver1: 75, flow2: 40, nope: 100 });
   const score = Object.fromEntries(r.areas.map((a) => [a.course, a.score]));
-  // m3는 과정 6의 같이 보면 좋은 강의지만 과정 1(prompt)에만 들어간다.
-  assert.deepEqual(score, { prompt: 75, memory: 88, file: 0, verify: 75, tool: 0, flow: null });
-  assert.equal(r.total, 75 + 88 + 75);
-  assert.equal(r.done, 4, "모르는 강의 id는 세지 않는다");
+  // m3는 과정 6의 같이 해 보면 좋은 미션이지만 과정 1(prompt)에만 들어간다.
+  assert.deepEqual(score, { prompt: 75, memory: 74, file: 0, verify: 75, tool: 0, flow: 40 });
+  assert.equal(r.total, 75 + 74 + 75 + 40);
+  assert.equal(r.done, 6, "모르는 미션 id는 세지 않는다");
 });
 
-test("준비 중 과정은 합계와 만점에서 빼고, 만점은 열린 과정 수 × 100", () => {
+test("여섯 과정이 모두 열려 만점은 600점, 준비 중 과정은 합계와 만점에서 뺀다", () => {
   const empty = areaScores({});
   assert.equal(empty.total, 0);
-  assert.equal(empty.max, 500);
-  assert.deepEqual(
-    empty.areas.find((a) => a.course === "flow"),
-    { course: "flow", score: null, done: 0 },
-  );
+  assert.equal(empty.max, 600);
+  const notReady = COURSES.map((c) => (c.id === "flow" ? { ...c, ready: false } : c));
+  const r = areaScores({ b1: 100, flow1: 100 }, notReady);
+  assert.equal(r.max, 500);
+  assert.equal(r.total, 100);
+  assert.deepEqual(r.areas.find((a) => a.course === "flow"), { course: "flow", score: null, done: 0 });
 });
 
 test("순위: 합계가 높은 순, 같으면 푼 강의가 많은 순, 그래도 같으면 같은 순위", () => {

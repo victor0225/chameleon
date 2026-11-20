@@ -193,7 +193,8 @@ export function LessonRunner({
 
   const metCount = grade?.criteria.filter((c) => c.met).length ?? 0;
   const coachCriterion = grade?.coaching ? lesson.criteria.find((c) => c.question === grade.coaching.question) : null;
-  const outputNote = grade?.source === "rule" && !grade.passed ? lesson.outputs?.weakNote : null;
+  // noRun 미션(tool2)은 늘 미리 만든 예시라 안내를 늘 붙인다. 나머지는 키 없이 채점해 통과하지 못했을 때만.
+  const outputNote = lesson.noRun || (grade?.source === "rule" && !grade.passed) ? lesson.outputs?.weakNote : null;
 
   return (
     <div className={`${s.wrap} ${stage === "lecture" ? s.narrow : ""} ${stage === "result" ? s.result : ""}`}>
@@ -264,7 +265,7 @@ export function LessonRunner({
             </div>
             <div className={s.actions}>
               <button type="button" className={s.primary} onClick={() => go("practice")}>
-                실습하러 가기
+                해 보러 가기
               </button>
               <button type="button" className={s.secondary} onClick={onExit}>
                 목록으로
@@ -470,7 +471,7 @@ export function LessonRunner({
               </section>
               <section className={`${s.card} ${s.outCard}`} aria-labelledby="out">
                 <h2 id="out" className={s.cardTitle}>
-                  AI 결과물 예시
+                  {lesson.tryAsk ? `이 설정으로 "${lesson.tryAsk}"라고 물으면` : "AI 결과물 예시"}
                 </h2>
                 <div className={s.outWrap}>
                   <Output text={grade.output} />

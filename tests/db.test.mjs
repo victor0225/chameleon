@@ -122,7 +122,7 @@ test("랭킹: 강의마다 점수가 있는 첫 기록만 세고, 참여한 사�
     // 참여 전에도 내 점수는 보이고, 순위는 없다.
     let r = await ranking.loadRanking(a.id, null);
     assert.equal(r.me.total, 128);
-    assert.equal(r.me.max, 500);
+    assert.equal(r.me.max, 600);
     assert.equal(r.me.rank, null);
 
     const nickA = `T${process.pid}`.slice(0, 12);

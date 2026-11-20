@@ -13,14 +13,15 @@ const file1 = findAnyLesson("file1");
 const mem2 = findAnyLesson("mem2");
 const allRight = () => Object.fromEntries(mem1.cards.map((c) => [c.id, c.answer]));
 
-test("여섯 과정: 강의 id가 모두 있고, 과정 1은 지금 15강 그대로, 6은 준비 중", () => {
+test("여섯 과정: 미션 id가 모두 있고, 과정 1은 15개 그대로, 과정 2~6은 3개씩이고 모두 열려 있다", () => {
   assert.deepEqual(COURSES.map((c) => c.id), ["prompt", "memory", "file", "verify", "tool", "flow"]);
   assert.deepEqual(COURSE.prompt.lessons, LESSONS.map((l) => l.id));
   for (const c of COURSES) {
     for (const id of [...c.lessons, ...c.related]) assert.ok(findAnyLesson(id), `${c.id}: ${id}`);
     for (const id of c.lessons) assert.equal(findAnyLesson(id).course, c.id);
   }
-  assert.deepEqual(COURSES.filter((c) => !c.ready).map((c) => c.id), ["flow"]);
+  assert.ok(COURSES.every((c) => c.ready));
+  for (const c of COURSES.slice(1)) assert.equal(c.lessons.length, 3, c.id);
   assert.deepEqual(COURSE.flow.related, ["m3", "a1"]);
   assert.equal(new Set(ALL_LESSONS.map((l) => l.id)).size, ALL_LESSONS.length);
 });
@@ -152,10 +153,10 @@ test("ver1 검사: 같은 문장 두 번, 없는 종류, 아무것도 안 고름
 
 test("file1 결과 확인: 목록 번호는 빼고, 보고서에 없는 숫자를 찾는다", () => {
   assert.deepEqual(numbersIn("1. 문의 1,240건\n2) 9월에 212건"), ["1240", "9", "212"]);
-  const weak = checkFileOutput(file1.sample, file1.outputs.weak);
+  const weak = checkFileOutput(file1.check, file1.outputs.weak);
   assert.deepEqual(weak.unknown, ["3.5", "30"]);
   assert.equal(weak.coreOk, true);
-  const strong = checkFileOutput(file1.sample, file1.outputs.strong);
+  const strong = checkFileOutput(file1.check, file1.outputs.strong);
   assert.deepEqual(strong.unknown, []);
   assert.deepEqual(strong.core, ["총 문의 1,240건", "배송 지연 38%", "개선 제안"]);
 });

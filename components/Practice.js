@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import * as api from "@/lib/api";
 import { analyze } from "@/lib/anatomy";
 import { ITEMS } from "@/lib/items";
+import { josa } from "@/lib/josa";
 import { countWord, MAX_FILES } from "@/lib/fileRules";
 import { attachedFiles, FileAttach, FileIcon, isUploading } from "./FileAttach";
 import { CoachCard, MetIcon, MiniBar, MissIcon } from "./lessonBits";
@@ -171,7 +172,7 @@ export function PracticeSort({ lesson, runner }) {
       : `${total}장 중 ${n}장을 맞게 나눴어요. ${
           result.criteria[1].met
             ? `${lesson.pass.min}장 이상 맞혀야 통과예요.`
-            : "기억시키면 안 되는 정보는 한 장도 빠짐없이 맞혀야 통과예요."
+            : lesson.mustNote
         }`;
     const title = result.passed ? "통과했어요" : wrong === 1 ? "한 장만 다시 볼까요?" : `${counted(wrong, "장")}을 다시 볼까요?`;
     head = <ResultHead title={title} desc={desc} score={`${n} / ${total}`} grade={result} wasDone={runner.wasDone} />;
@@ -271,7 +272,7 @@ export function PracticeChoose({ lesson, runner }) {
     const desc = result.passed
       ? `${total}개 중 ${n}개를 맞게 골랐어요.${wrong ? ` 다르게 고른 ${counted(wrong, "개")}도 아래에서 확인해 보세요.` : ""}`
       : `${total}개 중 ${n}개를 맞게 골랐어요. ${
-          result.criteria[1].met ? `${lesson.pass.min}개 이상 맞혀야 통과예요.` : "AI에게 맡기지 않을 일은 꼭 맞혀야 통과예요."
+          result.criteria[1].met ? `${lesson.pass.min}개 이상 맞혀야 통과예요.` : lesson.mustNote
         }`;
     const title = result.passed
       ? "통과했어요"
@@ -448,7 +449,8 @@ export function PracticeSpot({ lesson, runner }) {
           )}
           {r.status === "false" && (
             <p className={p.feedback}>
-              <b>회의록과 다시 맞춰 볼까요?</b> <span className={p.muted}>이 문장은 회의록과 같은지 한 번 더 확인해 보세요.</span>
+              <b>{josa(lesson.source, ["과", "와"])} 다시 맞춰 볼까요?</b>{" "}
+              <span className={p.muted}>이 문장이 {josa(lesson.source, ["과", "와"])} 같은지 한 번 더 확인해 보세요.</span>
             </p>
           )}
         </li>
@@ -516,7 +518,7 @@ export function PracticeSpot({ lesson, runner }) {
         </div>
         <section className={`${l.main} ${p.answer}`} aria-labelledby="spot-answer">
           <h2 id="spot-answer" className={l.smallTitle}>
-            AI가 쓴 회의 요약 · {result ? "문장을 눌러 문제를 골랐어요" : "문제 있는 문장을 눌러 골라 보세요"}
+            {lesson.answerTitle} · {result ? "문장을 눌러 문제를 골랐어요" : "문제 있는 문장을 눌러 골라 보세요"}
           </h2>
           <ol className={p.sentences}>{lesson.sentences.map(renderSentence)}</ol>
           <div
@@ -531,7 +533,7 @@ export function PracticeSpot({ lesson, runner }) {
               value={missing}
               maxLength={300}
               readOnly={Boolean(result)}
-              placeholder="회의록에 있는데 요약에 없는 내용을 적어 보세요"
+              placeholder={`${lesson.source}에 있는데 ${lesson.answerName}에 없는 내용을 적어 보세요`}
               onChange={(e) => setMissing(e.target.value)}
             />
             {miss?.status === "found" && (
@@ -633,9 +635,25 @@ function CheckedOutput({ text, unknown }) {
 
 const asQuestion = (label) => label.replace(/다$/, "는지");
 
+// 예시 파일 하나를 /api/files로 올리고 화면에 둘 정보만 남긴다.
+async function uploadSample(sample) {
+  const blob = await fetch(sample.url).then((r) => {
+    if (!r.ok) throw new Error("SAMPLE");
+    return r.blob();
+  });
+  const up = await api.uploadFile(new File([blob], sample.name, { type: sample.type }));
+  return up.uri
+    ? { name: up.name, mimeType: up.mimeType, size: up.size, uri: up.uri, sig: up.sig }
+    : { name: up.name, mimeType: up.mimeType, size: up.size };
+}
+
+// 미리 보기 칸 아래 링크: PDF는 "PDF로 열어 보기", 나머지는 "파일 열어 보기"
+const openLabel = (sample) => (sample.type === "application/pdf" ? "PDF로 열어 보기" : "파일 열어 보기");
+
 export function PracticeFile({ lesson, runner }) {
   const { stage, grade } = runner;
-  const sample = lesson.sample;
+  const samples = lesson.samples;
+  const label = lesson.sampleLabel;
   const [mode, setMode] = useState("sample");
   const [draft, setDraft] = useState("");
   const [entries, setEntries] = useState([]);
@@ -645,25 +663,12 @@ export function PracticeFile({ lesson, runner }) {
   const result = stage === "result" && grade ? grade : null;
   const uploading = mode === "own" && isUploading(entries);
 
-  // 예시 보고서는 처음 보낼 때 /api/files로 올리고, 받은 주소를 다시 쓴다. 만료됐으면(410) 한 번 새로 올린다.
-  async function sampleFile(fresh = false) {
+  // 예시 파일은 처음 보낼 때 /api/files로 올리고, 받은 주소를 다시 쓴다. 만료됐으면(410) 한 번 새로 올린다.
+  async function sampleFiles(fresh = false) {
     if (uploaded && !fresh) return uploaded;
-    const blob = await fetch(sample.url).then((r) => {
-      if (!r.ok) throw new Error("SAMPLE");
-      return r.blob();
-    });
-    const up = await api.uploadFile(new File([blob], sample.name, { type: "application/pdf" }));
-    const meta = up.uri
-      ? {
-          name: up.name,
-          mimeType: up.mimeType,
-          size: up.size,
-          uri: up.uri,
-          sig: up.sig,
-        }
-      : { name: up.name, mimeType: up.mimeType, size: up.size };
-    setUploaded(meta);
-    return meta;
+    const metas = await Promise.all(samples.map(uploadSample));
+    setUploaded(metas);
+    return metas;
   }
 
   async function send() {
@@ -672,7 +677,7 @@ export function PracticeFile({ lesson, runner }) {
     setPreparing(true);
     try {
       const isSample = mode === "sample";
-      const files = isSample ? [await sampleFile()] : attachedFiles(entries);
+      const files = isSample ? await sampleFiles() : attachedFiles(entries);
       const err = await runner.submit({
         prompt: draft,
         files,
@@ -681,11 +686,11 @@ export function PracticeFile({ lesson, runner }) {
       if (err?.expired && isSample)
         await runner.submit({
           prompt: draft,
-          files: [await sampleFile(true)],
+          files: await sampleFiles(true),
           sample: true,
         });
     } catch {
-      runner.setError("예시 보고서를 올리지 못했어요. 잠시 뒤 다시 시도해 주세요.");
+      runner.setError(`${josa(label, ["을", "를"])} 올리지 못했어요. 잠시 뒤 다시 시도해 주세요.`);
     } finally {
       setPreparing(false);
     }
@@ -700,7 +705,7 @@ export function PracticeFile({ lesson, runner }) {
         draft={draft}
         fileName={
           mode === "sample"
-            ? sample.name
+            ? samples.map((f) => f.name).join(", ")
             : attachedFiles(entries)
                 .map((f) => f.name)
                 .join(", ")
@@ -730,7 +735,7 @@ export function PracticeFile({ lesson, runner }) {
             </h2>
             <div role="group" aria-label="쓸 파일" className={p.toggle}>
               <button type="button" aria-pressed={mode === "sample"} onClick={() => setMode("sample")}>
-                예시 보고서로 하기
+                {label}로 하기
               </button>
               <button type="button" aria-pressed={mode === "own"} onClick={() => setMode("own")}>
                 내 파일 올리기
@@ -741,11 +746,13 @@ export function PracticeFile({ lesson, runner }) {
             <div className={fa.frame}>
               {textarea}
               <div className={p.sampleRow}>
-                <span className={p.sampleChip}>
-                  <FileIcon />
-                  {sample.name}
-                  <span className={p.muted}>교육용 예시</span>
-                </span>
+                {samples.map((f) => (
+                  <span key={f.name} className={p.sampleChip}>
+                    <FileIcon />
+                    {f.name}
+                    <span className={p.muted}>교육용 예시</span>
+                  </span>
+                ))}
                 <span className={p.sampleHint}>내 파일은 {MAX_FILES}개까지, 하나에 4MB</span>
               </div>
             </div>
@@ -777,24 +784,26 @@ export function PracticeFile({ lesson, runner }) {
         </section>
 
         <aside className={l.side}>
-          {mode === "sample" && (
-            <section className={l.card} aria-labelledby="sample-preview">
-              <h2 id="sample-preview" className={l.smallTitle}>
-                예시 보고서 미리 보기 · {sample.pages}쪽
-              </h2>
-              <div className={p.preview}>
-                <span className={p.previewTag}>교육용 예시 자료</span>
-                <strong>{sample.title}</strong>
-                {sample.preview.map((t) => (
-                  <span key={t}>{t}</span>
-                ))}
-                <span aria-hidden="true">…</span>
-              </div>
-              <a className={p.textLink} href={sample.url} target="_blank" rel="noreferrer">
-                PDF로 열어 보기
-              </a>
-            </section>
-          )}
+          {mode === "sample" &&
+            samples.map((f, i) => (
+              <section key={f.name} className={l.card} aria-labelledby={`sample-preview-${i}`}>
+                <h2 id={`sample-preview-${i}`} className={l.smallTitle}>
+                  {label} 미리 보기{samples.length > 1 ? ` ${i + 1}` : ""}
+                  {f.pages ? ` · ${f.pages}쪽` : ""}
+                </h2>
+                <div className={p.preview}>
+                  <span className={p.previewTag}>교육용 예시 자료</span>
+                  <strong>{f.title}</strong>
+                  {f.preview.map((t) => (
+                    <span key={t}>{t}</span>
+                  ))}
+                  <span aria-hidden="true">…</span>
+                </div>
+                <a className={p.textLink} href={f.url} target="_blank" rel="noreferrer">
+                  {openLabel(f)}
+                </a>
+              </section>
+            ))}
           <section className={l.card} aria-labelledby="file-criteria">
             <h2 id="file-criteria" className={l.cardTitle}>
               이렇게 평가해요
@@ -803,7 +812,7 @@ export function PracticeFile({ lesson, runner }) {
               {lesson.criteria.map((c) => (
                 <li key={c.label}>{asQuestion(c.label)}</li>
               ))}
-              {mode === "sample" && <li>AI 결과에 보고서에 없는 숫자가 있는지</li>}
+              {mode === "sample" && <li>AI 결과에 {josa(lesson.check.unknownLabel, ["이", "가"])} 있는지</li>}
             </ul>
           </section>
         </aside>
@@ -816,13 +825,15 @@ function FileResult({ lesson, runner, result, draft, fileName }) {
   const met = result.criteria.filter((c) => c.met).length;
   const total = result.criteria.length;
   const unknown = result.check?.unknown ?? [];
-  const extra = unknown.length ? ` 그런데 AI 결과에 보고서에 없는 숫자가 ${countWord(unknown.length)} 들어갔어요.` : "";
+  const { unknownLabel, unknownNote, compareNote } = lesson.check;
+  const unknownLine = unknown.length ? `AI 결과에 ${josa(unknownLabel, ["이", "가"])} ${countWord(unknown.length)} 들어갔어요.` : "";
   const title = result.passed ? "통과했어요" : total - met === 1 ? "한 가지만 더 채워 볼까요?" : "조금 더 채워 볼까요?";
   const desc = result.passed
-    ? `기준 ${total}개를 모두 채웠어요.${unknown.length ? ` 다만 AI 결과에 보고서에 없는 숫자가 ${countWord(unknown.length)} 들어갔어요.` : ""}`
-    : `기준 ${total}개 중 ${met}개를 채웠어요.${extra}`;
+    ? `기준 ${total}개를 모두 채웠어요.${unknownLine && ` 다만 ${unknownLine}`}`
+    : `기준 ${total}개 중 ${met}개를 채웠어요.${unknownLine && ` 그런데 ${unknownLine}`}`;
   const rule = result.source === "rule";
-  const outTitle = result.sample ? (rule ? "AI 결과물 예시" : "AI가 보고서를 읽고 낸 결과") : "AI가 내 파일을 읽고 낸 결과";
+  const outTitle = result.sample ? (rule ? "AI 결과물 예시" : `AI가 ${josa(lesson.sampleLabel.replace(/^예시 /, ""), ["을", "를"])} 읽고 낸 결과`) : "AI가 내 파일을 읽고 낸 결과";
+  const coreMissed = lesson.check.core.map((c) => c.label).filter((label) => !result.check?.core.includes(label));
 
   return (
     <>
@@ -871,19 +882,17 @@ function FileResult({ lesson, runner, result, draft, fileName }) {
           {result.check && (
             <div className={p.checkNotes}>
               <p>
-                <b>{unknown.length ? `보고서에 없는 숫자 ${counted(unknown.length, "개")}` : "보고서에 없는 숫자는 없어요"}</b>{" "}
+                <b>{unknown.length ? `${unknownLabel} ${counted(unknown.length, "개")}` : `${josa(unknownLabel, ["은", "는"])} 없어요`}</b>{" "}
                 <span className={p.muted}>
-                  · 보고서에 실린 숫자와 하나씩 맞춰 봤어요.
-                  {unknown.length ? " 없는 숫자는 AI가 지어냈을 가능성이 커요." : ""}
+                  · {compareNote}
+                  {unknown.length ? ` ${unknownNote}` : ""}
                 </span>
               </p>
               <p>
                 <b>{result.check.coreOk ? "핵심은 잘 담았어요" : "핵심이 덜 담겼어요"}</b>{" "}
                 <span className={p.muted}>
                   ·{" "}
-                  {result.check.core.length
-                    ? result.check.core.join(", ")
-                    : "총 문의 수, 가장 많은 문의, 개선 제안이 보이지 않아요"}
+                  {result.check.coreOk ? result.check.core.join(", ") : `${coreMissed.join(", ")}${josa(coreMissed.at(-1) ?? "", ["이", "가"]).slice((coreMissed.at(-1) ?? "").length)} 보이지 않아요`}
                 </span>
               </p>
             </div>
