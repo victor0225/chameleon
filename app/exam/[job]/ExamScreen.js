@@ -137,20 +137,25 @@ export function ExamScreen({ job, ready }) {
     setStartError(message);
   }
 
-  // Taking이 부른다. 실패하면 던져서 Taking이 알림 창·버튼 옆에 문장을 보인다.
-  // 시작한 지 한 시간이 지났거나 다른 시험의 시작 정보면 다시 내도 안 되니 응시 전 화면으로 돌아간다.
-  async function submit(answers) {
+  // Taking이 부른다. 답을 내고 채점 결과를 돌려준다. 실패하면 던져서 Taking이 알림 창·버튼 옆에 문장을 보인다.
+  // 시작한 지 한 시간이 지났거나 다른 시험의 시작 정보면 다시 내도 안 되니 응시 전 화면으로 돌아가고 null을 돌려준다.
+  async function grade(answers) {
     try {
-      const data = await submitExam(job, run.token, answers);
-      setResult(data);
-      setRun(null);
-      setPhase("result");
-      setVersion((v) => v + 1);
-      window.scrollTo({ top: 0 });
+      return await submitExam(job, run.token, answers);
     } catch (e) {
       if (!e.expired && e.status !== 403) throw e;
       leave(e.message);
+      return null;
     }
+  }
+
+  // 채점 결과 화면으로. 시간이 끝나 미리 낸 결과는 '결과 보기'를 누를 때 보인다.
+  function show(data) {
+    setResult(data);
+    setRun(null);
+    setPhase("result");
+    setVersion((v) => v + 1);
+    window.scrollTo({ top: 0 });
   }
 
   function showRanking() {
@@ -168,7 +173,8 @@ export function ExamScreen({ job, ready }) {
           startedAt={run.startedAt}
           deadline={run.deadline}
           practice={run.practice}
-          onSubmit={submit}
+          onGrade={grade}
+          onShow={show}
           onLeave={() => leave()}
         />
       </div>
