@@ -28,8 +28,19 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px 24px;
+  gap: 12px 16px;
+}
+
+.top > .textLink {
+  margin-left: auto;
+}
+
+.topLinks {
+  margin-left: auto;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
 }
 
 .title {
@@ -172,34 +183,123 @@
   gap: 16px;
 }
 
-/* 한 화면 격자: 1행 두 프롬프트, 2행 두 결과. 행마다 높이를 맞춰 두 결과가 같은 높이에서 시작한다. */
-.sides {
-  margin-top: 14px;
+/* 왼쪽·오른쪽 칸. 칸마다 머리(이름·막대) → 프롬프트 → 받은 결과 세 줄이고,
+   subgrid로 두 칸의 줄 높이를 맞춰 두 결과가 같은 높이에서 시작한다. */
+.board {
+  margin-top: 16px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 16px;
+  grid-template-rows: auto auto auto;
+  column-gap: 16px;
 }
 
-.sideCard {
-  padding: 14px 18px;
+.col {
+  min-width: 0;
+  grid-row: span 3;
+  display: grid;
+  grid-template-rows: subgrid;
+  row-gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.colHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px 0;
+}
+
+.colHead h2 {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.colPrompt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 10px;
+  padding: 10px 20px 16px;
 }
 
-.sideCard .prompt {
+.colPrompt .prompt {
   font-size: 16px;
   line-height: 1.75;
 }
 
-.sideCard .output {
+.missingLine {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.colResult {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 20px 18px;
+  border-top: 1px solid var(--wash);
+}
+
+.resultHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.resultHead b {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.colResult .output {
   flex: 1;
   padding: 12px 14px;
   font-size: 14.5px;
   line-height: 1.85;
 }
 
+/* 다듬은 프롬프트 복사: 문장 목록 아래 작은 글자 버튼 */
+.copyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.copyBtn:hover {
+  color: var(--ink);
+}
+
+.copyBtn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 @media (max-width: 760px) {
-  .sides {
+  .board {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    row-gap: 12px;
+  }
+
+  .col {
+    grid-row: auto;
+    grid-template-rows: none;
   }
 }
 
@@ -282,8 +382,8 @@
   height: 20px;
   padding: 0 7px;
   border-radius: 999px;
-  background: var(--ink);
-  color: #fff;
+  background: var(--wash);
+  color: var(--ink);
   font-size: 11px;
   font-weight: 600;
 }
@@ -385,17 +485,10 @@
 }
 
 .sentences li {
-  display: flex;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
   gap: 10px;
-  align-items: flex-start;
-}
-
-.tags {
-  display: flex;
-  align-items: flex-start;
-  width: 46px;
-  padding-top: 2px;
-  flex: none;
+  align-items: baseline;
 }
 
 .sentence {
@@ -413,101 +506,96 @@
   margin-top: 28px;
 }
 
-.diffList {
-  list-style: none;
-  margin: 12px 0 0;
-  padding: 0;
+.diffsHead {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: baseline;
+  gap: 12px;
 }
 
-/* 바뀐 점 한 줄: 칩·번호 | 전 → 후 */
+.hint {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+/* 한 칸 안의 줄 목록. 줄마다 왼쪽 반은 전(왼쪽 칸 아래), 오른쪽 반은 후(오른쪽 칸 아래).
+   column-gap은 위 두 칸의 사이(16px)와 칸 안쪽 여백만큼이라 후 글이 오른쪽 칸 글과 같은 세로줄에서 시작한다. */
+.diffList {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.diffList li + li {
+  border-top: 1px solid var(--wash);
+}
+
 .diff {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) 16px minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: center;
-  gap: 14px;
+  column-gap: 56px;
   width: 100%;
-  padding: 10px 16px;
+  padding: 11px 19px;
   border: 0;
-  border-radius: 12px;
   text-align: left;
   font: inherit;
   color: inherit;
-  cursor: pointer;
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--line);
+  background: none;
   transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+button.diff {
+  cursor: pointer;
+}
+
+button.diff:hover {
+  background: color-mix(in srgb, var(--paper) 60%, var(--surface));
 }
 
 .diff:focus-visible {
   outline: 2px solid var(--ink);
-  outline-offset: 2px;
-}
-
-div.diff {
-  cursor: default;
-}
-
-.diff:hover {
-  box-shadow: inset 0 0 0 1px var(--c);
+  outline-offset: -2px;
 }
 
 .diff[aria-pressed="true"] {
-  background: color-mix(in srgb, var(--c) 8%, transparent);
-  box-shadow: inset 0 0 0 2px var(--c);
+  background: color-mix(in srgb, var(--c) 8%, var(--surface));
+  box-shadow: inset 3px 0 0 var(--c);
 }
 
-.diffTop {
+.diffSide {
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
-.diffTop .num {
+.diffSide .num {
   margin-left: 0;
   vertical-align: 0;
 }
 
 .before,
 .after {
+  font-size: 14px;
   line-height: 1.45;
 }
 
 .before {
-  font-size: 14px;
   color: var(--ink-2);
 }
 
 .after {
-  font-size: 14px;
   font-weight: 600;
   color: var(--ink);
 }
 
-.diff > svg {
-  color: var(--ink-2);
-}
-
-.same {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 16px;
-  border-radius: 12px;
-  background: var(--wash);
-}
-
-.same span:nth-child(2) {
+/* 두 프롬프트 모두 있던 요소: 옅게 "같음" */
+.same .diffSide {
   font-size: 13px;
-  color: var(--ink-2);
-}
-
-.same b {
-  font-size: 12px;
-  font-weight: 600;
   color: var(--ink-2);
 }
 
@@ -538,7 +626,7 @@ button.textLink:focus-visible {
   outline-offset: 2px;
 }
 
-/* 내가 고친 프롬프트: "새로 채움 n" */
+/* 칸 이름 옆 "n개 채움": 진한 주 버튼과 겹쳐 보이지 않게 옅은 면 */
 .newCount {
   display: inline-flex;
   align-items: center;
@@ -546,8 +634,8 @@ button.textLink:focus-visible {
   margin-left: 8px;
   padding: 0 8px;
   border-radius: 999px;
-  background: var(--ink);
-  color: #fff;
+  background: var(--wash);
+  color: var(--ink);
   font-size: 12px;
   font-weight: 600;
   vertical-align: middle;
@@ -574,7 +662,7 @@ button.textLink:focus-visible {
   opacity: 0.75;
 }
 
-/* 나를 위한 추천 미션(교육 탭과 같은 카드, app/learn/ForYou.js) */
+/* 진단 추천(교육 탭과 같은 목록, app/learn/ForYou.js) */
 .forYou {
   margin-top: 32px;
 }
@@ -595,20 +683,6 @@ button.textLink:focus-visible {
   font-weight: 600;
 }
 
-/* 맨 아래 작은 줄: 점선 설명, 보조 버튼 */
-.foot {
-  margin-top: 24px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px 20px;
-}
-
-.foot .note {
-  margin-top: 0;
-}
-
 .primary:focus-visible,
 .secondary:focus-visible {
   outline: 2px solid var(--ink);
@@ -616,13 +690,8 @@ button.textLink:focus-visible {
 }
 
 @media (max-width: 760px) {
-  .diff,
-  .same {
+  .diff {
     grid-template-columns: minmax(0, 1fr);
-    gap: 6px;
-  }
-
-  .diff > svg {
-    display: none;
+    row-gap: 4px;
   }
 }
