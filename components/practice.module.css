@@ -2,7 +2,8 @@
 
 /* ---------- 평가 머리: 제목, 한 줄, 점수 ---------- */
 
-.head {
+/* lesson.module.css의 .card·.main과 같이 쓰는 칸이라, CSS 번들 순서와 상관없이 이 값이 이기게 section을 붙인다. */
+section.head {
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
@@ -92,7 +93,7 @@
 
 /* ---------- 자료 칸 ---------- */
 
-.material {
+section.material {
   gap: 10px;
 }
 
@@ -284,7 +285,7 @@
 
 /* ---------- spot: 문장 고르기 ---------- */
 
-.answer {
+section.answer {
   gap: 12px;
 }
 
