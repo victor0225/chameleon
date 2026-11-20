@@ -163,3 +163,41 @@ test("랭킹: 강의마다 점수가 있는 첫 기록만 세고, 참여한 사�
     await db.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [[a.id, b.id]]);
   }
 });
+
+test("개인화 읽기: 최근 진단 다섯 개와 첫 진단, 내 부문 점수, 같은 직무 평균(5명부터)", { skip }, async () => {
+  const { db, users } = await load();
+  const ranking = await import("../lib/server/ranking.js");
+  const { recentDiagnoses } = await import("../lib/server/history.js");
+  const people = [];
+  try {
+    for (let i = 0; i < 5; i++) {
+      const u = await users.createUser({ loginId: `${ID}p${i}`, password: "12345678", name: "개인화" });
+      people.push(u.id);
+      await db.query("INSERT INTO profiles (user_id, job) VALUES ($1, 'dev')", [u.id]);
+      await users.recordAttempt(u.id, { lessonId: "file2", passed: true, found: [], missed: [], score: 100 });
+    }
+    const me = people[0];
+    for (let day = 1; day <= 7; day++) {
+      await db.query(
+        "INSERT INTO diagnoses (user_id, at, job, level, prompt, found, missing) VALUES ($1, $2, 'dev', '초급', '진단', $3, '{}')",
+        [me, `2026-11-0${day}T09:00:00Z`, ["goal", "context", "format"].slice(0, Math.min(day, 3))],
+      );
+    }
+    const list = await recentDiagnoses(me, 5);
+    assert.deepEqual(
+      list.map((d) => d.at.slice(0, 10)),
+      ["2026-11-07", "2026-11-06", "2026-11-05", "2026-11-04", "2026-11-03", "2026-11-01"],
+      "최근 다섯 개 뒤에 첫 진단",
+    );
+    assert.deepEqual(list.at(-1).found, ["goal"]);
+
+    const mine = await ranking.myAreas(me);
+    assert.equal(mine.areas.find((a) => a.course === "file").score, 100);
+    const averages = await ranking.jobAverages("dev");
+    assert.ok(averages.file.n >= 5);
+    assert.ok(Object.values(averages).every((a) => a.n >= 5), "5명보다 적은 부문은 평균이 없다");
+    assert.deepEqual(await ranking.jobAverages(null), {});
+  } finally {
+    await db.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [people]);
+  }
+});

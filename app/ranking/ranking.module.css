@@ -216,3 +216,39 @@
   color: var(--ink-2);
   padding: 28px 16px;
 }
+
+/* 같은 직무 평균(작업 I-2): 부문 막대 위의 얇은 세로선 */
+.barWrap {
+  position: relative;
+  display: block;
+}
+
+.avgLine,
+.avgKey {
+  display: block;
+  width: 2px;
+  height: 16px;
+  border-radius: 1px;
+  background: var(--ink);
+}
+
+.avgLine {
+  position: absolute;
+  top: -4px;
+  margin-left: -1px;
+}
+
+.avgNote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

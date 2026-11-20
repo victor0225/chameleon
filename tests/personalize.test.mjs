@@ -24,7 +24,7 @@ test("약한 요소: 진단에서 빠진 요소와 최근 실습에서 못 넘�
   );
   const criteria = weak.find((w) => w.id === "criteria");
   assert.equal(criteria.missed, 2);
-  assert.match(criteria.reasons[0], /기준 기준을 2번 못 넘었어요/);
+  assert.match(criteria.reasons[0], /최근 실습에서 기준을 2번 못 넘었어요/);
   assert.match(weak[0].reasons.join(), /형식이 빠져 있었어요/);
 });
 

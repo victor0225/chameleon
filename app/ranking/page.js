@@ -58,6 +58,7 @@ function MyScore({ me, onLeave, busy }) {
       <ul className={s.areas} aria-label="부문 점수">
         {me.areas.map((a) => {
           const course = COURSE[a.course];
+          const avg = me.averages?.[a.course]?.avg;
           return (
             <li key={a.course}>
               <span className={s.areaName}>{course.title}</span>
@@ -68,10 +69,16 @@ function MyScore({ me, onLeave, busy }) {
                 </>
               ) : (
                 <>
-                  <span className="bar" aria-hidden="true">
-                    <span style={{ width: `${a.score}%` }} />
+                  <span className={s.barWrap} aria-hidden="true">
+                    <span className="bar">
+                      <span style={{ width: `${a.score}%` }} />
+                    </span>
+                    {avg !== undefined && <span className={s.avgLine} style={{ left: `${avg}%` }} />}
                   </span>
-                  <span className="mono">{a.score}</span>
+                  <span className="mono">
+                    {a.score}
+                    {avg !== undefined && <span className={s.srOnly}>, 같은 직무 평균 {avg}</span>}
+                  </span>
                 </>
               )}
             </li>
@@ -87,6 +94,12 @@ function MyScore({ me, onLeave, busy }) {
         </p>
       )}
       <p className="small muted">부문마다 처음 푼 점수의 평균이에요. 다시 푼 점수는 들어가지 않아요.</p>
+      {me.averages && Object.keys(me.averages).length > 0 && JOB[me.job] && (
+        <p className={`small muted ${s.avgNote}`}>
+          <span className={s.avgKey} aria-hidden="true" />
+          얇은 선은 같은 {JOB[me.job].name} 직무 평균이에요. 예시 사용자 포함
+        </p>
+      )}
     </section>
   );
 }

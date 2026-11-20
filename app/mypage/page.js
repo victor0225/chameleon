@@ -94,6 +94,32 @@ function Avatar() {
   );
 }
 
+// 진단 변화(작업 I-3): 로그인했고 첫 진단보다 요소를 더 채웠을 때만 한 줄을 보인다. 계산은 lib/diagnosisTrend.js
+function DiagnosisGrowth({ at }) {
+  const { user } = useAppState();
+  const [trend, setTrend] = useState(null);
+  useEffect(() => {
+    if (!user) return;
+    let live = true;
+    fetch("/api/me/trend", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => live && setTrend(d))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [user, at]);
+  if (!user || !(trend?.growth > 0)) return null;
+  return (
+    <p className={`small ${styles.growth}`}>
+      처음 진단보다 요소 <strong className="mono">{trend.growth}</strong>개를 더 채웠어요{" "}
+      <span className="muted">
+        (<span className="mono">{trend.from}</span>개 → <span className="mono">{trend.to}</span>개)
+      </span>
+    </p>
+  );
+}
+
 function Profile({ profile, diagnosis, name }) {
   const lastDate = formatDate(diagnosis?.at);
   return (
@@ -130,6 +156,7 @@ function Profile({ profile, diagnosis, name }) {
               <dd>{lastDate ?? "기록 없음"}</dd>
             </div>
           </dl>
+          <DiagnosisGrowth at={diagnosis?.at} />
           <div className={styles.actions}>
             {diagnosis && (
               <Link href="/diagnosis/result" className="btn small">

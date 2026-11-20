@@ -6,9 +6,16 @@ import { useEffect, useState } from "react";
 import { useAppState } from "@/components/AppState";
 import { ElementChip } from "@/components/LessonRunner";
 import { AuthLinks } from "@/components/AuthLinks";
+import { COURSE } from "@/data/courses";
 import { josa } from "@/lib/josa";
 import { ITEM } from "@/lib/items";
 import s from "./learn.module.css";
+
+// "과정 3 파일 활용", 과정 1이면 "과정 1 프롬프트 작성 · 중급"
+const courseLabel = (item) => {
+  const course = COURSE[item.course ?? "prompt"];
+  return [course && `과정 ${course.no} ${course.title}`, item.level].filter(Boolean).join(" · ");
+};
 
 export function ForYou({ onOpen }) {
   const { authChecked, user, login, flush, record, diagnosis } = useAppState();
@@ -75,8 +82,8 @@ export function ForYou({ onOpen }) {
               <button type="button" className={s.forYouItem} onClick={() => onOpen(item.lessonId)}>
                 <span className={s.forYouTop}>
                   <span className={s.no}>{i + 1}</span>
-                  <ElementChip id={item.focus} />
-                  <span className={s.forYouLevel}>{item.level}</span>
+                  {item.focus && <ElementChip id={item.focus} />}
+                  <span className={s.forYouLevel}>{courseLabel(item)}</span>
                 </span>
                 <span className={s.rowTitle}>{item.title}</span>
                 <ul className={s.forYouReasons}>
