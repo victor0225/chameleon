@@ -46,6 +46,8 @@ npm run dev      # http://localhost:3000
 | `/api/diagnose` | `{ job, experience, prompt }` | `{ level, found, missing, comment, segments, source }` |
 | `/api/prompt` | `{ mode: "generate" \| "revise", level, job, userInput, previousPrompt?, revisionRequest? }` | `{ success, prompt, segments }` |
 | `/api/evaluate` | `{ lessonId, prompt }` | `{ passed, criteria, found, coaching, output, xp, source }` |
+| `/api/guess` | `{ job, prompt }` | `{ output, guesses: [{ item, quote, reason }], source }` |
+| `/api/compare` | `{ step: "mine" \| "refine" \| "run", job, prompt, missing, improved?, before? }` | 단계별: `{ output, guesses }` / `{ sentences: [{ item, text, why, added }] }` / `{ output, marks, diffs }`. 키가 없으면 `{ source: "rule" }` |
 
 - `job`: `office` `marketing` `cs` `sales` `dev` (`data/jobs.js`), `experience`: `none` `sometimes` `often`
 - `found`, `missing`, `item`: 다섯 요소 `goal` `context` `constraint` `format` `criteria` (`lib/items.js`)
@@ -71,6 +73,7 @@ npm run dev      # http://localhost:3000
 - `app/api/diagnose/route.js`, `lib/server/diagnosis.js`: 진단
 - `app/api/prompt/route.js`: 프롬프트 작성 도우미 (기능 1 백엔드 그대로)
 - `app/api/evaluate/route.js`, `lib/server/evaluate.js`: 교육 평가 (기능 2 백엔드의 채점 방식을 옮김, 강의 데이터는 `data/curriculum.js` 하나만 씀)
+- `app/api/compare/route.js`, `lib/server/compare.js`: 결과 비교 (`/diagnosis/compare`). 내 프롬프트 실행 → 프롬프트 다듬기 → 다듬은 프롬프트 실행을 단계마다 부른다. 키가 없으면 화면이 `data/compareSample.js`의 예시 결과를 보여 준다
 - `lib/server/gemini.js`: 진단과 교육 평가가 함께 쓰는 Gemini 호출 (503이면 한 번 다시 시도)
 - `tests/`: `npm test`로 도는 테스트
 

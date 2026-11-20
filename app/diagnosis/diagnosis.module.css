@@ -447,6 +447,27 @@
   padding-top: 4px;
 }
 
+.compareCta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 20px 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.compareCta h2 {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.compareCta p {
+  margin-top: 2px;
+}
+
 .resultActions {
   display: flex;
   align-items: flex-start;
