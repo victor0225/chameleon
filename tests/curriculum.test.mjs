@@ -83,7 +83,7 @@ const byId = (id) => LESSONS.find((l) => l.id === id);
 
 test("중급·고급 제목과 요약은 디자인 보드 문안 그대로다", () => {
   const board = {
-    m1: ["업무 자료를 붙여 넣는 법", "지시와 자료를 나눠서 건네기"],
+    m1: ["업무 자료 붙여 넣고 요약 맡기기", "지시와 자료를 나눠서 건네기"],
     m2: ["예시로 원하는 결과 보여 주기", "말로 설명하기보다 한 줄 보여 주기"],
     m3: ["긴 업무를 단계로 나누기", "한 번에 말고 순서대로"],
     m4: ["‘적당히’ 대신 숫자로", "모호한 말과 부딪치는 지시 없애기"],
@@ -121,7 +121,7 @@ test("2-E: m2에 예시와 분량 없이 쓰면 3개 중 1개 충족, 예시 코
     r.criteria.map((c) => c.met),
     [true, false, false],
   );
-  assert.equal(r.coaching.question, "원하는 결과를 한 줄만 직접 보여 준다면 어떤 문장일까요?");
+  assert.equal(r.coaching.question, "원하는 결과를 한 줄만 직접 보여 준다면 어떤 문장인가?");
   assert.equal(r.output, m2.outputs.weak);
 });
 

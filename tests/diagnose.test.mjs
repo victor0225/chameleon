@@ -15,11 +15,11 @@ const body = {
 };
 
 test("요청 검사: 직무, 경험, 빈 프롬프트, 너무 긴 프롬프트", () => {
-  assert.equal(validateDiagnosis(null), "요청 형식이 올바르지 않아요.");
-  assert.equal(validateDiagnosis({ ...body, job: "nope" }), "관심 직무를 골라 주세요.");
-  assert.equal(validateDiagnosis({ ...body, experience: "x" }), "AI 사용 경험을 골라 주세요.");
-  assert.equal(validateDiagnosis({ ...body, experience: "toString" }), "AI 사용 경험을 골라 주세요.");
-  assert.equal(validateDiagnosis({ ...body, job: "constructor" }), "관심 직무를 골라 주세요.");
+  assert.equal(validateDiagnosis(null), "요청 형식이 올바르지 않음.");
+  assert.equal(validateDiagnosis({ ...body, job: "nope" }), "관심 직무 고르기");
+  assert.equal(validateDiagnosis({ ...body, experience: "x" }), "AI 사용 경험 고르기");
+  assert.equal(validateDiagnosis({ ...body, experience: "toString" }), "AI 사용 경험 고르기");
+  assert.equal(validateDiagnosis({ ...body, job: "constructor" }), "관심 직무 고르기");
   assert.match(validateDiagnosis({ ...body, prompt: "   " }), /한 줄 이상/);
   assert.match(validateDiagnosis({ ...body, prompt: "가".repeat(3001) }), /3000자/);
   assert.equal(validateDiagnosis(body), null);
@@ -84,5 +84,5 @@ test("총평이 비었거나 너무 길면 규칙 기반 총평을 쓴다", asyn
   const ask = async () => ({ sentences: [{ index: 0, items: ["goal"] }], comment: "가".repeat(400) });
   const r = await runDiagnosis(body, { ask });
   assert.equal(r.source, "ai");
-  assert.match(r.comment, /목표는 잘 드러나요/);
+  assert.match(r.comment, /목표는 잘 드러남/);
 });

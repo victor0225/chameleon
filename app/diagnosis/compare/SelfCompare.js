@@ -17,7 +17,6 @@ import {
   Arrow,
   Bar,
   Chip,
-  COUNT_WORD,
   FilesLine,
   FlowNav,
   IDS,
@@ -111,8 +110,8 @@ export function SelfCompare({ onAiCompare }) {
   // 키가 없을 때 "무엇이 달라졌나": 비어 있던 요소가 채워졌는지로만 말한다.
   const ruleDiffs = compared.map((id) => ({
     item: id,
-    before: "비어 있어서 AI가 마음대로 정해요",
-    after: diagnosis.found.includes(id) ? "내가 정했어요" : "아직 비어 있어요",
+    before: "비어 있어 AI가 마음대로 정함",
+    after: diagnosis.found.includes(id) ? "내가 정함" : "아직 비어 있음",
   }));
   const diffs = rule ? ruleDiffs : (run?.diffs ?? []);
 
@@ -126,10 +125,10 @@ export function SelfCompare({ onAiCompare }) {
       <div className={s.top}>
         <div>
           <h1 className={`display ${s.title}`}>같은 일, 두 결과</h1>
-          <p className={s.sub}>고치기 전 프롬프트와 내가 고친 프롬프트를 AI에게 똑같이 보내 봤어요.</p>
+          <p className={s.sub}>고치기 전 프롬프트와 내가 고친 프롬프트를 AI에게 똑같이 보냄</p>
           {rule && (
             <p className={s.note}>
-              AI가 연결되어 있지 않아 결과물은 만들지 않았어요. 두 프롬프트에서 무엇이 채워졌는지만 비교해요.
+              AI 미연결 · 결과물 없이 두 프롬프트에서 채워진 요소만 비교
             </p>
           )}
         </div>
@@ -161,11 +160,11 @@ export function SelfCompare({ onAiCompare }) {
           {step === 1 && (
             <>
               <div className={s.stepHead}>
-                <h2 className="display">먼저, 고치기 전 프롬프트로 받은 결과예요</h2>
+                <h2 className="display">고치기 전 프롬프트로 받은 결과</h2>
                 <p>
                   {rule
-                    ? "비어 있던 요소마다 AI가 무엇을 마음대로 정하게 되는지 적었어요."
-                    : "점선 밑줄은 정보가 없어서 AI가 마음대로 정한 부분이에요."}
+                    ? "비어 있던 요소마다 AI가 마음대로 정하게 되는 것"
+                    : "점선 밑줄 = 정보가 없어 AI가 임의로 정한 부분"}
                 </p>
               </div>
               <div className={s.row}>
@@ -224,9 +223,9 @@ export function SelfCompare({ onAiCompare }) {
             <div className={s.narrow}>
               <div className={s.stepHead}>
                 <h2 className="display">
-                  {added.length > 0 ? `${COUNT_WORD[added.length]} 요소를 새로 채웠어요` : "새로 채운 요소는 없어요"}
+                  {added.length > 0 ? `요소 ${added.length}개 새로 채움` : "새로 채운 요소 없음"}
                 </h2>
-                <p>{added.length > 0 ? "고치기 전에는 비어 있던 요소예요." : "고친 프롬프트도 같은 요소가 들어 있어요."}</p>
+                <p>{added.length > 0 ? "고치기 전에는 비어 있던 요소" : "고친 프롬프트도 같은 요소 포함"}</p>
               </div>
               <div className={s.orig}>
                 <span className={s.origLabel}>고치기 전</span>
@@ -256,7 +255,7 @@ export function SelfCompare({ onAiCompare }) {
                     <li key={id} className={diagnosis.found.includes(id) ? undefined : s.notFilled}>
                       <Chip id={id} />
                       {added.includes(id) && <span className={s.added}>새로</span>}
-                      {!diagnosis.found.includes(id) && <span>아직 비어 있어요</span>}
+                      {!diagnosis.found.includes(id) && <span>아직 비어 있음</span>}
                     </li>
                   ))}
                 </ul>
@@ -277,8 +276,8 @@ export function SelfCompare({ onAiCompare }) {
           {step === 3 && (
             <>
               <div className={s.stepHead}>
-                <h2 className="display">{rule ? "두 프롬프트를 나란히 볼까요" : "두 결과를 나란히 볼까요"}</h2>
-                <p>{rule ? "비어 있던 요소가 채워졌는지 보여요." : "달라진 점을 누르면 양쪽 결과에서 함께 보여요."}</p>
+                <h2 className="display">{rule ? "두 프롬프트 나란히 보기" : "두 결과 나란히 보기"}</h2>
+                <p>{rule ? "비어 있던 요소가 채워졌는지 표시" : "달라진 점을 누르면 양쪽 결과에 함께 표시"}</p>
               </div>
               <div className={s.compareRow}>
                 <section className={`${s.card} ${s.side}`} aria-labelledby="c-before">
@@ -341,7 +340,7 @@ export function SelfCompare({ onAiCompare }) {
                   {IDS.filter((id) => before.found.includes(id)).map((id) => (
                     <div key={id} className={s.same}>
                       <Chip id={id} />
-                      <span>두 프롬프트 모두 있어요</span>
+                      <span>두 프롬프트 모두 있음</span>
                       <b>같음</b>
                     </div>
                   ))}
@@ -380,8 +379,8 @@ export function SelfCompare({ onAiCompare }) {
                 </button>
                 <p className="display">
                   {added.length > 0
-                    ? "고친 만큼 결과가 달라졌어요. 다음 과정으로 넘어가 볼까요?"
-                    : "아직 비어 있는 요소가 있어요. 한 번 더 고쳐 볼까요?"}
+                    ? "고친 만큼 결과가 달라짐. 다음 과정으로."
+                    : "아직 비어 있는 요소 있음. 한 번 더 고치기."}
                 </p>
                 <Link href="/diagnosis/prompt?edit=1" className={s.secondary}>
                   한 번 더 고쳐 보기

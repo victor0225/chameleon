@@ -22,8 +22,12 @@ class GoogleGenAI {
     }};
   }
 }`;
-const stubbed = source.replace('import { GoogleGenAI } from "@google/genai";', fixture);
-assert.notEqual(stubbed, source, "SDK import patch failed");
+// data: URL 모듈은 "@/" 경로를 못 찾으므로 예시 결과 모듈은 파일 주소로 바꿔 불러온다.
+const promptLib = new URL("../lib/server/prompt.js", import.meta.url).href;
+const stubbed = source
+  .replace('import { GoogleGenAI } from "@google/genai";', fixture)
+  .replace('from "@/lib/server/prompt";', `from "${promptLib}";`);
+assert.ok(!stubbed.includes("@google/genai") && !stubbed.includes("@/lib/"), "import patch failed");
 const { POST } = await import(`data:text/javascript;base64,${Buffer.from(stubbed).toString("base64")}`);
 process.env.GEMINI_API_KEY = "test-placeholder-do-not-use";
 
@@ -67,13 +71,53 @@ test("수정 필수 필드 누락 -> 400", async () => {
   assert.equal(res.status, 400);
 });
 
-test("Gemini 호출 제한 -> 429", async () => {
+test("Gemini 호출 제한 -> 오류 대신 예시 결과(source: rule)", async () => {
   globalThis.__failGemini = true;
+  const error = console.error;
+  console.error = () => {};
   try {
     const res = await POST(req({mode:"generate",...common}));
-    assert.equal(res.status, 429);
-    assert.equal((await res.json()).success, false);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.success, true);
+    assert.equal(data.source, "rule");
   } finally {
     globalThis.__failGemini = false;
+    console.error = error;
+  }
+});
+
+test("키 없음 -> 고른 값으로 만든 다섯 요소 예시 결과, 개발자용 오류 없음", async () => {
+  const key = process.env.GEMINI_API_KEY;
+  delete process.env.GEMINI_API_KEY;
+  try {
+    const res = await POST(req({
+      mode:"generate", level:"intermediate", job:"마케팅",
+      userInput:"신제품 SNS 게시글\n읽는 대상: 우리 브랜드 팔로워\n원하는 출력 형식: 핵심 항목 목록",
+    }));
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.success, true);
+    assert.equal(data.source, "rule");
+    assert.doesNotMatch(JSON.stringify(data), /GEMINI_API_KEY/);
+    assert.deepEqual(data.segments.map(s => s.key), ["goal", "context", "constraint", "format", "criteria"]);
+    const text = Object.fromEntries(data.segments.map(s => [s.key, s.text]));
+    assert.equal(text.goal, "신제품 SNS 게시글을 써 줘.");
+    assert.match(text.context, /마케팅/);
+    assert.match(text.context, /우리 브랜드 팔로워/);
+    assert.match(text.format, /번호 목록/);
+    assert.ok(data.segments.every(s => s.why && !/요\.?$/.test(s.why)), "이유는 개조식");
+    assert.equal(data.prompt, data.segments.map(s => s.text).join("\n"));
+
+    const revised = await (await POST(req({
+      mode:"revise", level:"intermediate", job:"마케팅", userInput:"신제품 SNS 게시글",
+      previousPrompt:data.prompt, revisionRequest:"표로 바꾸기",
+    }))).json();
+    assert.equal(revised.source, "rule");
+    const after = Object.fromEntries(revised.segments.map(s => [s.key, s.text]));
+    assert.match(after.format, /표로/);
+    assert.equal(after.goal, text.goal);
+  } finally {
+    if (key !== undefined) process.env.GEMINI_API_KEY = key;
   }
 });

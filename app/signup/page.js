@@ -43,9 +43,13 @@ export default function SignupPage() {
   return (
     <AuthShell
       title="회원가입"
-      lede="가입하면 진단과 학습 기록이 계정에 저장돼요. 이 브라우저에 있던 기록도 함께 옮겨요."
+      lede="가입하면 진단·학습 기록이 계정에 저장됨. 이 브라우저 기록도 함께 옮김"
     >
       <form className={s.form} onSubmit={submit} noValidate>
+        {/* 되찾을 방법이 없다는 안내는 놓치지 않게 입력 칸 위에 둔다(디자인 캔버스 E2). */}
+        <p className="notice" style={{ marginBottom: 0 }}>
+          비밀번호 찾기 기능 없음 · 비밀번호는 따로 적어 두기
+        </p>
         <Field
           id="loginId"
           label="아이디"
@@ -66,7 +70,7 @@ export default function SignupPage() {
           value={form.password}
           onChange={(e) => set("password", e.target.value)}
           autoComplete="new-password"
-          hint={`${RULE.password}. 비밀번호 찾기는 아직 없으니 잊지 않게 적어 두세요.`}
+          hint={RULE.password}
           error={errorFor("password")}
         />
         <Field
@@ -93,7 +97,7 @@ export default function SignupPage() {
         </button>
       </form>
       <p className={s.switch}>
-        이미 계정이 있나요?
+        이미 계정이 있다면
         <Link href={`/login?next=${encodeURIComponent(next)}`}>로그인</Link>
       </p>
     </AuthShell>

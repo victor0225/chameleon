@@ -2,9 +2,10 @@
 
 // 강의 화면의 공용 조각: 요소 칩, 다섯 칸 막대, 밑줄 그린 프롬프트, 밑줄 입력 칸, 코칭 질문 카드, 충족·미충족 아이콘.
 // LessonRunner와 kind별 실습 칸(components/Practice.js)이 같이 쓴다.
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { analyze } from "@/lib/anatomy";
 import { ITEM, ITEMS } from "@/lib/items";
+import { ChevronIcon, InfoIcon } from "./Common";
 import s from "./lesson.module.css";
 
 const BLANK = /(\{\{[^{}\n]+\}\})/;
@@ -15,8 +16,12 @@ const PIECE = /[^.!?\n]*[.!?]+[ \t]*|[^.!?\n]+|\n+/g;
 export const itemVars = (id) => ({ "--seg": ITEM[id].color, "--seg-t": ITEM[id].text });
 
 // 조각마다 들어 있는 요소 하나(가장 구체적인 것)를 고른다. [[조각, 요소 id | null], ...]
-export function marksOf(text) {
-  return (text.match(PIECE) ?? []).map((t) => [t, t.trim() ? (analyze(t).found[0] ?? null) : null]);
+// prefer: 조각에 이 요소가 들어 있으면 그 색으로 칠한다(배우기 예시는 그 미션의 요소 색으로).
+export function marksOf(text, prefer) {
+  return (text.match(PIECE) ?? []).map((t) => {
+    const found = t.trim() ? analyze(t).found : [];
+    return [t, prefer && found.includes(prefer) ? prefer : (found[0] ?? null)];
+  });
 }
 
 export const foundOf = (marks) => ITEMS.map((item) => item.id).filter((id) => marks.some(([, item]) => item === id));
@@ -72,14 +77,23 @@ function Piece({ text, item }) {
   });
 }
 
+// "---"로 둘러싼 자료 조각(맥락)은 밑줄 대신 요소 색 점선 상자로 그린다(D1 좋은 예: 초록 칸 = AI가 읽을 자료).
+export const isMaterialPiece = ([t, item]) => item === "context" && /^\s*---/.test(t);
+
 // marks를 주면 그 밑줄을, 없으면 규칙 기반 분석기로 문장마다 요소를 칠한다.
 export function PromptText({ text, marks, className = "" }) {
   const list = marks ?? marksOf(text);
   return (
     <p className={`${s.prompt} ${className}`}>
-      {list.map(([t, item], i) => (
-        <Piece key={i} text={t} item={item} />
-      ))}
+      {list.map(([t, item], i) =>
+        isMaterialPiece([t, item]) ? (
+          <span key={i} className={s.materialBlock} style={itemVars(item)}>
+            {t.trim()}
+          </span>
+        ) : (
+          <Piece key={i} text={t} item={item} />
+        ),
+      )}
     </p>
   );
 }
@@ -103,7 +117,7 @@ export function PromptEditor({ value, onChange, inputRef, label }) {
         onScroll={(e) => {
           e.currentTarget.scrollTop = 0;
         }}
-        placeholder="AI에게 말하듯 그대로 써 보세요"
+        placeholder="AI에게 말하듯 그대로 쓰기"
         aria-label={label}
         spellCheck={false}
       />
@@ -111,11 +125,11 @@ export function PromptEditor({ value, onChange, inputRef, label }) {
   );
 }
 
-// 평가·피드백의 코칭 질문(보드 2-E 모양). 정답 대신 질문 하나와 도움말 한 줄.
+// 평가·피드백의 코칭 질문(공통 칸 ⑦). 피드백 머리 칸 바로 아래, 정답 대신 질문 하나와 도움말 한 줄.
 export function CoachCard({ question, hint }) {
   return (
-    <section className={`${s.card} ${s.coach}`} aria-labelledby="coach" data-tour="feedback-coach">
-      <h2 id="coach" className={`${s.cardTitle} ${s.smallTitle}`}>
+    <section className={s.coach} aria-labelledby="coach" data-tour="feedback-coach">
+      <h2 id="coach" className={s.coachLabel}>
         <svg
           width="16"
           height="16"
@@ -132,8 +146,108 @@ export function CoachCard({ question, hint }) {
         코칭 질문
       </h2>
       <p className={s.question}>{question}</p>
-      <p className={s.hintText}>{hint ?? "정답을 대신 써 드리지 않아요. 이 질문에 답하듯 프롬프트를 고쳐 보세요."}</p>
+      <p className={s.hintText}>{hint ?? "정답은 대신 쓰지 않음. 이 질문에 답하듯 프롬프트 고치기."}</p>
     </section>
+  );
+}
+
+// 피드백 머리 칸(공통 칸 ⑥): 상태 아이콘 · 제목 · 점수 · 주 버튼 · 첫 점수 줄. 미션 종류와 상관없이 같은 모양이다.
+// got/total: 점수, action: { label, onClick, icon }, retry: 이번이 다시 푼 것(랭킹에 들어가지 않음)
+export function FeedbackHead({ passed, desc, got, total, xp, wasDone, retry, action }) {
+  const note = retry
+    ? "다시 해 본 점수 · 부문 점수와 랭킹 미반영"
+    : `첫 풀이 점수 · 부문 점수와 랭킹에 반영${passed ? "" : ". 다시 해 본 점수는 미반영."}`;
+  return (
+    <section className={s.fh} aria-live="polite" aria-labelledby="feedback-title" data-tour="feedback-score">
+      <span className={`${s.fhState} ${passed ? s.fhPass : s.fhFail}`} aria-hidden="true">
+        {passed ? <MetIcon size={22} /> : <MissIcon size={18} />}
+      </span>
+      <div>
+        <h2 id="feedback-title" className={s.fhTitle}>
+          {passed ? "통과" : "아직 통과 전"}
+        </h2>
+        <p className={s.fhDesc}>{desc}</p>
+      </div>
+      <div className={s.fhScore}>
+        <p className={s.fhNum}>
+          {got}
+          <small> / {total}</small>
+        </p>
+        <div className={s.fhSegRow}>
+          <span className={s.fhSeg} aria-hidden="true">
+            {Array.from({ length: total }, (_, i) => (
+              <i key={i} className={i < got ? s.on : undefined} />
+            ))}
+          </span>
+          {passed &&
+            (wasDone ? <span className={s.note}>이미 마친 미션 · XP 그대로</span> : <span className={s.xpPill}>+{xp} XP</span>)}
+        </div>
+      </div>
+      {action && (
+        <button type="button" className={s.primary} onClick={action.onClick}>
+          {action.icon}
+          {action.label}
+        </button>
+      )}
+      <p className={s.fhNote}>
+        <InfoIcon size={16} />
+        {note}
+      </p>
+    </section>
+  );
+}
+
+// 해 보기·배우기의 통과 기준: 체크 상자가 아닌 점 목록(공통 칸 ⑧). 누르는 것처럼 보이지 않게 한다.
+export function CriteriaDots({ criteria, extra = [] }) {
+  return (
+    <ul className={s.dots}>
+      {criteria.map((c) => (
+        <li key={c.label}>
+          <span className={s.dot} aria-hidden="true" />
+          <span className={s.grow}>{c.label}</span>
+          <ElementChip id={c.item} />
+        </li>
+      ))}
+      {extra.map((t) => (
+        <li key={t}>
+          <span className={s.dot} aria-hidden="true" />
+          <span className={s.grow}>{t}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// 피드백의 기준 목록(공통 칸 ⑧): 못 넘은 것 먼저, 맞은 것은 접는다. 모두 맞았으면 맞은 것을 그대로 보인다.
+// items: [{ key, label, item, met, after }]  after: 줄 오른쪽 끝에 붙일 글(예: 내가 고른 방법)
+export function CriteriaResult({ items, foldLabel = (n) => `채운 기준 ${n}개 보기` }) {
+  const [open, setOpen] = useState(false);
+  const miss = items.filter((c) => !c.met);
+  const met = items.filter((c) => c.met);
+  const row = (c) => (
+    <li key={c.key ?? c.label} className={c.met ? s.critMet : s.critMiss}>
+      <span className={c.met ? s.icOk : s.icNo}>{c.met ? <MetIcon size={12} /> : <MissIcon size={10} />}</span>
+      <span className={s.grow}>{c.label}</span>
+      {c.after && <span className={s.critAfter}>{c.after}</span>}
+      <ElementChip id={c.item} />
+    </li>
+  );
+  if (!miss.length) return <ul className={s.crit}>{met.map(row)}</ul>;
+  return (
+    <>
+      <ul className={s.crit}>{miss.map(row)}</ul>
+      {met.length > 0 && (
+        <>
+          <button type="button" className={s.fold} aria-expanded={open} onClick={() => setOpen(!open)}>
+            {open ? "접기" : foldLabel(met.length)}
+            <span className={s.foldIcon}>
+              <ChevronIcon open={open} />
+            </span>
+          </button>
+          {open && <ul className={s.crit}>{met.map(row)}</ul>}
+        </>
+      )}
+    </>
   );
 }
 
@@ -172,4 +286,35 @@ export function MissIcon({ size = 12 }) {
       <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" />
     </svg>
   );
+}
+
+export function PencilIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12.5 2.5l3 3L6 15H3v-3z" />
+    </svg>
+  );
+}
+
+// 해 보기·피드백 위 '할 일' 한 줄 카드. children은 할 일 아래에 붙는 조작 안내(분류·오류 찾기).
+export function TodoCard({ lesson, children }) {
+  return (
+    <section className={`${s.card} ${s.todoRow}`} aria-labelledby="practice-mission">
+      <h2 id="practice-mission" className={s.smallTitle}>
+        할 일
+      </h2>
+      <div>
+        <p>{lesson.mission}</p>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+// 피드백 머리 칸의 설명 한 줄: 프롬프트·파일 미션
+export function criteriaDesc(grade) {
+  const total = grade.criteria.length;
+  const met = grade.criteria.filter((c) => c.met).length;
+  if (grade.passed) return `통과 기준 ${total}개 모두 충족`;
+  return `${total}개 중 ${met}개 충족.${total - met === 1 ? " 1개만 고치면 통과." : ""}`;
 }

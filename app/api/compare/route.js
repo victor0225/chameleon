@@ -15,7 +15,7 @@ export async function POST(request) {
   try {
     body = await request.json();
   } catch {
-    return Response.json({ error: "요청 형식이 올바르지 않아요." }, { status: 400 });
+    return Response.json({ error: "요청 형식이 올바르지 않음." }, { status: 400 });
   }
   const error = validateCompare(body);
   if (error) return Response.json({ error }, { status: 400 });
@@ -25,6 +25,6 @@ export async function POST(request) {
   } catch (err) {
     if (err instanceof FileExpiredError) return Response.json({ error: err.message, expired: true }, { status: 410 });
     console.warn(`[/api/compare] ${body.step} 단계 실패:`, err?.message || "unknown");
-    return Response.json({ error: `${STEP_ERROR[body.step]} 잠시 뒤 다시 시도해 주세요.` }, { status: 502 });
+    return Response.json({ error: `${STEP_ERROR[body.step]} 잠시 뒤 다시 시도.` }, { status: 502 });
   }
 }

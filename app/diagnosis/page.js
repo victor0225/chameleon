@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppState } from "@/components/AppState";
+import { ArrowIcon } from "@/components/Common";
 import { AI_USE, AI_USES, EXPERIENCE, EXPERIENCES, JOB, JOBS } from "@/data/jobs";
 import { Choice } from "./_components/Choice";
 import { Progress } from "./_components/Progress";
@@ -35,77 +36,77 @@ export default function Survey() {
   }
 
   return (
-    <div className={s.wrap}>
+    <div className={`${s.wrap} ${s.wide}`}>
       <Progress step={1} />
-      <header className={s.head}>
-        <h1 className="display">내 수준 진단하기</h1>
-        <p className="lede">몇 가지를 고르고 프롬프트를 한 번 써 보면, 지금 수준과 먼저 채울 요소를 알려 드려요.</p>
-      </header>
+      <h1 className={`display ${s.centerTitle}`}>내 수준 진단하기</h1>
 
       <form className={s.form} onSubmit={next}>
-        <section className={s.question} aria-labelledby="q-job">
-          <h2 id="q-job" className={s.qTitle}>
-            <span className={s.qNum}>1</span> 어떤 직무에서 AI를 쓰고 싶나요?
-          </h2>
-          <div className={s.choices} role="radiogroup" aria-labelledby="q-job">
-            {JOBS.map((j) => (
-              <Choice
-                key={j.id}
-                name="job"
-                value={j.id}
-                checked={job === j.id}
-                onChange={() => setPicked((p) => ({ ...p, job: j.id }))}
-                title={j.name}
-                desc={j.examples.join(" · ")}
-              />
-            ))}
+        <section className={s.surveyCard} aria-label="설문">
+          <div className={s.question}>
+            <h2 id="q-job" className={s.qTitle}>
+              <span className={s.qNum}>1</span> AI를 쓸 직무
+            </h2>
+            <div className={`${s.choices} ${s.cols2}`} role="radiogroup" aria-labelledby="q-job">
+              {JOBS.map((j) => (
+                <Choice
+                  key={j.id}
+                  name="job"
+                  value={j.id}
+                  checked={job === j.id}
+                  onChange={() => setPicked((p) => ({ ...p, job: j.id }))}
+                  title={j.name}
+                  desc={j.examples.join(" · ")}
+                />
+              ))}
+            </div>
           </div>
-        </section>
 
-        <section className={s.question} aria-labelledby="q-experience">
-          <h2 id="q-experience" className={s.qTitle}>
-            <span className={s.qNum}>2</span> AI를 얼마나 써 봤나요?
-          </h2>
-          <div className={s.choices} role="radiogroup" aria-labelledby="q-experience">
-            {EXPERIENCES.map((e) => (
-              <Choice
-                key={e.id}
-                name="experience"
-                value={e.id}
-                checked={experience === e.id}
-                onChange={() => setPicked((p) => ({ ...p, experience: e.id }))}
-                title={e.title}
-                desc={e.desc}
-              />
-            ))}
+          <div className={s.question}>
+            <h2 id="q-experience" className={s.qTitle}>
+              <span className={s.qNum}>2</span> AI 사용 경험
+            </h2>
+            <div className={`${s.choices} ${s.cols3}`} role="radiogroup" aria-labelledby="q-experience">
+              {EXPERIENCES.map((e) => (
+                <Choice
+                  key={e.id}
+                  name="experience"
+                  value={e.id}
+                  checked={experience === e.id}
+                  onChange={() => setPicked((p) => ({ ...p, experience: e.id }))}
+                  title={e.title}
+                  desc={e.desc}
+                />
+              ))}
+            </div>
           </div>
-        </section>
 
-        <section className={s.question} aria-labelledby="q-uses">
-          <h2 id="q-uses" className={s.qTitle}>
-            <span className={s.qNum}>3</span> AI를 이렇게 써 봤어요
-          </h2>
-          <p className={s.qHint}>해당하는 것을 모두 골라 주세요. 없으면 그냥 넘어가도 돼요.</p>
-          <div className={s.choices} role="group" aria-labelledby="q-uses">
-            {AI_USES.map((u) => (
-              <Choice
-                key={u.id}
-                type="checkbox"
-                name="used"
-                value={u.id}
-                checked={used.includes(u.id)}
-                onChange={() => toggleUse(u.id)}
-                title={u.title}
-                desc={u.desc}
-              />
-            ))}
+          <div className={s.question}>
+            <h2 id="q-uses" className={s.qTitle}>
+              <span className={s.qNum}>3</span> 써 본 방식
+              <span className={s.qHint}>여러 개 선택 가능 · 없으면 건너뛰기</span>
+            </h2>
+            <div className={`${s.choices} ${s.cols2}`} role="group" aria-labelledby="q-uses">
+              {AI_USES.map((u) => (
+                <Choice
+                  key={u.id}
+                  type="checkbox"
+                  name="used"
+                  value={u.id}
+                  checked={used.includes(u.id)}
+                  onChange={() => toggleUse(u.id)}
+                  title={u.title}
+                  desc={u.desc}
+                />
+              ))}
+            </div>
           </div>
         </section>
 
         <div className={s.actions}>
-          {!answered && <p className="small muted">1번과 2번에 답하면 다음으로 넘어가요.</p>}
+          {!answered && <p className={s.note}>1번과 2번에 답하면 다음으로</p>}
           <button type="submit" className={`btn ${s.cta}`} disabled={!answered}>
             다음
+            <ArrowIcon />
           </button>
         </div>
       </form>

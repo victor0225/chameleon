@@ -1,0 +1,98 @@
+/* 여러 화면이 같이 쓰는 작은 조각(디자인 캔버스 '공통 칸' ③④②) */
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* ③ 첫 점수 규칙 칩 */
+.rule {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 14px 6px 10px;
+  border-radius: 999px;
+  background: var(--wash);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.rule.retry {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* ④ 예시 결과 칩 */
+.example {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  background: var(--wash);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: none;
+}
+
+/* ② 단계 표시: 진단, 결과 비교, 미션이 같은 모양 */
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.steps li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.steps li.done {
+  color: var(--ink);
+}
+
+.steps li.now {
+  background: var(--ink);
+  box-shadow: none;
+  color: #fff;
+}
+
+.steps li.line {
+  width: 20px;
+  height: 1px;
+  padding: 0;
+  border-radius: 0;
+  background: var(--line);
+  box-shadow: none;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

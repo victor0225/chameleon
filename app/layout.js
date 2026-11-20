@@ -24,9 +24,6 @@ export default function RootLayout({ children }) {
         <AppStateProvider>
           <Header />
           <main>{children}</main>
-          <footer className="footer">
-            C팀 카멜레온 · AI 답변은 Google Gemini로 만들어요.
-          </footer>
         </AppStateProvider>
       </body>
     </html>

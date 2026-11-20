@@ -1,24 +1,22 @@
 "use client";
 
-// 나를 위한 커리큘럼: DB에 쌓인 진단·실습 기록으로 개인화 엔진(lib/personalize.js)이 고른 강의 세 개와 고른 이유.
-// 로그인 전에는 로그인하면 무엇을 받는지 한 줄로 알린다. 서버에 DB가 없으면 아무것도 그리지 않는다.
+// 나를 위한 커리큘럼(E4): DB에 쌓인 진단·실습 기록으로 개인화 엔진(lib/personalize.js)이 고른 미션 세 개와 고른 이유.
+// 3줄 목록이고 1번에만 진한 '시작'. 로그인한 사람에게만 보인다(로그인 전에는 교육 첫 화면의 추천 첫 미션 카드가 대신한다).
 import { useEffect, useState } from "react";
 import { useAppState } from "@/components/AppState";
 import { ElementChip } from "@/components/LessonRunner";
-import { AuthLinks } from "@/components/AuthLinks";
 import { COURSE } from "@/data/courses";
-import { josa } from "@/lib/josa";
 import { ITEM } from "@/lib/items";
 import s from "./learn.module.css";
 
-// "과정 3 파일 활용", 과정 1이면 "과정 1 프롬프트 작성 · 중급"
+// "과정 3", 과정 1이면 "과정 1 · 중급"
 const courseLabel = (item) => {
   const course = COURSE[item.course ?? "prompt"];
-  return [course && `과정 ${course.no} ${course.title}`, item.level].filter(Boolean).join(" · ");
+  return [course && `과정 ${course.no}`, item.level].filter(Boolean).join(" · ");
 };
 
 export function ForYou({ onOpen }) {
-  const { authChecked, user, login, flush, record, diagnosis } = useAppState();
+  const { user, flush, record, diagnosis } = useAppState();
   const [plan, setPlan] = useState(null);
   // 미션을 마치거나 새로 진단하면 다시 고른다.
   const key = [user?.id, diagnosis?.at, record.completed.join(","), JSON.stringify(record.history[0] ?? null)].join("|");
@@ -37,33 +35,19 @@ export function ForYou({ onOpen }) {
     };
   }, [user, key, flush]);
 
-  if (!authChecked || (!user && !login.ready)) return null;
-
-  if (!user) {
-    return (
-      <section className={s.forYouCta} aria-labelledby="for-you-title" data-tour="learn-foryou">
-        <div>
-          <h2 id="for-you-title">나를 위한 커리큘럼</h2>
-          <p className={s.muted}>로그인하면 진단과 실습 기록을 보고, 지금 나에게 필요한 미션을 골라 드려요.</p>
-        </div>
-        <AuthLinks next="/learn" />
-      </section>
-    );
-  }
+  if (!user) return null;
 
   const focus = plan?.focus ? ITEM[plan.focus] : null;
   return (
-    <section className={s.forYou} aria-labelledby="for-you-title" aria-busy={!plan} data-tour="learn-foryou">
+    <section aria-labelledby="for-you-title" aria-busy={!plan} data-tour="learn-foryou">
       <div className={s.forYouHead}>
-        <h2 id="for-you-title">나를 위한 커리큘럼</h2>
+        <h2 id="for-you-title" className={s.h2}>
+          나를 위한 커리큘럼
+        </h2>
         {focus && (
-          <p className={s.muted}>
-            진단과 실습 기록으로 골랐어요. 지금 가장 먼저 채울 요소는
-            <span className={s.chipWord}>
-              <ElementChip id={focus.id} />
-              {josa(focus.name, ["이에요", "예요"]).slice(focus.name.length)}
-            </span>
-          </p>
+          <span className={s.forYouFocus}>
+            먼저 채울 요소 <ElementChip id={focus.id} />
+          </span>
         )}
       </div>
       {!plan && (
@@ -73,24 +57,30 @@ export function ForYou({ onOpen }) {
           ))}
         </div>
       )}
-      {plan?.error && <p className={s.muted}>커리큘럼을 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.</p>}
-      {plan?.items?.length === 0 && <p className={s.muted}>모든 미션을 마쳤어요. 프롬프트 도우미에서 실제 업무에 써 보세요.</p>}
+      {plan?.error && <p className={s.cap}>커리큘럼을 불러오지 못함. 잠시 뒤 다시 열기.</p>}
+      {plan?.items?.length === 0 && <p className={s.cap}>모든 미션 마침. 프롬프트 도우미에서 실제 업무에 써 보기.</p>}
       {plan?.items?.length > 0 && (
         <ol className={s.forYouList}>
           {plan.items.map((item, i) => (
             <li key={item.lessonId}>
-              <button type="button" className={s.forYouItem} onClick={() => onOpen(item.lessonId)}>
-                <span className={s.forYouTop}>
-                  <span className={s.no}>{i + 1}</span>
-                  {item.focus && <ElementChip id={item.focus} />}
-                  <span className={s.forYouLevel}>{courseLabel(item)}</span>
+              <button type="button" className={`${s.forYouRow} ${i === 0 ? s.forYouFirst : ""}`} onClick={() => onOpen(item.lessonId)}>
+                <span className={`${s.mono} ${s.cap}`}>{i + 1}</span>
+                <span>
+                  <span className={s.forYouTitle}>
+                    {item.focus && <ElementChip id={item.focus} />}
+                    {item.title}
+                  </span>
+                  <span className={s.cap}>
+                    {courseLabel(item)} · {item.reasons.join(" · ")}
+                  </span>
                 </span>
-                <span className={s.rowTitle}>{item.title}</span>
-                <ul className={s.forYouReasons}>
-                  {item.reasons.map((reason) => (
-                    <li key={reason}>{reason}</li>
-                  ))}
-                </ul>
+                {i === 0 ? (
+                  <span className={s.goBtn}>시작</span>
+                ) : (
+                  <span className={s.goLink}>
+                    시작<span aria-hidden="true"> →</span>
+                  </span>
+                )}
               </button>
             </li>
           ))}

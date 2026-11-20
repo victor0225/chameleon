@@ -37,7 +37,7 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthShell title="로그인" lede="로그인하면 다른 기기에서도 진단과 학습 기록을 이어서 볼 수 있어요.">
+    <AuthShell title="로그인" lede="로그인하면 다른 기기에서도 진단·학습 기록 이어 보기 가능">
       <form className={s.form} onSubmit={submit} noValidate>
         <Field
           id="loginId"
@@ -64,7 +64,7 @@ export default function LoginPage() {
         </button>
       </form>
       <p className={s.switch}>
-        아직 계정이 없나요?
+        아직 계정이 없다면
         <Link href={`/signup?next=${encodeURIComponent(next)}`}>회원가입</Link>
       </p>
     </AuthShell>

@@ -14,7 +14,7 @@ import { loadState, recentAttempts } from "@/lib/server/users";
 export async function GET() {
   await connection();
   const user = await getSessionUser();
-  if (!user) return Response.json({ error: "로그인이 필요해요." }, { status: 401 });
+  if (!user) return Response.json({ error: "로그인 필요." }, { status: 401 });
   const [state, attempts, scores, diagnoses] = await Promise.all([
     loadState(user.id),
     recentAttempts(user.id),

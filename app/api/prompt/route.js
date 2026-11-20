@@ -1,35 +1,14 @@
 import { GoogleGenAI } from "@google/genai";
+import { examplePrompt, exampleRevise, PROMPT_INFO as INFO, PROMPT_KEYS as KEYS } from "@/lib/server/prompt";
 
 // 카멜레온 기능 1: POST /api/prompt
 // 기존 팀 계약: { mode, level, job, userInput, previousPrompt?, revisionRequest? }
-// 응답: { success: true, prompt: string }  (+ 목업 UI에 필요한 segments)
+// 응답: { success: true, prompt: string, segments, source }  (+ 목업 UI에 필요한 segments)
+// GEMINI_API_KEY가 없거나 Gemini 호출이 실패하면 lib/server/prompt.js가 고른 값으로 만든 예시 결과를 준다(source: "rule").
 export const maxDuration = 30;
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 const VALID_LEVELS = ["beginner", "intermediate", "advanced"];
-const KEYS = ["goal", "context", "constraint", "format", "criteria"];
-const INFO = {
-  goal: {
-    label: "목표", item: "goal",
-    why: "수행해야 하는 작업을 분명히 알려 줍니다.",
-  },
-  context: {
-    label: "맥락", item: "context",
-    why: "대상과 상황을 알려 답변의 수준을 맞춥니다.",
-  },
-  constraint: {
-    label: "조건", item: "constraint",
-    why: "분량·말투 등 지켜야 할 조건을 정합니다.",
-  },
-  format: {
-    label: "형식", item: "format",
-    why: "결과물을 바로 사용할 수 있도록 형태를 지정합니다.",
-  },
-  criteria: {
-    label: "검증 기준", item: "criteria",
-    why: "부정확한 내용이나 빠진 조건을 검토하도록 합니다.",
-  },
-};
 
 const SYSTEM_INSTRUCTION = `당신은 카멜레온 서비스의 프롬프트 설계 전문가입니다.
 사용자에게 결과물을 직접 만들어 주지 말고, 사용자가 다른 AI에게 복사해 넣을 '프롬프트'를 설계하세요.
@@ -71,7 +50,7 @@ function parseBody(body) {
   if (!stringOk(userInput, 3000)) return "userInput은 1~3000자여야 합니다.";
   if (mode === "revise" &&
     (!stringOk(previousPrompt, 12000) || !stringOk(revisionRequest, 3000))) {
-    return "수정할 때 previousPrompt와 revisionRequest를 입력하세요.";
+    return "수정할 때 previousPrompt와 revisionRequest 필요.";
   }
   return null;
 }
@@ -117,9 +96,8 @@ export async function POST(request) {
   const validationError = parseBody(body);
   if (validationError) return errorResponse(400, validationError);
 
-  if (!process.env.GEMINI_API_KEY) {
-    return errorResponse(503, "서버에 GEMINI_API_KEY가 설정되지 않았습니다.");
-  }
+  const example = () => Response.json(body.mode === "revise" ? exampleRevise(body) : examplePrompt(body));
+  if (!process.env.GEMINI_API_KEY) return example();
 
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -146,19 +124,11 @@ export async function POST(request) {
     }
     if (!result?.text?.trim()) throw new Error("EMPTY_RESPONSE");
     const { prompt, segments } = cleanJson(result.text);
-    return Response.json({ success: true, prompt, segments });
+    return Response.json({ success: true, prompt, segments, source: "ai" });
   } catch (error) {
-    const status = Number(error?.status || error?.code);
-    if (status === 503) {
-      return errorResponse(503, "Gemini 서버가 혼잡합니다. 잠시 후 다시 시도하세요.");
-    }
-    if (status === 404) {
-      return errorResponse(502, "Gemini 모델을 사용할 수 없습니다. GEMINI_MODEL을 확인하세요.");
-    }
-    if (status === 429) {
-      return errorResponse(429, "Gemini API 사용량 제한에 도달했습니다. 잠시 후 다시 시도하세요.");
-    }
-    console.error("[/api/prompt] AI request failed:", error?.message || "unknown");
-    return errorResponse(502, "프롬프트 생성에 실패했습니다. API 키와 모델 설정을 확인하세요.");
+    // 혼잡(503)·사용량 제한(429)·모델 설정 오류도 화면에는 개발자용 오류 대신 예시 결과를 보여 준다.
+    const status = Number(error?.status || error?.code) || "unknown";
+    console.error(`[/api/prompt] AI request failed (${status}):`, error?.message || "unknown");
+    return example();
   }
 }

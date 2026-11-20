@@ -1,17 +1,29 @@
 "use client";
 
-// kind별 실습 칸과 평가 칸. 보드 4-1(분류), 4-2(오류 찾기), 4-3·4-4(파일). 고르기(tool1)는 보드가 없어 분류와 같은 모양으로 그린다.
-// 강의 → 실습 → 평가·피드백 흐름, 채점 요청, 기록 저장은 LessonRunner가 맡고, 여기서는 runner로 받아 쓴다.
-//   runner: { stage, grade, busy, error, wasDone, submit(extra), setError, go(stage), onNext, nextLabel, onOpenCourse }
-// 실습과 평가를 같은 컴포넌트가 그려서, 평가 뒤 "다시"를 누르면 고른 것을 그대로 둔 채 실습으로 돌아간다.
+// kind별 해 보기 칸과 피드백 칸. 디자인 캔버스 D5(분류), D12(분류 피드백), D13·D14(고르기), D9·D10(오류 찾기), D8·D7(파일).
+// 배우기 → 해 보기 → 피드백 흐름, 채점 요청, 기록 저장은 LessonRunner가 맡고, 여기서는 runner로 받아 쓴다.
+//   runner: { stage, grade, busy, error, wasDone, retryNext, retryShown, submit(extra), setError, go(stage), onNext, nextLabel, onOpenCourse }
+// 해 보기와 피드백을 같은 컴포넌트가 그려서, 피드백 뒤 "다시 해 보기"를 누르면 고른 것을 그대로 둔 채 해 보기로 돌아간다.
+// 틀: 할 일 → 첫 점수 칩 → 내가 하는 칸(왼쪽)·자료와 기준(오른쪽). 피드백은 공통 머리 칸 → 코칭 질문 → 다시 볼 것 먼저.
 import { useMemo, useState } from "react";
 import * as api from "@/lib/api";
 import { analyze } from "@/lib/anatomy";
-import { ITEMS } from "@/lib/items";
 import { josa } from "@/lib/josa";
 import { countWord, MAX_FILES } from "@/lib/fileRules";
+import { ArrowIcon, ChevronIcon, emptyLine, ExampleChip, NO_AI_TEXT, RuleChip } from "./Common";
 import { attachedFiles, FileAttach, FileIcon, isUploading } from "./FileAttach";
-import { CoachCard, MetIcon, MiniBar, MissIcon } from "./lessonBits";
+import {
+  CoachCard,
+  CriteriaDots,
+  CriteriaResult,
+  criteriaDesc,
+  FeedbackHead,
+  MetIcon,
+  MiniBar,
+  MissIcon,
+  PencilIcon,
+  TodoCard,
+} from "./lessonBits";
 import fa from "./fileAttach.module.css";
 import l from "./lesson.module.css";
 import p from "./practice.module.css";
@@ -21,59 +33,70 @@ const counted = (n, unit) => (WORD[n] ? `${WORD[n]} ${unit}` : `${n}${unit}`);
 
 // ---------- 공용 ----------
 
-function ResultHead({ title, desc, score, grade, wasDone }) {
+// 머리 칸의 주 버튼: 통과면 다음 미션, 아니면 다시 해 보기
+function headAction(runner, passed, retry) {
+  return passed
+    ? { label: runner.nextLabel, onClick: runner.onNext, icon: <ArrowIcon /> }
+    : { label: "다시 해 보기", onClick: retry ?? (() => runner.go("practice")), icon: <PencilIcon /> };
+}
+
+function Head({ runner, result, desc, got, total, retry }) {
   return (
-    <section className={`${l.card} ${p.head}`} aria-live="polite" aria-labelledby="practice-result" data-tour="feedback-score">
-      <div className={p.headText}>
-        <h2 id="practice-result" className={p.headTitle}>
-          {title}
-        </h2>
-        <p>{desc}</p>
+    <FeedbackHead
+      passed={result.passed}
+      desc={desc}
+      got={got}
+      total={total}
+      xp={result.xp}
+      wasDone={runner.wasDone}
+      retry={runner.retryShown}
+      action={headAction(runner, result.passed, retry)}
+    />
+  );
+}
+
+function SubmitRow({ runner, note, label = "제출하고 평가 받기", busyLabel = "평가하는 중…", onClick, disabled = false }) {
+  return (
+    <>
+      <div className={l.submitRow}>
+        {note && <span className={l.note}>{note}</span>}
+        <button type="button" className={l.primary} onClick={onClick} disabled={runner.busy || disabled}>
+          {runner.busy ? busyLabel : label}
+        </button>
       </div>
-      <p className={p.score}>
-        <span className={p.scoreNum}>{score}</span>
-        {grade.passed &&
-          (wasDone ? (
-            <span className={l.note}>이미 마친 미션이라 XP는 그대로예요</span>
-          ) : (
-            <span className={l.xpPill}>+{grade.xp} XP</span>
-          ))}
-      </p>
-    </section>
-  );
-}
-
-function MissionCard({ lesson }) {
-  return (
-    <section className={`${l.card} ${l.missionCard}`} aria-labelledby="practice-mission">
-      <h2 id="practice-mission" className={l.smallTitle}>
-        할 일
-      </h2>
-      <p>{lesson.mission}</p>
-    </section>
-  );
-}
-
-function SubmitRow({ runner, label = "제출하고 평가 받기", busyLabel = "평가하는 중…", onClick, disabled = false }) {
-  return (
-    <div className={l.actions}>
-      <button type="button" className={l.primary} onClick={onClick} disabled={runner.busy || disabled}>
-        {runner.busy ? busyLabel : label}
-      </button>
       {runner.error && (
         <p className={l.error} role="alert">
           {runner.error}
         </p>
       )}
+    </>
+  );
+}
+
+function Rule({ runner }) {
+  return (
+    <div>
+      <RuleChip retry={runner.retryNext} />
     </div>
   );
 }
 
-// 실습 때 함께 보는 자료: 대화 기록(kind: chat)이나 줄 목록
+function BackToLecture({ runner, children }) {
+  return (
+    <div className={l.after}>
+      <button type="button" className={l.secondary} onClick={() => runner.go("lecture")}>
+        배우기 다시 보기
+      </button>
+      {children}
+    </div>
+  );
+}
+
+// 해 보기 때 함께 보는 자료: 대화 기록(kind: chat)이나 줄 목록. 오른쪽 칸에 둔다.
 export function MaterialPanel({ material }) {
   return (
     <section className={`${l.card} ${p.material}`} aria-labelledby="material">
-      <h2 id="material" className={l.smallTitle}>
+      <h2 id="material" className={l.cardTitle}>
         {material.title}
       </h2>
       <p className={p.materialSub}>{material.subtitle}</p>
@@ -97,7 +120,15 @@ export function MaterialPanel({ material }) {
   );
 }
 
-// ---------- sort: 카드를 칸으로 나누기 (보드 4-1) ----------
+function HandIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12m0-1.5a1.5 1.5 0 0 1 3 0V12m0-.5a1.5 1.5 0 0 1 3 0V13m0-.5a1.5 1.5 0 0 1 3 0V16a6 6 0 0 1-6 6h-1.5a6 6 0 0 1-4.6-2.2L4.5 16a1.6 1.6 0 0 1 2.4-2.1L8 15" />
+    </svg>
+  );
+}
+
+// ---------- sort: 카드를 칸으로 나누기 (D5, D12) ----------
 
 export function PracticeSort({ lesson, runner }) {
   const { stage, grade } = runner;
@@ -135,10 +166,7 @@ export function PracticeSort({ lesson, runner }) {
     if (result) {
       const ok = right[card.id];
       return (
-        <li
-          key={card.id}
-          className={`${p.sortCard} ${p.graded} ${ok ? "" : p.wrong} ${coach?.card === card.id ? p.coached : ""}`}
-        >
+        <li key={card.id} className={`${p.sortCard} ${p.graded} ${ok ? "" : p.wrong} ${coach?.card === card.id ? p.coached : ""}`}>
           <span className={`${p.mark} ${ok ? p.markOk : p.markBad}`}>{ok ? <MetIcon size={12} /> : <MissIcon size={10} />}</span>
           <span>{card.text}</span>
         </li>
@@ -168,19 +196,26 @@ export function PracticeSort({ lesson, runner }) {
     const { right: n, total } = result.score;
     const wrong = total - n;
     const desc = result.passed
-      ? `${total}장 중 ${n}장을 맞게 나눴어요.${wrong ? ` 틀린 ${counted(wrong, "장")}도 아래에서 확인해 보세요.` : ""}`
-      : `${total}장 중 ${n}장을 맞게 나눴어요. ${
-          result.criteria[1].met
-            ? `${lesson.pass.min}장 이상 맞혀야 통과예요.`
-            : lesson.mustNote
-        }`;
-    const title = result.passed ? "통과했어요" : wrong === 1 ? "한 장만 다시 볼까요?" : `${counted(wrong, "장")}을 다시 볼까요?`;
-    head = <ResultHead title={title} desc={desc} score={`${n} / ${total}`} grade={result} wasDone={runner.wasDone} />;
+      ? `${total}장 중 ${n}장 맞게 나눔.${wrong ? ` 틀린 ${counted(wrong, "장")}도 아래에서 확인.` : ""}`
+      : `${total}장 중 ${n}장 맞게 나눔. ${result.criteria[1].met ? `${lesson.pass.min}장 이상 맞혀야 통과.` : lesson.mustNote}`;
+    head = <Head runner={runner} result={result} desc={desc} got={n} total={total} />;
   }
 
   return (
     <>
-      {result ? head : <MissionCard lesson={lesson} />}
+      {result ? (
+        head
+      ) : (
+        <>
+          <TodoCard lesson={lesson}>
+            <p className={p.how}>
+              <HandIcon />
+              카드 선택 후 놓을 칸의 &lsquo;여기에 놓기&rsquo; 누르기 (끌어다 놓기도 가능)
+            </p>
+          </TodoCard>
+          <Rule runner={runner} />
+        </>
+      )}
       {coach && <CoachCard question={coach.question} hint={coach.detail} />}
       {result?.leftover && (
         <p className={p.leftover}>
@@ -189,21 +224,20 @@ export function PracticeSort({ lesson, runner }) {
       )}
 
       {!result && (
-        <section
-          className={`${p.pool} ${picked && placed[picked] ? p.poolTarget : ""}`}
-          aria-labelledby="pool-h"
-          {...dropProps(null)}
-        >
-          <div className={p.poolHead}>
-            <h2 id="pool-h" className={l.smallTitle}>
-              {pool.length ? `아직 놓지 않은 카드 ${pool.length}장` : "카드를 모두 놓았어요"}
-            </h2>
-            <p className={l.note}>카드를 누른 뒤 놓을 칸의 &lsquo;여기에 놓기&rsquo;를 누르세요. 끌어다 놓아도 돼요.</p>
-          </div>
+        <section className={`${p.pool} ${picked && placed[picked] ? p.poolTarget : ""}`} aria-labelledby="pool-h" {...dropProps(null)}>
+          <h2 id="pool-h" className={l.smallTitle}>
+            {pool.length ? (
+              <>
+                남은 카드 <span className={l.mono}>{pool.length}</span>장
+              </>
+            ) : (
+              "카드를 모두 놓음"
+            )}
+          </h2>
           {pool.length > 0 && <ul className={p.poolCards}>{pool.map(renderCard)}</ul>}
           {picked && placed[picked] && (
             <button type="button" className={p.dropHere} onClick={() => place(picked, null)}>
-              놓지 않은 카드로 되돌리기
+              남은 카드로 되돌리기
             </button>
           )}
         </section>
@@ -220,41 +254,33 @@ export function PracticeSort({ lesson, runner }) {
                 </h3>
                 <p className={l.note}>{bin.desc}</p>
               </div>
-              <ul className={p.binCards}>{cards.map(renderCard)}</ul>
+              {cards.length > 0 && <ul className={p.binCards}>{cards.map(renderCard)}</ul>}
               {!result && picked && placed[picked] !== bin.id && (
                 <button type="button" className={p.dropHere} onClick={() => place(picked, bin.id)}>
                   여기에 놓기
                 </button>
               )}
-              {coach?.to === bin.id && <p className={p.ghost}>여기로 옮겨 볼까요?</p>}
+              {coach?.to === bin.id && <p className={p.ghost}>여기로 옮겨 보면?</p>}
             </section>
           );
         })}
       </div>
 
       {result ? (
-        <div className={p.footer}>
-          <button type="button" className={l.secondary} onClick={() => runner.go("lecture")}>
-            배우기 다시 보기
-          </button>
-          {result.passed ? (
-            <button type="button" className={l.primary} onClick={runner.onNext}>
-              {runner.nextLabel}
-            </button>
-          ) : (
-            <button type="button" className={l.primary} onClick={() => runner.go("practice")}>
-              카드 옮겨서 다시 채점
-            </button>
-          )}
-        </div>
+        <BackToLecture runner={runner} />
       ) : (
-        <SubmitRow runner={runner} onClick={() => runner.submit({ answer: placed })} />
+        <SubmitRow
+          runner={runner}
+          note={pool.length ? `카드 ${pool.length}장을 더 놓으면 제출 가능` : null}
+          disabled={pool.length > 0}
+          onClick={() => runner.submit({ answer: placed })}
+        />
       )}
     </>
   );
 }
 
-// ---------- choose: 상황마다 방법 고르기 (tool1, 보드 없음: 분류 실습과 같은 평가 칸) ----------
+// ---------- choose: 항목마다 방법 고르기 (D13 표, D14 피드백) ----------
 
 export function PracticeChoose({ lesson, runner }) {
   const { stage, grade } = runner;
@@ -262,110 +288,120 @@ export function PracticeChoose({ lesson, runner }) {
   const result = stage === "result" && grade?.cards ? grade : null;
   const right = result ? Object.fromEntries(result.cards.map((c) => [c.id, c.right])) : null;
   const coach = result?.coaching;
-  const left = lesson.cards.filter((c) => !chosen[c.id]).length;
+  const count = lesson.cards.filter((c) => chosen[c.id]).length;
   const optionName = (id) => lesson.bins.find((b) => b.id === id)?.title;
+  const rowName = lesson.course === "flow" ? "단계" : "상황";
 
   let head = null;
   if (result) {
     const { right: n, total } = result.score;
     const wrong = total - n;
     const desc = result.passed
-      ? `${total}개 중 ${n}개를 맞게 골랐어요.${wrong ? ` 다르게 고른 ${counted(wrong, "개")}도 아래에서 확인해 보세요.` : ""}`
-      : `${total}개 중 ${n}개를 맞게 골랐어요. ${
-          result.criteria[1].met ? `${lesson.pass.min}개 이상 맞혀야 통과예요.` : lesson.mustNote
-        }`;
-    const title = result.passed
-      ? "통과했어요"
-      : wrong === 1
-        ? "한 가지만 다시 볼까요?"
-        : `${counted(wrong, "가지")}를 다시 볼까요?`;
-    head = <ResultHead title={title} desc={desc} score={`${n} / ${total}`} grade={result} wasDone={runner.wasDone} />;
+      ? `${total}개 중 ${n}개 맞음.${wrong ? ` 다르게 고른 ${counted(wrong, "개")}도 아래에서 확인.` : ""}`
+      : `${total}개 중 ${n}개 맞음. ${result.criteria[1].met ? `${lesson.pass.min}개 이상 맞혀야 통과.` : lesson.mustNote}`;
+    head = <Head runner={runner} result={result} desc={desc} got={n} total={total} />;
+  }
+
+  if (result) {
+    const items = lesson.cards.map((card, i) => ({
+      key: card.id,
+      label: `${i + 1}. ${card.text}`,
+      met: right[card.id],
+      after: `내가 고른 방법: ${optionName(chosen[card.id])}`,
+    }));
+    const wrong = items.some((c) => !c.met);
+    return (
+      <>
+        {head}
+        {coach && <CoachCard question={coach.question} hint={coach.detail} />}
+        {result.leftover && (
+          <p className={p.leftover}>
+            <b>{result.leftover.question}</b> {result.leftover.detail}
+          </p>
+        )}
+        <section className={l.card} aria-labelledby="choose-review">
+          <h2 id="choose-review" className={l.cardTitle}>
+            {wrong ? `다시 볼 ${rowName}` : "고른 방법"}
+          </h2>
+          <div>
+            <CriteriaResult items={items} foldLabel={(n) => `맞게 고른 ${n}개 보기`} />
+          </div>
+        </section>
+        <BackToLecture runner={runner} />
+      </>
+    );
   }
 
   return (
     <>
-      {result ? head : <MissionCard lesson={lesson} />}
-      {coach && <CoachCard question={coach.question} hint={coach.detail} />}
-      {result?.leftover && (
-        <p className={p.leftover}>
-          <b>{result.leftover.question}</b> {result.leftover.detail}
-        </p>
-      )}
-
-      <ol className={p.situations}>
-        {lesson.cards.map((card, i) => {
-          const ok = right?.[card.id];
-          return (
-            <li
-              key={card.id}
-              className={`${p.situation} ${result && !ok ? p.wrong : ""} ${coach?.card === card.id ? p.coached : ""}`}
-            >
-              <div className={p.situationText}>
-                <span className={p.num}>{i + 1}</span>
-                <span id={`situation-${card.id}`}>{card.text}</span>
-                {result && (
-                  <span className={`${p.mark} ${ok ? p.markOk : p.markBad}`}>
-                    {ok ? <MetIcon size={12} /> : <MissIcon size={10} />}
-                  </span>
-                )}
-              </div>
-              {result ? (
-                <p className={p.chosenLine}>내가 고른 방법: {optionName(chosen[card.id])}</p>
-              ) : (
-                <div role="radiogroup" aria-labelledby={`situation-${card.id}`} className={p.kindRow}>
-                  {lesson.bins.map((b) => (
-                    <button
-                      key={b.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={chosen[card.id] === b.id}
-                      className={p.kindBtn}
-                      onClick={() => setChosen((prev) => ({ ...prev, [card.id]: b.id }))}
-                    >
-                      {b.title}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ol>
-
-      {result ? (
-        <div className={p.footer}>
-          <button type="button" className={l.secondary} onClick={() => runner.go("lecture")}>
-            배우기 다시 보기
-          </button>
-          {result.passed ? (
-            <button type="button" className={l.primary} onClick={runner.onNext}>
-              {runner.nextLabel}
-            </button>
-          ) : (
-            <button type="button" className={l.primary} onClick={() => runner.go("practice")}>
-              다시 골라서 채점
-            </button>
-          )}
-        </div>
-      ) : (
-        <>
-          {left > 0 && <p className={l.note}>아직 고르지 않은 상황이 {left}개 있어요.</p>}
-          <SubmitRow runner={runner} onClick={() => runner.submit({ answer: chosen })} />
-        </>
-      )}
+      <TodoCard lesson={lesson} />
+      <Rule runner={runner} />
+      <section className={`${l.card} ${p.matrixCard}`} aria-label={`${rowName}마다 방법 고르기`}>
+        <table className={p.matrix}>
+          <colgroup>
+            <col />
+            {lesson.bins.map((b) => (
+              <col key={b.id} className={p.matrixCol} />
+            ))}
+          </colgroup>
+          <thead>
+            <tr>
+              <th scope="col">{rowName}</th>
+              {lesson.bins.map((b) => (
+                <th key={b.id} scope="col">
+                  {b.title}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {lesson.cards.map((card, i) => (
+              <tr key={card.id} className={chosen[card.id] ? p.chosenRow : undefined}>
+                <th scope="row">
+                  <span className={p.num}>{i + 1}</span>
+                  {card.text}
+                </th>
+                {lesson.bins.map((b) => (
+                  <td key={b.id}>
+                    <label className={p.radio}>
+                      <input
+                        type="radio"
+                        name={`choose-${lesson.id}-${card.id}`}
+                        checked={chosen[card.id] === b.id}
+                        onChange={() => setChosen((prev) => ({ ...prev, [card.id]: b.id }))}
+                      />
+                      <span className={l.srOnly}>
+                        {card.text}: {b.title}
+                      </span>
+                    </label>
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+      <SubmitRow
+        runner={runner}
+        note={`${lesson.cards.length}개 중 ${count}개 선택`}
+        disabled={count < lesson.cards.length}
+        onClick={() => runner.submit({ answer: chosen })}
+      />
     </>
   );
 }
 
-// ---------- spot: AI 답변에서 문제 찾기 (보드 4-2) ----------
+// ---------- spot: AI 답변에서 문제 찾기 (D9, D10) ----------
 
 export function PracticeSpot({ lesson, runner }) {
   const { stage, grade } = runner;
   const [picks, setPicks] = useState({});
   const [open, setOpen] = useState(null);
   const [missing, setMissing] = useState("");
+  const [showRest, setShowRest] = useState(false);
   const result = stage === "result" && grade?.review ? grade : null;
   const kindName = (id) => lesson.kinds.find((k) => k.id === id)?.name;
+  const pickedCount = Object.keys(picks).length;
 
   const setPick = (i, change) => setPicks((prev) => ({ ...prev, [i]: { ...prev[i], ...change } }));
   function unpick(i) {
@@ -394,91 +430,162 @@ export function PracticeSpot({ lesson, runner }) {
       },
     });
 
-  let head = null;
+  const material = (
+    <aside className={l.aside}>
+      <MaterialPanel material={lesson.material} />
+    </aside>
+  );
+
   if (result) {
     const { found, total, falsePicks } = result.score;
-    let title;
     let desc;
     if (result.passed) {
-      title = "통과했어요";
-      desc =
-        found === total
-          ? `숨겨 둔 ${total}곳을 모두 찾았어요.`
-          : `숨겨 둔 ${total}곳 중 ${found}곳을 찾았어요. 놓친 ${counted(total - found, "곳")}도 아래에서 확인해 보세요.`;
+      desc = found === total ? `숨겨 둔 ${total}곳 모두 찾음.` : `숨겨 둔 ${total}곳 중 ${found}곳 찾음. 놓친 곳은 아래에서 확인.`;
     } else if (!result.criteria[1].met) {
-      title = "맞는 문장까지 골랐어요";
-      desc = `맞는 문장을 틀렸다고 고른 것이 ${falsePicks}개예요. ${lesson.pass.maxFalse}개까지만 괜찮아요.`;
+      desc = `맞는 문장을 틀렸다고 고른 것 ${falsePicks}개. ${lesson.pass.maxFalse}개까지만 허용.`;
     } else {
-      title = found === total - 1 ? "한 곳만 더 찾아볼까요?" : "조금 더 찾아볼까요?";
-      desc = `숨겨 둔 ${total}곳 중 ${found}곳을 찾았어요. ${lesson.pass.min}곳 이상 찾아야 통과예요.`;
+      desc = `숨겨 둔 ${total}곳 중 ${found}곳 찾음. ${lesson.pass.min}곳 이상 찾아야 통과.`;
     }
-    head = <ResultHead title={title} desc={desc} score={`${found} / ${total}`} grade={result} wasDone={runner.wasDone} />;
+    const rows = result.review.sentences.map((r, i) => ({ ...r, i, text: lesson.sentences[i].text }));
+    // 통과 전에는 놓친 곳을 드러내지 않는다(코칭 질문 하나만). 그래서 놓친 문장은 '나머지'에 섞인다.
+    const again = rows.filter((r) => r.status === "false" || (r.status === "missed" && r.question));
+    const foundRows = rows.filter((r) => r.status === "found");
+    const rest = rows.filter((r) => !again.includes(r) && !foundRows.includes(r));
+    const miss = result.review.missing;
+    const sameAs = josa(lesson.source, ["과", "와"]);
+    const sentence = (r, extra, cls = "") => (
+      <li key={r.i} className={`${p.sentence} ${cls}`}>
+        <div className={p.sentenceRow}>
+          <span className={p.num}>{r.i + 1}</span>
+          <div>
+            {r.text}
+            {extra}
+          </div>
+          {r.status === "missed" ? <span className={p.missedTag}>놓친 곳</span> : r.kindName ? <span className={p.kindTag}>{r.kindName}</span> : <span />}
+        </div>
+      </li>
+    );
+    return (
+      <>
+        <Head runner={runner} result={result} desc={desc} got={found} total={total} retry={restart} />
+        {result.coaching && <CoachCard question={result.coaching.question} hint={result.coaching.detail} />}
+        <div className={l.work}>
+          <div className={l.aside}>
+            {(again.length > 0 || miss?.status === "missed") && (
+              <section className={l.card} aria-labelledby="spot-again">
+                <h2 id="spot-again" className={l.cardTitle}>
+                  다시 볼 곳
+                </h2>
+                <ol className={p.sentences}>
+                  {again.map((r) =>
+                    r.status === "missed"
+                      ? sentence(
+                          r,
+                          <p className={p.feedback}>
+                            <b>{r.question}</b> <span className={p.muted}>{r.why}</span>
+                          </p>,
+                          p.missedBox,
+                        )
+                      : sentence(
+                          r,
+                          <p className={p.feedback}>
+                            <b>{sameAs} 다시 맞춰 보면?</b> <span className={p.muted}>이 문장이 {sameAs} 같은지 다시 확인.</span>
+                          </p>,
+                          p.picked,
+                        ),
+                  )}
+                  {miss?.status === "missed" && (
+                    <li className={`${p.sentence} ${p.missedBox}`}>
+                      <div className={p.sentenceRow}>
+                        <span className={p.num}>+</span>
+                        <div>
+                          <b className={p.small}>빠진 내용</b>
+                          {missing.trim() ? ` · ${missing.trim()}` : ""}
+                          <p className={p.feedback}>
+                            <b>{miss.question}</b>
+                          </p>
+                        </div>
+                        <span />
+                      </div>
+                    </li>
+                  )}
+                </ol>
+              </section>
+            )}
+            <section className={l.card} aria-labelledby="spot-found">
+              <h2 id="spot-found" className={l.cardTitle}>
+                찾은 곳
+              </h2>
+              {foundRows.length === 0 && miss?.status !== "found" ? (
+                <p className={l.note}>아직 찾은 곳 없음</p>
+              ) : (
+                <ol className={p.sentences}>
+                  {foundRows.map((r) =>
+                    sentence(
+                      r,
+                      <p className={`${p.feedback} ${p.muted}`}>
+                        찾음{r.fix ? ` · 내가 고친 문장: ${r.fix}` : ""}
+                        {r.note ? ` · ${r.note}` : ""}
+                      </p>,
+                    ),
+                  )}
+                  {miss?.status === "found" && (
+                    <li className={p.sentence}>
+                      <div className={p.sentenceRow}>
+                        <span className={p.num}>+</span>
+                        <div>
+                          <b className={p.small}>빠진 내용</b> · {missing.trim()}
+                          <p className={`${p.feedback} ${p.muted}`}>찾음. {miss.note}</p>
+                        </div>
+                        <span />
+                      </div>
+                    </li>
+                  )}
+                </ol>
+              )}
+              {rest.length > 0 && (
+                <>
+                  <button type="button" className={l.fold} aria-expanded={showRest} onClick={() => setShowRest(!showRest)}>
+                    {showRest ? "접기" : `${result.passed ? "문제 없는 문장" : "나머지 문장"} ${rest.length}개 보기`}
+                    <span className={l.foldIcon}>
+                      <ChevronIcon open={showRest} />
+                    </span>
+                  </button>
+                  {showRest && <ol className={p.sentences}>{rest.map((r) => sentence({ ...r, kindName: null, status: "ok" }))}</ol>}
+                </>
+              )}
+            </section>
+            {result.passed ? (
+              <div className={l.after}>
+                <button type="button" className={l.secondary} onClick={restart}>
+                  <PencilIcon />
+                  다시 해 보기
+                </button>
+              </div>
+            ) : (
+              <BackToLecture runner={runner} />
+            )}
+          </div>
+          {material}
+        </div>
+      </>
+    );
   }
 
   const renderSentence = (s, i) => {
     const pick = picks[i];
-    if (result) {
-      const r = result.review.sentences[i];
-      const tag =
-        r.status === "missed" && r.question ? (
-          <span className={p.missedTag}>놓친 곳</span>
-        ) : r.kindName ? (
-          <span className={p.kindTag}>{r.kindName}</span>
-        ) : null;
-      return (
-        <li
-          key={i}
-          className={`${p.sentence} ${r.status === "found" || r.status === "false" ? p.picked : ""} ${r.question ? p.missedBox : ""}`}
-        >
-          <div className={p.sentenceRow}>
-            <span className={p.num}>{i + 1}</span>
-            <span className={r.kind ? p.struck : r.status === "ok" || r.status === "missed" ? p.plain : undefined}>{s.text}</span>
-            {tag}
-          </div>
-          {r.status === "found" && (
-            <p className={p.feedback}>
-              <b>찾았어요.</b>
-              {r.fix && ` 내가 고친 문장: ${r.fix}`}
-              {r.note && <span className={p.muted}> {r.note}</span>}
-            </p>
-          )}
-          {r.status === "missed" && r.question && (
-            <p className={p.feedback}>
-              <b>{r.question}</b> <span className={p.muted}>{r.why}</span>
-            </p>
-          )}
-          {r.status === "false" && (
-            <p className={p.feedback}>
-              <b>{josa(lesson.source, ["과", "와"])} 다시 맞춰 볼까요?</b>{" "}
-              <span className={p.muted}>이 문장이 {josa(lesson.source, ["과", "와"])} 같은지 한 번 더 확인해 보세요.</span>
-            </p>
-          )}
-        </li>
-      );
-    }
     return (
-      <li key={i} className={`${p.sentence} ${pick ? p.picked : ""}`}>
-        <button
-          type="button"
-          className={`${p.sentenceRow} ${p.sentenceBtn}`}
-          aria-expanded={open === i}
-          onClick={() => setOpen(open === i ? null : i)}
-        >
+      <li key={i} className={`${p.sentence} ${pick || open === i ? p.picked : ""}`}>
+        <button type="button" className={`${p.sentenceRow} ${p.sentenceBtn}`} aria-expanded={open === i} onClick={() => setOpen(open === i ? null : i)}>
           <span className={p.num}>{i + 1}</span>
-          <span className={pick ? p.struck : undefined}>{s.text}</span>
-          {pick && <span className={p.kindTag}>{kindName(pick.kind)}</span>}
+          <span>{s.text}</span>
+          {pick ? <span className={p.kindTag}>{kindName(pick.kind)}</span> : <span />}
         </button>
         {open === i && (
           <div className={p.pickBox}>
             <div role="group" aria-label="문제 종류" className={p.kindRow}>
               {lesson.kinds.map((k) => (
-                <button
-                  key={k.id}
-                  type="button"
-                  className={p.kindBtn}
-                  aria-pressed={pick?.kind === k.id}
-                  onClick={() => setPick(i, { kind: k.id })}
-                >
+                <button key={k.id} type="button" className={p.kindBtn} aria-pressed={pick?.kind === k.id} onClick={() => setPick(i, { kind: k.id })}>
                   {k.name}
                 </button>
               ))}
@@ -486,13 +593,10 @@ export function PracticeSpot({ lesson, runner }) {
             {pick && (
               <>
                 <label className={p.fixLabel}>
-                  고친 문장 <span className={p.muted}>(적지 않아도 돼요)</span>
-                  <input
-                    className={p.fixInput}
-                    value={pick.fix ?? ""}
-                    maxLength={200}
-                    onChange={(e) => setPick(i, { fix: e.target.value })}
-                  />
+                  <span>
+                    고친 문장 <span className={p.muted}>(선택)</span>
+                  </span>
+                  <input className={p.fixInput} value={pick.fix ?? ""} maxLength={200} onChange={(e) => setPick(i, { fix: e.target.value })} />
                 </label>
                 <button type="button" className={p.linkBtn} onClick={() => unpick(i)}>
                   고르기 취소
@@ -505,84 +609,53 @@ export function PracticeSpot({ lesson, runner }) {
     );
   };
 
-  const miss = result?.review.missing;
-
   return (
     <>
-      {result ? head : <MissionCard lesson={lesson} />}
-      {result?.coaching && <CoachCard question={result.coaching.question} hint={result.coaching.detail} />}
-
-      <div className={l.split}>
-        <div className={l.side}>
-          <MaterialPanel material={lesson.material} />
-        </div>
-        <section className={`${l.main} ${p.answer}`} aria-labelledby="spot-answer">
-          <h2 id="spot-answer" className={l.smallTitle}>
-            {lesson.answerTitle} · {result ? "문장을 눌러 문제를 골랐어요" : "문제 있는 문장을 눌러 골라 보세요"}
-          </h2>
-          <ol className={p.sentences}>{lesson.sentences.map(renderSentence)}</ol>
-          <div
-            className={`${p.missingBox} ${miss?.status === "found" ? p.picked : ""} ${miss?.status === "missed" ? p.missedBox : ""}`}
-          >
-            <label htmlFor="spot-missing" className={p.missingLabel}>
-              빠진 내용이 있나요?
-            </label>
-            <textarea
-              id="spot-missing"
-              className={p.missingInput}
-              value={missing}
-              maxLength={300}
-              readOnly={Boolean(result)}
-              placeholder={`${lesson.source}에 있는데 ${lesson.answerName}에 없는 내용을 적어 보세요`}
-              onChange={(e) => setMissing(e.target.value)}
-            />
-            {miss?.status === "found" && (
-              <p className={p.feedback}>
-                <b>찾았어요.</b> <span className={p.muted}>{miss.note}</span>
-              </p>
-            )}
-            {miss?.status === "missed" && (
-              <p className={p.feedback}>
-                <b>{miss.question}</b>
-              </p>
-            )}
+      <TodoCard lesson={lesson}>
+        <p className={p.kindsLine}>
+          <b>문제 종류</b>
+          {lesson.kinds.map((k) => (
+            <span key={k.id} className={p.kindTag}>
+              {k.name}
+            </span>
+          ))}
+          <span className={l.note}>문장 선택 후 종류 고르기</span>
+        </p>
+      </TodoCard>
+      <Rule runner={runner} />
+      <div className={l.work}>
+        <section className={`${l.card} ${p.answer}`} aria-labelledby="spot-answer">
+          <div className={l.cardHead}>
+            <h2 id="spot-answer" className={l.cardTitle}>
+              {lesson.answerTitle}
+            </h2>
+            <span className={l.note}>
+              고른 문장 <span className={l.mono}>{pickedCount}</span>개
+            </span>
           </div>
-          <p className={l.note}>문제 종류: {lesson.kinds.map((k) => k.name).join(" · ")}</p>
+          <ol className={p.sentences}>{lesson.sentences.map(renderSentence)}</ol>
+          <label htmlFor="spot-missing" className={l.cardTitle}>
+            빠진 내용
+          </label>
+          <textarea
+            id="spot-missing"
+            className={p.missingInput}
+            value={missing}
+            maxLength={300}
+            placeholder={`${lesson.source}에 있는데 ${lesson.answerName}에 없는 내용 쓰기`}
+            onChange={(e) => setMissing(e.target.value)}
+          />
+          <SubmitRow runner={runner} note="다 골랐으면 제출" onClick={send} />
         </section>
+        {material}
       </div>
-
-      {result ? (
-        <div className={p.footer}>
-          {result.passed ? (
-            <>
-              <button type="button" className={l.secondary} onClick={restart}>
-                다시 풀어 보기
-              </button>
-              <button type="button" className={l.primary} onClick={runner.onNext}>
-                {runner.nextLabel}
-              </button>
-            </>
-          ) : (
-            <>
-              <button type="button" className={l.secondary} onClick={() => runner.go("lecture")}>
-                배우기 다시 보기
-              </button>
-              <button type="button" className={l.primary} onClick={() => runner.go("practice")}>
-                다시 찾아보기
-              </button>
-            </>
-          )}
-        </div>
-      ) : (
-        <SubmitRow runner={runner} onClick={send} />
-      )}
     </>
   );
 }
 
-// ---------- file: 파일을 붙이고 프롬프트 쓰기 (보드 4-3, 4-4) ----------
+// ---------- file: 파일을 붙이고 프롬프트 쓰기 (D8, D7) ----------
 
-// 결과물에서 보고서에 없는 숫자를 점선으로 표시한다. 목록 번호(1. 2.)는 숫자로 보지 않는다.
+// 결과물에서 자료에 없는 숫자를 점선으로 표시한다. 목록 번호(1. 2.)는 숫자로 보지 않는다.
 const NUMBER_TOKEN = /(\d[\d,]*(?:\.\d+)?(?:%|일|건|개|명|원|배|시간|분|초|월|주|편|년|쪽)?)/;
 const normalize = (token) =>
   token
@@ -633,8 +706,6 @@ function CheckedOutput({ text, unknown }) {
   );
 }
 
-const asQuestion = (label) => label.replace(/다$/, "는지");
-
 // 예시 파일 하나를 /api/files로 올리고 화면에 둘 정보만 남긴다.
 async function uploadSample(sample) {
   const blob = await fetch(sample.url).then((r) => {
@@ -649,12 +720,15 @@ async function uploadSample(sample) {
 
 // 미리 보기 칸 아래 링크: PDF는 "PDF로 열어 보기", 나머지는 "파일 열어 보기"
 const openLabel = (sample) => (sample.type === "application/pdf" ? "PDF로 열어 보기" : "파일 열어 보기");
+// 미리 보기 탭 이름: 파일 이름 앞의 날짜(예: 11월4일 → 11월 4일), 없으면 번호
+const tabName = (sample, i) => sample.name.match(/^(\d+월)\s?(\d+일)/)?.slice(1).join(" ") ?? `자료 ${i + 1}`;
 
 export function PracticeFile({ lesson, runner }) {
   const { stage, grade } = runner;
   const samples = lesson.samples;
   const label = lesson.sampleLabel;
   const [mode, setMode] = useState("sample");
+  const [tab, setTab] = useState(0);
   const [draft, setDraft] = useState("");
   const [entries, setEntries] = useState([]);
   const [uploaded, setUploaded] = useState(null);
@@ -662,6 +736,7 @@ export function PracticeFile({ lesson, runner }) {
   const live = useMemo(() => analyze(draft), [draft]);
   const result = stage === "result" && grade ? grade : null;
   const uploading = mode === "own" && isUploading(entries);
+  const shown = samples[Math.min(tab, samples.length - 1)];
 
   // 예시 파일은 처음 보낼 때 /api/files로 올리고, 받은 주소를 다시 쓴다. 만료됐으면(410) 한 번 새로 올린다.
   async function sampleFiles(fresh = false) {
@@ -672,25 +747,16 @@ export function PracticeFile({ lesson, runner }) {
   }
 
   async function send() {
-    if (!draft.trim()) return runner.setError("프롬프트를 써야 평가할 수 있어요.");
-    if (mode === "own" && !attachedFiles(entries).length) return runner.setError("파일을 붙여야 평가할 수 있어요.");
+    if (!draft.trim()) return runner.setError("프롬프트를 써야 평가 가능");
+    if (mode === "own" && !attachedFiles(entries).length) return runner.setError("파일을 붙여야 평가 가능");
     setPreparing(true);
     try {
       const isSample = mode === "sample";
       const files = isSample ? await sampleFiles() : attachedFiles(entries);
-      const err = await runner.submit({
-        prompt: draft,
-        files,
-        sample: isSample,
-      });
-      if (err?.expired && isSample)
-        await runner.submit({
-          prompt: draft,
-          files: await sampleFiles(true),
-          sample: true,
-        });
+      const err = await runner.submit({ prompt: draft, files, sample: isSample });
+      if (err?.expired && isSample) await runner.submit({ prompt: draft, files: await sampleFiles(true), sample: true });
     } catch {
-      runner.setError(`${josa(label, ["을", "를"])} 올리지 못했어요. 잠시 뒤 다시 시도해 주세요.`);
+      runner.setError(`${josa(label, ["을", "를"])} 올리지 못함. 잠시 뒤 다시 시도.`);
     } finally {
       setPreparing(false);
     }
@@ -718,7 +784,7 @@ export function PracticeFile({ lesson, runner }) {
       className={p.fileInput}
       value={draft}
       onChange={(e) => setDraft(e.target.value)}
-      placeholder="붙인 파일로 AI가 무엇을 해야 하는지 써 보세요"
+      placeholder="붙인 파일로 AI가 할 일 쓰기"
       aria-label="AI에게 보낼 프롬프트"
       rows={4}
     />
@@ -726,21 +792,26 @@ export function PracticeFile({ lesson, runner }) {
 
   return (
     <>
-      <MissionCard lesson={lesson} />
-      <div className={l.split}>
-        <section className={`${l.card} ${l.main}`} aria-labelledby="file-editor">
+      <TodoCard lesson={lesson} />
+      <Rule runner={runner} />
+      <div className={`${l.work} ${l.wide}`}>
+        <section className={l.card} aria-labelledby="file-editor">
           <div className={l.cardHead}>
             <h2 id="file-editor" className={l.cardTitle}>
               내 프롬프트
             </h2>
-            <div role="group" aria-label="쓸 파일" className={p.toggle}>
-              <button type="button" aria-pressed={mode === "sample"} onClick={() => setMode("sample")}>
-                {label}로 하기
-              </button>
-              <button type="button" aria-pressed={mode === "own"} onClick={() => setMode("own")}>
-                내 파일 올리기
-              </button>
-            </div>
+            <span className={l.headEnd}>
+              <span className={l.empty}>{emptyLine(live.found)}</span>
+              <MiniBar found={live.found} />
+            </span>
+          </div>
+          <div role="group" aria-label="쓸 파일" className={p.tabs}>
+            <button type="button" className="chip" aria-pressed={mode === "sample"} onClick={() => setMode("sample")}>
+              {label}로 하기
+            </button>
+            <button type="button" className="chip" aria-pressed={mode === "own"} onClick={() => setMode("own")}>
+              내 파일 올리기
+            </button>
           </div>
           {mode === "sample" ? (
             <div className={fa.frame}>
@@ -750,10 +821,9 @@ export function PracticeFile({ lesson, runner }) {
                   <span key={f.name} className={p.sampleChip}>
                     <FileIcon />
                     {f.name}
-                    <span className={p.muted}>교육용 예시</span>
+                    <span className={p.eduTag}>교육용 예시</span>
                   </span>
                 ))}
-                <span className={p.sampleHint}>내 파일은 {MAX_FILES}개까지, 하나에 4MB</span>
               </div>
             </div>
           ) : (
@@ -761,59 +831,51 @@ export function PracticeFile({ lesson, runner }) {
               {textarea}
             </FileAttach>
           )}
-          <div className={l.empties}>
-            <MiniBar found={live.found} />
-            {live.found.length < ITEMS.length && (
-              <>
-                <span>비어 있는 요소</span>
-                {ITEMS.filter((item) => !live.found.includes(item.id)).map((item) => (
-                  <span key={item.id} className={l.dashChip}>
-                    {item.name}
-                  </span>
-                ))}
-              </>
-            )}
-          </div>
           <SubmitRow
             runner={{ ...runner, busy: runner.busy || preparing }}
-            label="AI에게 보내고 평가 받기"
+            note={`내 파일은 ${MAX_FILES}개까지, 하나에 4MB`}
             busyLabel="보내는 중…"
             disabled={uploading}
             onClick={send}
           />
         </section>
 
-        <aside className={l.side}>
-          {mode === "sample" &&
-            samples.map((f, i) => (
-              <section key={f.name} className={l.card} aria-labelledby={`sample-preview-${i}`}>
-                <h2 id={`sample-preview-${i}`} className={l.smallTitle}>
-                  {label} 미리 보기{samples.length > 1 ? ` ${i + 1}` : ""}
-                  {f.pages ? ` · ${f.pages}쪽` : ""}
-                </h2>
-                <div className={p.preview}>
-                  <span className={p.previewTag}>교육용 예시 자료</span>
-                  <strong>{f.title}</strong>
-                  {f.preview.map((t) => (
-                    <span key={t}>{t}</span>
+        <aside className={l.aside}>
+          {mode === "sample" && (
+            <section className={l.card} aria-labelledby="sample-preview">
+              <h2 id="sample-preview" className={l.cardTitle}>
+                자료 미리 보기{shown.pages ? ` · ${shown.pages}쪽` : ""}
+              </h2>
+              {samples.length > 1 && (
+                <div role="tablist" aria-label={label} className={p.tabs}>
+                  {samples.map((f, i) => (
+                    <button key={f.name} type="button" role="tab" className="chip chip-sm" aria-selected={i === tab} onClick={() => setTab(i)}>
+                      {tabName(f, i)}
+                    </button>
                   ))}
-                  <span aria-hidden="true">…</span>
                 </div>
-                <a className={p.textLink} href={f.url} target="_blank" rel="noreferrer">
-                  {openLabel(f)}
-                </a>
-              </section>
-            ))}
+              )}
+              <div className={p.preview} role={samples.length > 1 ? "tabpanel" : undefined}>
+                <span className={p.previewTag}>교육용 예시 자료</span>
+                <strong>{shown.title}</strong>
+                {shown.preview.map((t) => (
+                  <span key={t}>{t}</span>
+                ))}
+                <span aria-hidden="true">…</span>
+              </div>
+              <a className={p.textLink} href={shown.url} target="_blank" rel="noreferrer">
+                {openLabel(shown)}
+              </a>
+            </section>
+          )}
           <section className={l.card} aria-labelledby="file-criteria">
             <h2 id="file-criteria" className={l.cardTitle}>
-              이렇게 평가해요
+              통과 기준
             </h2>
-            <ul className={p.criteriaList}>
-              {lesson.criteria.map((c) => (
-                <li key={c.label}>{asQuestion(c.label)}</li>
-              ))}
-              {mode === "sample" && <li>AI 결과에 {josa(lesson.check.unknownLabel, ["이", "가"])} 있는지</li>}
-            </ul>
+            <CriteriaDots
+              criteria={lesson.criteria}
+              extra={mode === "sample" ? [`AI 결과에 ${josa(lesson.check.unknownLabel, ["이", "가"])} 있는지 확인`] : []}
+            />
           </section>
         </aside>
       </div>
@@ -826,101 +888,101 @@ function FileResult({ lesson, runner, result, draft, fileName }) {
   const total = result.criteria.length;
   const unknown = result.check?.unknown ?? [];
   const { unknownLabel, unknownNote, compareNote } = lesson.check;
-  const unknownLine = unknown.length ? `AI 결과에 ${josa(unknownLabel, ["이", "가"])} ${countWord(unknown.length)} 들어갔어요.` : "";
-  const title = result.passed ? "통과했어요" : total - met === 1 ? "한 가지만 더 채워 볼까요?" : "조금 더 채워 볼까요?";
-  const desc = result.passed
-    ? `기준 ${total}개를 모두 채웠어요.${unknownLine && ` 다만 ${unknownLine}`}`
-    : `기준 ${total}개 중 ${met}개를 채웠어요.${unknownLine && ` 그런데 ${unknownLine}`}`;
+  const unknownLine = unknown.length ? ` 결과에 ${unknownLabel} ${countWord(unknown.length)}.` : "";
+  const desc = `${criteriaDesc(result)}${result.passed && unknownLine ? ` 다만${unknownLine}` : unknownLine}`;
   const rule = result.source === "rule";
-  const outTitle = result.sample ? (rule ? "AI 결과물 예시" : `AI가 ${josa(lesson.sampleLabel.replace(/^예시 /, ""), ["을", "를"])} 읽고 낸 결과`) : "AI가 내 파일을 읽고 낸 결과";
-  const coreMissed = lesson.check.core.map((c) => c.label).filter((label) => !result.check?.core.includes(label));
+  const outTitle = result.sample
+    ? rule
+      ? "AI 결과물"
+      : `AI가 ${josa(lesson.sampleLabel.replace(/^예시 /, ""), ["을", "를"])} 읽고 낸 결과`
+    : "AI가 내 파일을 읽고 낸 결과";
+  const coreMissed = lesson.check.core.map((c) => c.label).filter((name) => !result.check?.core.includes(name));
+  const coachHint = result.coaching ? lesson.criteria.find((c) => c.question === result.coaching.question)?.hint : null;
+
+  const mine = (
+    <section className={l.card} aria-labelledby="file-mine">
+      <h2 id="file-mine" className={l.smallTitle}>
+        내 프롬프트
+      </h2>
+      <p className={p.mine}>{draft}</p>
+      {result.passed && (
+        <>
+          <h3 className={l.smallTitle}>채운 통과 기준</h3>
+          <CriteriaResult items={result.criteria} />
+        </>
+      )}
+    </section>
+  );
+
+  const output = (
+    <section className={l.card} aria-labelledby="file-output">
+      <div className={l.cardHead}>
+        <h2 id="file-output" className={l.smallTitle}>
+          {result.output ? outTitle : "AI 결과"}
+        </h2>
+        {result.sample && rule && result.output && <ExampleChip />}
+        {fileName && (
+          <span className={`${p.sampleChip} ${l.headEnd}`}>
+            <FileIcon />
+            {fileName}
+          </span>
+        )}
+      </div>
+      {result.output ? <CheckedOutput text={result.output} unknown={unknown} /> : <p className={l.note}>AI 미연결 · 파일은 읽지 않고 프롬프트만 채점</p>}
+      {result.check && (
+        <div className={p.checkNotes}>
+          <p className={l.smallTitle}>결과 확인</p>
+          <p className={p.checkLine}>
+            <span className={unknown.length ? l.icNo : l.icOk}>{unknown.length ? <MissIcon size={9} /> : <MetIcon size={11} />}</span>
+            <span>
+              <b>{unknown.length ? `${unknownLabel} ${counted(unknown.length, "개")}.` : `${unknownLabel} 없음.`}</b> {compareNote}
+              {unknown.length ? ` ${unknownNote}` : ""}
+            </span>
+          </p>
+          <p className={p.checkLine}>
+            <span className={result.check.coreOk ? l.icOk : l.icNo}>{result.check.coreOk ? <MetIcon size={11} /> : <MissIcon size={9} />}</span>
+            <span>
+              <b>{result.check.coreOk ? "핵심을 잘 담음." : "핵심이 덜 담김."}</b>{" "}
+              {result.check.coreOk ? result.check.core.join(", ") : `${coreMissed.join(", ")} 안 보임`}
+            </span>
+          </p>
+        </div>
+      )}
+      {!result.sample && <p className={l.note}>내 파일은 정답 없음. 결과가 맞는지 직접 확인.</p>}
+      {result.sample && rule && result.output && <p className={l.note}>{NO_AI_TEXT}</p>}
+    </section>
+  );
 
   return (
     <>
-      <ResultHead title={title} desc={desc} score={`${met} / ${total}`} grade={result} wasDone={runner.wasDone} />
-      <div className={l.split}>
-        <div className={`${l.side} ${l.resultSide}`}>
-          <section className={l.card} aria-labelledby="file-mine">
-            <h2 id="file-mine" className={l.cardTitle}>
-              내 프롬프트
-            </h2>
-            <p className={p.mine}>{draft}</p>
-            <ul className={l.checks}>
-              {result.criteria.map((c) => (
-                <li key={c.label} className={c.met ? l.met : l.miss}>
-                  <span className={l.icon}>{c.met ? <MetIcon /> : <MissIcon />}</span>
-                  <span className={l.grow}>{c.label}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-          {result.coaching && (
-            <CoachCard
-              question={result.coaching.question}
-              hint={lesson.criteria.find((c) => c.question === result.coaching.question)?.hint}
-            />
-          )}
+      <Head runner={runner} result={result} desc={desc} got={met} total={total} />
+      {result.coaching && <CoachCard question={result.coaching.question} hint={coachHint} />}
+      {result.passed ? (
+        <div className={`${l.work} ${l.passed}`}>
+          {mine}
+          {output}
         </div>
-
-        <section className={`${l.card} ${l.main} ${l.resultMain}`} aria-labelledby="file-output">
-          <div className={l.cardHead}>
-            <h2 id="file-output" className={l.cardTitle}>
-              {result.output ? outTitle : "AI 결과"}
+      ) : (
+        <div className={`${l.work} ${l.result}`}>
+          <section className={l.card} aria-labelledby="file-criteria-result">
+            <h2 id="file-criteria-result" className={l.cardTitle}>
+              통과 기준
             </h2>
-            {fileName && (
-              <span className={p.sampleChip}>
-                <FileIcon />
-                {fileName}
-              </span>
-            )}
-          </div>
-          {result.output ? (
-            <CheckedOutput text={result.output} unknown={unknown} />
-          ) : (
-            <p className={l.note}>AI가 연결되어 있지 않아 파일을 읽지 못했어요. 프롬프트만 채점했어요.</p>
-          )}
-          {result.check && (
-            <div className={p.checkNotes}>
-              <p>
-                <b>{unknown.length ? `${unknownLabel} ${counted(unknown.length, "개")}` : `${josa(unknownLabel, ["은", "는"])} 없어요`}</b>{" "}
-                <span className={p.muted}>
-                  · {compareNote}
-                  {unknown.length ? ` ${unknownNote}` : ""}
-                </span>
-              </p>
-              <p>
-                <b>{result.check.coreOk ? "핵심은 잘 담았어요" : "핵심이 덜 담겼어요"}</b>{" "}
-                <span className={p.muted}>
-                  ·{" "}
-                  {result.check.coreOk ? result.check.core.join(", ") : `${coreMissed.join(", ")}${josa(coreMissed.at(-1) ?? "", ["이", "가"]).slice((coreMissed.at(-1) ?? "").length)} 보이지 않아요`}
-                </span>
-              </p>
+            <div>
+              <CriteriaResult items={result.criteria} />
             </div>
-          )}
-          {!result.sample && <p className={l.note}>내 파일은 정답이 없어요. 결과가 맞는지는 직접 확인해 보세요.</p>}
-          {result.sample && rule && <p className={l.note}>AI가 연결되어 있지 않아 미리 만든 예시 결과를 보여 줘요.</p>}
-        </section>
-      </div>
-
-      <div className={p.footer}>
-        <div className={p.footerLinks}>
-          <button type="button" className={l.secondary} onClick={() => runner.go("lecture")}>
-            배우기 다시 보기
-          </button>
-          <button type="button" className={p.textLink} onClick={() => runner.onOpenCourse?.("verify")}>
-            결과를 직접 확인하는 법은 과정 4에서 →
-          </button>
+          </section>
+          <div className={l.aside}>
+            {mine}
+            {output}
+          </div>
         </div>
-        {result.passed ? (
-          <button type="button" className={l.primary} onClick={runner.onNext}>
-            {runner.nextLabel}
-          </button>
-        ) : (
-          <button type="button" className={l.primary} onClick={() => runner.go("practice")}>
-            프롬프트 고쳐서 다시
-          </button>
-        )}
-      </div>
+      )}
+      <BackToLecture runner={runner}>
+        <button type="button" className={p.textLink} onClick={() => runner.onOpenCourse?.("verify")}>
+          결과를 직접 확인하는 법은 과정 4에서 →
+        </button>
+      </BackToLecture>
     </>
   );
 }

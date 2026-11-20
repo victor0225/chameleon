@@ -47,10 +47,10 @@ export function AuthShell({ title, lede, children }) {
   else if (user)
     body = (
       <p>
-        {user.name}님으로 로그인돼 있어요. <Link href="/mypage">마이페이지로 가기</Link>
+        {user.name}님으로 로그인됨. <Link href="/mypage">마이페이지로 가기</Link>
       </p>
     );
-  else if (!login.ready) body = <p className="muted">아직 로그인을 쓸 수 없어요. 서버에 DB 설정이 필요해요.</p>;
+  else if (!login.ready) body = <p className="muted">아직 로그인 사용 불가. 서버에 DB 설정 필요.</p>;
   return (
     <div className={s.wrap}>
       <section className={s.card} aria-labelledby="auth-title">
@@ -72,10 +72,10 @@ export async function sendAuth(url, body) {
   try {
     response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   } catch {
-    return { field: null, message: "서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요." };
+    return { field: null, message: "서버에 연결하지 못함. 인터넷 연결 확인." };
   }
   const data = await response.json().catch(() => null);
-  if (!response.ok) return { field: data?.field ?? null, message: data?.error ?? "잠시 뒤 다시 시도해 주세요." };
+  if (!response.ok) return { field: data?.field ?? null, message: data?.error ?? "잠시 뒤 다시 시도." };
   window.location.assign(nextFromUrl());
   return null;
 }

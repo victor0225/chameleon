@@ -128,7 +128,7 @@ test("랭킹: 강의마다 점수가 있는 첫 기록만 세고, 참여한 사�
     const nickA = `T${process.pid}`.slice(0, 12);
     const nickB = `U${process.pid}`.slice(0, 12);
     assert.deepEqual(await ranking.setRanking(a.id, { ranked: true, nickname: ` ${nickA} ` }), { ok: true });
-    assert.equal((await ranking.setRanking(b.id, { ranked: true, nickname: nickA })).error, "이미 쓰는 별명이에요.");
+    assert.equal((await ranking.setRanking(b.id, { ranked: true, nickname: nickA })).error, "이미 쓰는 별명.");
     assert.match((await ranking.setRanking(b.id, { ranked: true, nickname: "<b>" })).error, /2~12자|한글/);
     await ranking.setRanking(b.id, { ranked: true, nickname: nickB });
 
