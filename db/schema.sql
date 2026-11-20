@@ -71,3 +71,11 @@ CREATE TABLE IF NOT EXISTS attempts (
 CREATE INDEX IF NOT EXISTS sessions_user ON sessions (user_id);
 CREATE INDEX IF NOT EXISTS attempts_user_recent ON attempts (user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS diagnoses_user_recent ON diagnoses (user_id, at DESC);
+
+-- 부문 점수와 랭킹(작업 F). 이미 만든 DB에도 칸을 더할 수 있게 ALTER로 둔다.
+ALTER TABLE attempts ADD COLUMN IF NOT EXISTS score smallint;                     -- 0~100. 빈 값은 이 기능 전 기록
+ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname text;                          -- 랭킹에 보일 별명
+ALTER TABLE users ADD COLUMN IF NOT EXISTS ranked boolean NOT NULL DEFAULT false;  -- 랭킹 참여. 기본은 꺼짐
+ALTER TABLE users ADD COLUMN IF NOT EXISTS demo boolean NOT NULL DEFAULT false;    -- 시연용 예시 사용자
+CREATE UNIQUE INDEX IF NOT EXISTS users_nickname ON users (nickname) WHERE nickname IS NOT NULL;
+CREATE INDEX IF NOT EXISTS attempts_first ON attempts (user_id, lesson_id, created_at);
