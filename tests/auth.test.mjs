@@ -52,8 +52,8 @@ test("돌아갈 주소는 이 사이트 안의 경로만 받는다", () => {
 
 test("세션 토큰: 같은 키로만 열리고, 키가 짧으면 로그인을 끈다", async () => {
   process.env.SESSION_SECRET = "s".repeat(40);
-  const token = await signSession("user-1");
-  assert.deepEqual(await readSession(token), { uid: "user-1" });
+  const token = await signSession("session-1");
+  assert.deepEqual(await readSession(token), { sid: "session-1" });
   assert.equal(await readSession(`${token.slice(0, -2)}xx`), null);
   assert.equal(await readSession("not-a-token"), null);
   process.env.SESSION_SECRET = "t".repeat(40);

@@ -4,9 +4,9 @@
 // DELETE /api/me : 계정은 두고 진단·학습 기록을 지운다.
 import { connection } from "next/server";
 import { hasDatabase } from "@/lib/server/db";
-import { getSession, hasSessionSecret } from "@/lib/server/session";
+import { getSessionUser, hasSessionSecret } from "@/lib/server/session";
 import { cleanState } from "@/lib/server/state";
-import { clearData, getUser, loadState, saveState, userStats } from "@/lib/server/users";
+import { clearData, loadState, saveState, userStats } from "@/lib/server/users";
 
 const MAX_BODY = 200000;
 
@@ -14,11 +14,7 @@ function loginInfo() {
   return { ready: hasDatabase() && hasSessionSecret() };
 }
 
-async function currentUser() {
-  if (!loginInfo().ready) return null;
-  const session = await getSession();
-  return session ? getUser(session.uid) : null;
-}
+const currentUser = () => getSessionUser();
 
 const needLogin = () => Response.json({ error: "로그인이 필요해요." }, { status: 401 });
 

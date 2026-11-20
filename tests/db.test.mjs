@@ -42,6 +42,23 @@ test("가입·로그인: 같은 아이디는 한 번만, 맞는 비밀번호만 
   await db.query("UPDATE users SET locked_until = now() - interval '1 second' WHERE id = $1", [user.id]);
   assert.ok((await users.authenticate(ID, "12345678")).user, "잠금이 풀리면 다시 들어간다");
 
+  // 틀린 비밀번호가 한꺼번에 몰려와도 잠금 전에 확인하는 건 다섯 번까지다.
+  const burst = await Promise.all(Array.from({ length: 20 }, () => users.authenticate(ID, "wrong-pass")));
+  assert.equal(burst.filter((r) => r.error === "wrong").length, users.MAX_FAILS);
+  assert.equal(burst.filter((r) => r.error === "locked").length, 20 - users.MAX_FAILS);
+  await db.query("UPDATE users SET locked_until = now() - interval '1 second' WHERE id = $1", [user.id]);
+  assert.ok((await users.authenticate(ID, "12345678")).user);
+
+  // 세션: 지우면(로그아웃) 같은 id로는 더 못 들어오고, 기간이 끝난 세션도 받지 않는다.
+  const sid = await users.createSession(user.id, 60);
+  assert.equal((await users.userForSession(sid)).id, user.id);
+  await users.deleteSession(sid);
+  assert.equal(await users.userForSession(sid), null);
+  const old = await users.createSession(user.id, 60);
+  await db.query("UPDATE sessions SET expires_at = now() - interval '1 second' WHERE id = $1", [old]);
+  assert.equal(await users.userForSession(old), null);
+  assert.equal(await users.userForSession("not-a-uuid"), null);
+
   assert.equal((await users.getUser(user.id)).name, "테스트");
   assert.equal(await users.getUser("not-a-uuid"), null);
 });

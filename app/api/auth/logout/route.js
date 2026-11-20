@@ -1,4 +1,4 @@
-// POST /api/auth/logout : 세션 쿠키를 지운다.
+// POST /api/auth/logout : 이 세션을 DB에서 지우고 쿠키도 지운다. 남은 쿠키로는 다시 들어올 수 없다.
 import { endSession } from "@/lib/server/session";
 
 export async function POST() {
