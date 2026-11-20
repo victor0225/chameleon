@@ -13,6 +13,14 @@ CREATE TABLE IF NOT EXISTS users (
   last_login_at timestamptz
 );
 
+-- 로그인 세션. 쿠키에는 이 id만 서명해 담고, 로그아웃하면 줄을 지워 그 쿠키를 더는 못 쓰게 한다.
+CREATE TABLE IF NOT EXISTS sessions (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  expires_at timestamptz NOT NULL
+);
+
 -- 진단 설문과 지금 수준. 화면의 profile, survey와 같다.
 CREATE TABLE IF NOT EXISTS profiles (
   user_id    uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -60,5 +68,6 @@ CREATE TABLE IF NOT EXISTS attempts (
   missed     text[] NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS sessions_user ON sessions (user_id);
 CREATE INDEX IF NOT EXISTS attempts_user_recent ON attempts (user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS diagnoses_user_recent ON diagnoses (user_id, at DESC);
