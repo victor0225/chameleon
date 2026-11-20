@@ -94,6 +94,8 @@ INSERT INTO first_scores (user_id, lesson_id, score, created_at)
 SELECT DISTINCT ON (user_id, lesson_id) user_id, lesson_id, score, created_at
 FROM attempts
 WHERE score IS NOT NULL
+ORDER BY user_id, lesson_id, created_at
+ON CONFLICT (user_id, lesson_id) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS tour_views (
   user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -104,5 +106,3 @@ CREATE TABLE IF NOT EXISTS tour_views (
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, tour_id)
 );
-ORDER BY user_id, lesson_id, created_at
-ON CONFLICT (user_id, lesson_id) DO NOTHING;
