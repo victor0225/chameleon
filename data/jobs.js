@@ -28,19 +28,19 @@ export const JOBS = [
 export const JOB = Object.fromEntries(JOBS.map((job) => [job.id, job]));
 
 export const EXPERIENCES = [
-  { id: "none", title: "거의 안 써 봤어요", desc: "무엇을 물어야 할지 모르겠어요" },
-  { id: "sometimes", title: "가끔 질문해요", desc: "검색하듯 짧게 물어본 적이 있어요" },
-  { id: "often", title: "업무에 자주 써요", desc: "결과를 더 정확하게 받고 싶어요" },
+  { id: "none", title: "거의 안 써 봄", desc: "무엇을 물을지 모름" },
+  { id: "sometimes", title: "가끔 질문", desc: "검색하듯 짧게 물어봄" },
+  { id: "often", title: "업무에 자주 씀", desc: "더 정확한 결과가 필요함" },
 ];
 
 export const EXPERIENCE = Object.fromEntries(EXPERIENCES.map((e) => [e.id, e]));
 
-// 설문 3번 "AI를 이렇게 써 봤어요"(여러 개 고름, 안 골라도 됨). 과정 추천 규칙(lib/courseSignals.js)이 쓴다.
+// 설문 3번 "써 본 방식"(여러 개 고름, 안 골라도 됨). 과정 추천 규칙(lib/courseSignals.js)이 쓴다.
 export const AI_USES = [
-  { id: "memory", title: "긴 대화 이어 가기", desc: "한 대화에서 여러 번 주고받으며 일을 이어 갔어요" },
-  { id: "file", title: "파일 올리기", desc: "문서, 표, 그림을 올려서 물어봤어요" },
-  { id: "search", title: "검색 켜기", desc: "AI가 인터넷을 찾아보게 했어요" },
-  { id: "repeat", title: "같은 일 반복", desc: "매주 비슷한 일을 AI에게 맡겨요" },
+  { id: "memory", title: "긴 대화 이어 가기", desc: "한 대화에서 여러 번 주고받으며 일을 이어 감" },
+  { id: "file", title: "파일 올리기", desc: "문서·표·그림을 올려서 질문" },
+  { id: "search", title: "검색 켜기", desc: "AI에게 인터넷 검색을 시킴" },
+  { id: "repeat", title: "같은 일 반복", desc: "비슷한 일을 매주 AI에게 맡김" },
 ];
 
 export const AI_USE = Object.fromEntries(AI_USES.map((u) => [u.id, u]));

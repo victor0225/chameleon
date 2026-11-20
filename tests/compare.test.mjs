@@ -25,9 +25,9 @@ const SENTENCES = [
 ];
 
 test("요청 검사: 단계 이름, 직무, 프롬프트, 빠진 요소, run의 두 글을 본다", () => {
-  assert.equal(validateCompare(null), "요청 형식이 올바르지 않아요.");
+  assert.equal(validateCompare(null), "요청 형식이 올바르지 않음.");
   assert.match(validateCompare({ ...base, step: "all" }), /step/);
-  assert.equal(validateCompare({ ...base, step: "mine", job: "toString" }), "관심 직무를 골라 주세요.");
+  assert.equal(validateCompare({ ...base, step: "mine", job: "toString" }), "관심 직무 고르기");
   assert.match(validateCompare({ ...base, step: "mine", missing: ["mood"] }), /빠진 요소/);
   assert.match(validateCompare({ ...base, step: "run", improved: "써 줘" }), /처음 결과/);
   assert.match(validateCompare({ ...base, step: "run", before: BEFORE }), /다듬은 프롬프트/);

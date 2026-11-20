@@ -30,7 +30,7 @@ test("absent 기준: 정규식이 안 맞아야 채운 것이다(mem3)", async (
   assert.equal(once.criteria[3].met, false, "이번 일에만 맞는 정보");
   const pii = await grade("mem3", `${base} 내 번호는 010-1234-5678이야.`);
   assert.equal(pii.criteria[4].met, false, "개인정보");
-  assert.equal(pii.coaching.question, "이 설정이 서비스에 계속 남아도 괜찮은 정보인가요?");
+  assert.equal(pii.coaching.question, "이 설정이 서비스에 계속 남아도 괜찮은 정보인가?");
 });
 
 test("프롬프트·파일 미션: 키 없이 채점하면 모범 답은 통과하고 나쁜 예는 통과하지 못한다", async () => {
@@ -53,12 +53,12 @@ test("분류·고르기 미션: 정답표로 채점하고, 꼭 맞혀야 할 카
   const flow1 = lesson("flow1");
   const r = gradeSort(flow1, { ...rightAnswer(flow1), numbers: "s2" });
   assert.equal(r.passed, false);
-  assert.equal(r.coaching.question, '"초안의 숫자가 회의록·표와 같은지 하나씩 맞춰 봐 줘"가 초안이 있어야 할 수 있는 일이 아닐까요?');
+  assert.equal(r.coaching.question, "'초안의 숫자가 회의록·표와 같은지 하나씩 맞춰 봐 줘'가 초안이 있어야 할 수 있는 일이 아닌가?");
   // flow3: 확인할 일을 그대로 쓴다고 고르면 그 칸에 맞는 질문을 던진다.
   const flow3 = lesson("flow3");
   const c = gradeSort(flow3, { ...rightAnswer(flow3), count: "auto", report: "auto", apology: "auto" });
   assert.equal(c.passed, false);
-  assert.equal(c.coaching.question, "틀린 숫자나 문장이 그대로 나가면 어떤 일이 생길까요?");
+  assert.equal(c.coaching.question, "틀린 숫자나 문장이 그대로 나가면 어떤 일이 생기는가?");
   const h = gradeSort(flow3, { ...rightAnswer(flow3), budget: "check" });
   assert.equal(h.passed, false, "사람이 직접 할 일은 꼭 맞혀야 한다");
 });
@@ -74,11 +74,11 @@ test("오류 찾기 미션: 숨겨 둔 곳을 찾으면 통과하고, 코칭은 
   const ver2 = lesson("ver2");
   const none = gradeSpot(ver2, { picks: [{ index: 2, kind: "wrong" }], missing: "" });
   assert.equal(none.passed, false);
-  assert.equal(none.coaching.detail, "표와 요약을 한 줄씩 맞춰 보세요.");
+  assert.equal(none.coaching.detail, "표와 요약을 한 줄씩 맞춰 보기.");
   const ver3 = lesson("ver3");
   const falsy = gradeSpot(ver3, { picks: [0, 1, 2].map((index) => ({ index, kind: "wrong" })), missing: "" });
-  assert.equal(falsy.coaching.question, "고른 문장이 공유 폴더 자료 어느 줄과 다른가요?");
-  assert.equal(falsy.coaching.detail, "맞는 문장까지 고치면 답이 오히려 틀어져요.");
+  assert.equal(falsy.coaching.question, "고른 문장이 공유 폴더 자료 어느 줄과 다른가?");
+  assert.equal(falsy.coaching.detail, "맞는 문장까지 고치면 답이 오히려 틀어짐.");
 });
 
 test("예시 파일 결과 확인: file2는 표에 없는 숫자와 핵심, file3은 바뀐 점 네 가지 중 셋", () => {

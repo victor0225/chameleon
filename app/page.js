@@ -1,85 +1,72 @@
 "use client";
 
-import { useEffect, useState } from "react";
+// 메인(디자인 캔버스 A1, 랜딩 후보 2): 첫 화면에서 바로 평소 하던 말을 써 보면 빠진 요소가 색 막대로 보인다.
+// '진단하기'를 누르면 쓴 글을 들고 설문으로 가고, 프롬프트 써 보기 단계에서 그 글이 미리 채워진다.
+import { useState } from "react";
 import Link from "next/link";
-import { AnatomyText, ScaleBar } from "@/components/Anatomy";
+import { useRouter } from "next/navigation";
+import { Logo, ScaleBar } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
+import { ArrowIcon } from "@/components/Common";
 import { Tour } from "@/components/Tour";
 import { analyze } from "@/lib/anatomy";
+import { HOME_DRAFT_KEY } from "@/lib/homeDraft";
 import s from "./home.module.css";
-const BEFORE = "보고서 써줘";
-const AFTER_LINES = [
-  "이번 주 업무 보고서를 써 줘.",
-  "팀장님이 월요일 회의 전에 읽을 거야.",
-  "500자 이내, 격식 있는 말투로.",
-  "완료, 진행 중, 다음 주 계획 세 칸의 표로 정리해 줘.",
-  "내 메모에 없는 내용은 지어내지 말고 질문해 줘.",
-];
-const AFTER = AFTER_LINES.join("\n");
-// 줄마다 앞 줄들의 조각 수를 더해 두고, 밑줄이 첫 줄부터 차례로 그려지게 한다.
-const AFTER_OFFSETS = AFTER_LINES.map((_, i) =>
-  AFTER_LINES.slice(0, i).reduce((sum, line) => sum + analyze(line).segments.length, 0),
-);
-const prefersReducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-function Demo() {
-  const [after, setAfter] = useState(false);
-  // 첫 화면에서 한 번만 자동으로 넘긴다. window는 브라우저에서만 있으니 effect 안에서 읽는다.
-  useEffect(() => {
-    const timer = setTimeout(() => setAfter(true), prefersReducedMotion() ? 0 : 1600);
-    return () => clearTimeout(timer);
-  }, []);
-  const text = after ? AFTER : BEFORE;
-  return (
-    <figure className="card demo">
-      <div className="seg-toggle" role="group" aria-label="예시 프롬프트 보기">
-        <button type="button" aria-pressed={!after} onClick={() => setAfter(false)}>
-          처음 쓴 프롬프트
-        </button>
-        <button type="button" aria-pressed={after} onClick={() => setAfter(true)}>
-          다듬은 프롬프트
-        </button>
-      </div>
-      <div key={after ? "after" : "before"} className="demo-text">
-        {after ? (
-          AFTER_LINES.map((line, i) => <AnatomyText key={line} text={line} animate delayOffset={AFTER_OFFSETS[i]} />)
-        ) : (
-          <AnatomyText text={BEFORE} animate />
-        )}
-      </div>
-      <ScaleBar found={analyze(text).found} />
-      <figcaption>밑줄 색은 프롬프트에 들어 있는 요소예요. 다섯 칸이 찰수록 AI가 원하는 결과에 가까워져요.</figcaption>
-    </figure>
-  );
-}
+
 export default function Home() {
+  const router = useRouter();
   const { diagnosis } = useAppState();
+  const [draft, setDraft] = useState("");
+  const found = analyze(draft).found;
+
+  function start(e) {
+    e.preventDefault();
+    try {
+      if (draft.trim()) sessionStorage.setItem(HOME_DRAFT_KEY, draft.trim());
+      else sessionStorage.removeItem(HOME_DRAFT_KEY);
+    } catch {
+      // 저장소를 못 쓰면 프롬프트 단계에서 다시 쓰면 된다.
+    }
+    router.push("/diagnosis");
+  }
+
   return (
     <div className={`page ${s.home}`}>
       <Tour id="home" />
-      <section className="hero">
-        <div>
-          <h1 className="display">
-            AI가 알아듣게
-            <br />
-            일을 맡기는 법
-          </h1>
-          <p className="lede">
-            AI가 엉뚱한 답을 내는 건 대개 무언가 빠졌기 때문이에요. 평소처럼 일을 맡겨 보면 무엇이 빠졌는지 색으로 보여
-            드리고, 프롬프트부터 파일·대화 기록 다루기, 결과 확인까지 수준에 맞춰 연습하게 도와드려요.
-          </p>
-          <div className="row">
-            <Link href="/diagnosis" className="btn" data-tour="home-start">
-              내 수준 진단하기
+      <h1 className={`display ${s.title}`}>프롬프트 진단과 AI 활용 교육</h1>
+      <p className={s.brand}>
+        <Logo />
+        카멜레온
+      </p>
+      <form className={`card ${s.card}`} onSubmit={start}>
+        <label htmlFor="home-prompt" className={s.srOnly}>
+          평소 AI에게 하던 말
+        </label>
+        <input
+          id="home-prompt"
+          className={s.input}
+          value={draft}
+          maxLength={2000}
+          autoComplete="off"
+          placeholder="평소 AI에게 하던 말 그대로 입력"
+          onChange={(e) => setDraft(e.target.value)}
+        />
+        <ScaleBar found={found} />
+        <div className={s.row}>
+          <span className={s.count}>
+            채운 요소 <span className="mono">{found.length}/5</span>
+          </span>
+          {diagnosis && (
+            <Link href="/diagnosis/result" className="link">
+              지난 진단 결과 보기
             </Link>
-            {diagnosis && (
-              <Link href="/diagnosis/result" className="btn ghost">
-                지난 진단 결과 보기
-              </Link>
-            )}
-          </div>
+          )}
+          <button type="submit" className={`btn ${s.cta}`} data-tour="home-start">
+            진단하기
+            <ArrowIcon />
+          </button>
         </div>
-        <Demo />
-      </section>
+      </form>
     </div>
   );
 }

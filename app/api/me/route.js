@@ -16,7 +16,7 @@ function loginInfo() {
 
 const currentUser = () => getSessionUser();
 
-const needLogin = () => Response.json({ error: "로그인이 필요해요." }, { status: 401 });
+const needLogin = () => Response.json({ error: "로그인 필요." }, { status: 401 });
 
 export async function GET() {
   await connection();
@@ -31,12 +31,12 @@ export async function PUT(request) {
   const user = await currentUser();
   if (!user) return needLogin();
   const text = await request.text();
-  if (text.length > MAX_BODY) return Response.json({ error: "저장할 내용이 너무 커요." }, { status: 413 });
+  if (text.length > MAX_BODY) return Response.json({ error: "저장할 내용이 너무 큼." }, { status: 413 });
   let body;
   try {
     body = JSON.parse(text);
   } catch {
-    return Response.json({ error: "요청 형식이 올바르지 않아요." }, { status: 400 });
+    return Response.json({ error: "요청 형식이 올바르지 않음." }, { status: 400 });
   }
   const { value, error } = cleanState(body);
   if (error) return Response.json({ error }, { status: 400 });

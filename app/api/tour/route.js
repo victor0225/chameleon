@@ -15,13 +15,13 @@ export async function GET() {
   await connection();
   if (!isOn()) return Response.json({ seen: {}, off: true });
   const user = await getSessionUser();
-  if (!user) return Response.json({ error: "로그인이 필요해요." }, { status: 401 });
+  if (!user) return Response.json({ error: "로그인 필요." }, { status: 401 });
   try {
     return Response.json({ seen: await loadTourViews(user.id) });
   } catch (error) {
     if (isMissingTable(error)) return Response.json({ seen: {}, off: true });
     console.warn("[/api/tour] 읽기 실패:", error?.message || "unknown");
-    return Response.json({ error: "화면 안내 기록을 읽지 못했어요." }, { status: 500 });
+    return Response.json({ error: "화면 안내 기록을 읽지 못함." }, { status: 500 });
   }
 }
 
@@ -29,17 +29,17 @@ export async function POST(request) {
   if (!isOn()) return Response.json({ off: true });
   // 다른 사이트의 폼은 JSON 형식으로 보낼 수 없으니, JSON 요청만 받는다(랭킹·가입과 같다).
   if (!request.headers.get("content-type")?.startsWith("application/json")) {
-    return Response.json({ error: "요청 형식이 올바르지 않아요." }, { status: 415 });
+    return Response.json({ error: "요청 형식이 올바르지 않음." }, { status: 415 });
   }
   const user = await getSessionUser();
-  if (!user) return Response.json({ error: "로그인이 필요해요." }, { status: 401 });
+  if (!user) return Response.json({ error: "로그인 필요." }, { status: 401 });
   const text = await request.text();
-  if (text.length > MAX_BODY) return Response.json({ error: "요청이 너무 커요." }, { status: 413 });
+  if (text.length > MAX_BODY) return Response.json({ error: "요청이 너무 큼." }, { status: 413 });
   let body;
   try {
     body = JSON.parse(text);
   } catch {
-    return Response.json({ error: "요청 형식이 올바르지 않아요." }, { status: 400 });
+    return Response.json({ error: "요청 형식이 올바르지 않음." }, { status: 400 });
   }
   const { value, error } = cleanTourView(body);
   if (error) return Response.json({ error }, { status: 400 });
@@ -49,6 +49,6 @@ export async function POST(request) {
   } catch (e) {
     if (isMissingTable(e)) return Response.json({ off: true });
     console.warn("[/api/tour] 저장 실패:", e?.message || "unknown");
-    return Response.json({ error: "화면 안내 기록을 저장하지 못했어요." }, { status: 500 });
+    return Response.json({ error: "화면 안내 기록을 저장하지 못함." }, { status: 500 });
   }
 }

@@ -8,31 +8,31 @@ const diag = (over) => ({ prompt: "팀장님께 드릴 업무 보고 정리해 �
 
 test("보드의 예: 빠진 요소 셋 + 안 가리킨 파일 → 프롬프트 작성, 파일 활용, 결과 검증 순서", () => {
   assert.deepEqual(courseSignals({ diagnosis: diag({ files: [PDF, PDF] }) }), [
-    { course: "prompt", reason: "빠진 요소가 세 개 있어요: 조건·형식·기준" },
-    { course: "file", reason: "파일을 붙였지만 무엇을 하라는지 말하지 않았어요" },
-    { course: "verify", reason: "AI가 지어낸 부분을 걸러낼 기준이 없어요" },
+    { course: "prompt", reason: "빠진 요소 세 개: 조건·형식·기준" },
+    { course: "file", reason: "파일을 붙였지만 무엇을 하라는지 말하지 않음" },
+    { course: "verify", reason: "AI가 지어낸 부분을 걸러낼 기준 없음" },
   ]);
 });
 
 test("개인정보가 있으면 대화·메모리 관리를 먼저, 이유에 무엇이 들어 있는지 밝힌다", () => {
   const r = courseSignals({ diagnosis: diag({ prompt: "김민수 고객(010-1234-5678) 답장 써 줘", missing: ["format"] }) });
-  assert.deepEqual(r[0], { course: "memory", reason: "프롬프트에 전화번호가 들어 있어요" });
+  assert.deepEqual(r[0], { course: "memory", reason: "프롬프트에 전화번호 들어 있음" });
   assert.equal(r[1].course, "prompt");
-  assert.match(courseSignals({ diagnosis: diag({ prompt: "a@b.com 으로 보내 줘" }) })[0].reason, /이메일 주소가/);
-  assert.match(courseSignals({ diagnosis: diag({ prompt: "국민은행 계좌 123-45-678901로 입금" }) })[0].reason, /계좌번호가/);
+  assert.match(courseSignals({ diagnosis: diag({ prompt: "a@b.com 으로 보내 줘" }) })[0].reason, /프롬프트에 이메일 주소 들어 있음/);
+  assert.match(courseSignals({ diagnosis: diag({ prompt: "국민은행 계좌 123-45-678901로 입금" }) })[0].reason, /프롬프트에 계좌번호 들어 있음/);
 });
 
 test("파일 이야기는 있는데 붙인 파일이 없을 때, 같은 과정은 한 번만", () => {
   const r = courseSignals({ diagnosis: diag({ prompt: "첨부한 보고서를 요약해 줘", missing: ["format"] }) });
   assert.deepEqual(r, [
-    { course: "file", reason: "파일 이야기는 있는데 붙인 파일이 없어요" },
-    { course: "prompt", reason: "빠진 요소가 한 개 있어요: 형식" },
+    { course: "file", reason: "파일 이야기는 있는데 붙인 파일 없음" },
+    { course: "prompt", reason: "빠진 요소 한 개: 형식" },
   ]);
 });
 
 test("빠진 요소 수는 우리말로 센다", () => {
   const r = courseSignals({ diagnosis: diag({ found: ["context"], missing: ["goal", "constraint", "format", "criteria"] }) });
-  assert.equal(r[0].reason, "빠진 요소가 네 개 있어요: 목표·조건·형식·기준");
+  assert.equal(r[0].reason, "빠진 요소 네 개: 목표·조건·형식·기준");
 });
 
 test("빠진 요소가 없고 신호도 없으면 빈 목록, 세 개까지만", () => {
@@ -54,13 +54,13 @@ const FULL = diag({ found: ["goal", "context", "constraint", "format", "criteria
 
 test("설문 3번에서 안 고른 기능의 과정을 파일·긴 대화·검색·같은 일 반복 순서로 고른다", () => {
   assert.deepEqual(courseSignals({ diagnosis: FULL, survey: { used: [] } }), [
-    { course: "file", reason: "파일을 붙여 맡겨 본 적이 없다고 했어요" },
-    { course: "memory", reason: "긴 대화를 이어 가 본 적이 없다고 했어요" },
-    { course: "tool", reason: "검색을 켜고 써 본 적이 없다고 했어요" },
+    { course: "file", reason: "파일을 붙여 맡겨 본 적 없다고 답함" },
+    { course: "memory", reason: "긴 대화를 이어 가 본 적 없다고 답함" },
+    { course: "tool", reason: "검색을 켜고 써 본 적 없다고 답함" },
   ]);
   assert.deepEqual(courseSignals({ diagnosis: FULL, survey: { used: ["file", "search"] } }), [
-    { course: "memory", reason: "긴 대화를 이어 가 본 적이 없다고 했어요" },
-    { course: "flow", reason: "같은 일을 반복해서 AI에게 맡겨 본 적이 없다고 했어요" },
+    { course: "memory", reason: "긴 대화를 이어 가 본 적 없다고 답함" },
+    { course: "flow", reason: "같은 일을 반복해 AI에게 맡겨 본 적 없다고 답함" },
   ]);
   assert.deepEqual(courseSignals({ diagnosis: FULL, survey: { used: ["file", "memory", "search", "repeat"] } }), []);
   // 답하기 전 설문(used 없음)은 건너뛴다.
@@ -71,12 +71,12 @@ test("설문 신호는 진단 신호 뒤에 붙고, 같은 과정이면 진단 �
   // 진단: 프롬프트 작성(빠진 요소 셋), 결과 검증. 설문: 파일·긴 대화 안 써 봄 → 파일 활용 하나만 들어간다.
   const r = courseSignals({ diagnosis: diag(), survey: { used: ["search"] } });
   assert.deepEqual(r.map((x) => x.course), ["prompt", "verify", "file"]);
-  assert.equal(r[2].reason, "파일을 붙여 맡겨 본 적이 없다고 했어요");
+  assert.equal(r[2].reason, "파일을 붙여 맡겨 본 적 없다고 답함");
   // 개인정보로 대화·메모리 관리가 이미 들어왔으면 설문 이유로 바꾸지 않는다.
   const pii = courseSignals({ diagnosis: { ...FULL, prompt: "김민수(010-1234-5678) 답장 써 줘" }, survey: { used: ["file", "repeat"] } });
   assert.deepEqual(pii, [
-    { course: "memory", reason: "프롬프트에 전화번호가 들어 있어요" },
-    { course: "tool", reason: "검색을 켜고 써 본 적이 없다고 했어요" },
+    { course: "memory", reason: "프롬프트에 전화번호 들어 있음" },
+    { course: "tool", reason: "검색을 켜고 써 본 적 없다고 답함" },
   ]);
 });
 

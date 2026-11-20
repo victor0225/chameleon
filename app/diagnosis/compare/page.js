@@ -18,7 +18,6 @@ import {
   Arrow,
   Bar,
   Chip,
-  COUNT_WORD,
   FilesLine,
   FlowNav,
   IDS,
@@ -33,7 +32,7 @@ import {
   WithBlanks,
 } from "./parts";
 
-const FLOW = ["내 결과 보기", "다듬은 프롬프트", "두 결과 비교"];
+const FLOW = ["내 프롬프트 결과", "다듬은 프롬프트", "두 결과 비교"];
 
 export default function ComparePage() {
   const { ready, diagnosis } = useAppState();
@@ -137,8 +136,8 @@ function RefineCompare({ onSelfCompare }) {
     return (
       <div className={s.wrap}>
         <div className={s.empty}>
-          <h1 className="display">아직 진단 결과가 없어요</h1>
-          <p className={s.sub}>프롬프트를 한 번 진단받으면, 다듬은 프롬프트와 결과를 나란히 비교할 수 있어요.</p>
+          <h1 className="display">아직 진단 결과 없음</h1>
+          <p className={s.sub}>프롬프트를 한 번 진단받으면 다듬은 프롬프트와 결과 비교 가능</p>
           <Link href="/diagnosis" className={s.primary}>
             진단하러 가기
           </Link>
@@ -151,8 +150,8 @@ function RefineCompare({ onSelfCompare }) {
     return (
       <div className={s.wrap}>
         <div className={s.empty}>
-          <h1 className="display">다섯 요소가 모두 들어 있어요</h1>
-          <p className={s.sub}>채울 요소가 없어서 비교할 것이 없어요. 더 어려운 업무로 연습해 보세요.</p>
+          <h1 className="display">다섯 요소 모두 포함</h1>
+          <p className={s.sub}>채울 요소가 없어 비교할 것 없음. 더 어려운 업무로 연습하기.</p>
           {onSelfCompare ? (
             <button type="button" className={s.primary} onClick={onSelfCompare}>
               내가 고친 프롬프트와 비교하기
@@ -197,17 +196,16 @@ function RefineCompare({ onSelfCompare }) {
 
   return (
     <div className={s.wrap}>
-      <Link href="/diagnosis/result" className={s.back}>
-        <Arrow back />
-        진단 결과로
-      </Link>
+      <div className={s.mtop}>
+        <Link href="/diagnosis/result" className={s.back}>
+          <Arrow back />
+          진단 결과로
+        </Link>
+        {done && <FlowNav labels={FLOW} step={step} onStep={setStep} />}
+      </div>
 
       <div className={s.top}>
-        <div>
-          <h1 className={`display ${s.title}`}>같은 일, 두 결과</h1>
-          <p className={s.sub}>내가 쓴 프롬프트와 다섯 요소를 채운 프롬프트를 AI에게 똑같이 보내 봤어요.</p>
-          {sample && <p className={s.note}>AI가 연결되어 있지 않아 미리 만든 예시 결과를 보여 줘요.</p>}
-        </div>
+        <h1 className={`display ${s.title}`}>두 프롬프트 결과 비교</h1>
         {onSelfCompare && (
           <button type="button" className={s.textLink} onClick={onSelfCompare}>
             내가 고친 프롬프트와 비교하기
@@ -231,26 +229,20 @@ function RefineCompare({ onSelfCompare }) {
 
       {done && (
         <>
-          <FlowNav labels={FLOW} step={step} onStep={setStep} />
-
           {step === 1 && (
             <>
-              <div className={s.stepHead}>
-                <h2 className="display">먼저, 내 프롬프트로 받은 결과예요</h2>
-                <p>점선 밑줄은 정보가 없어서 AI가 마음대로 정한 부분이에요.</p>
-              </div>
               <div className={s.row}>
                 <section className={`${s.card} ${s.mineCard}`} aria-labelledby="mine-p">
-                  <div className={s.cardHead}>
-                    <h3 id="mine-p">{sample ? "예시 프롬프트" : "내가 쓴 프롬프트"}</h3>
-                    <Bar on={data.found} />
-                  </div>
+                  <h3 id="mine-p" className={s.lbl}>
+                    {sample ? "예시 프롬프트" : "내 프롬프트"}
+                  </h3>
                   <p className={s.prompt}>
                     <PromptText segments={data.segments} prompt={data.prompt} />
                   </p>
                   <FilesLine files={data.files} />
+                  <Bar on={data.found} />
                   <div className={s.empties}>
-                    <span>비어 있는 요소</span>
+                    <span>비어 있음</span>
                     {compared.map((id) => (
                       <span key={id} className={s.emptyChip}>
                         {ITEM[id].name}
@@ -260,26 +252,29 @@ function RefineCompare({ onSelfCompare }) {
                 </section>
                 <section className={`${s.card} ${s.mineResult}`} aria-labelledby="mine-r">
                   <div className={s.cardHead}>
-                    <h3 id="mine-r">내 프롬프트로 받은 결과</h3>
+                    <h3 id="mine-r" className={s.lbl}>
+                      내 프롬프트로 받은 결과
+                    </h3>
                     <SampleBadge on={sample} />
                   </div>
                   <MarkedOutput output={data.mine.output} marks={data.mine.guesses} numOf={numOf} />
-                  <LengthLine output={data.mine.output} numOf={numOf} />
+                  <LengthLine output={data.mine.output} numOf={numOf} sample={sample} />
                   <ul className={s.bubbles}>
                     {compared.map((id) => (
                       <li key={id} style={vars(id)}>
-                        <Num id={id} n={numOf(id)} />
-                        <span>
-                          <Chip id={id} /> {data.mine.guesses.find((g) => g.item === id)?.reason ?? RULE_REASONS[id]}
+                        <span className={s.whyChip} style={vars(id)}>
+                          {numOf(id)} {ITEM[id].name}
                         </span>
+                        <span>{data.mine.guesses.find((g) => g.item === id)?.reason ?? RULE_REASONS[id]}</span>
                       </li>
                     ))}
                   </ul>
                 </section>
               </div>
               <div className={s.nextRow}>
+                <span className={s.note}>점선 밑줄 = 정보가 없어 AI가 임의로 정한 부분</span>
                 <button type="button" className={s.cta} onClick={() => setStep(2)}>
-                  AI가 다듬은 프롬프트 보기
+                  다듬은 프롬프트 보기
                   <Arrow />
                 </button>
               </div>
@@ -289,8 +284,8 @@ function RefineCompare({ onSelfCompare }) {
           {step === 2 && (
             <div className={s.narrow}>
               <div className={s.stepHead}>
-                <h2 className="display">빠진 {COUNT_WORD[compared.length]} 요소를 채웠어요</h2>
-                <p>새로 들어간 문장마다 왜 넣었는지 적었어요.</p>
+                <h2 className="display">빠진 요소 {compared.length}개 채움</h2>
+                <p>새 문장마다 넣은 이유 표시</p>
               </div>
               <div className={s.orig}>
                 <span className={s.origLabel}>원래 프롬프트</span>
@@ -337,8 +332,8 @@ function RefineCompare({ onSelfCompare }) {
           {step === 3 && (
             <>
               <div className={s.stepHead}>
-                <h2 className="display">두 결과를 나란히 볼까요</h2>
-                <p>달라진 점을 누르면 양쪽 결과에서 함께 보여요.</p>
+                <h2 className="display">두 결과 나란히 보기</h2>
+                <p>달라진 점을 누르면 양쪽 결과에 함께 표시</p>
               </div>
               <div className={s.compareRow}>
                 <section className={`${s.card} ${s.side}`} aria-labelledby="c-mine">
@@ -347,7 +342,7 @@ function RefineCompare({ onSelfCompare }) {
                     <SampleBadge on={sample} />
                   </div>
                   <MarkedOutput output={data.mine.output} marks={data.mine.guesses} numOf={numOf} focus={lit} />
-                  <LengthLine output={data.mine.output} numOf={numOf} focus={lit} />
+                  <LengthLine output={data.mine.output} numOf={numOf} focus={lit} sample={sample} />
                 </section>
 
                 <section className={s.diffCol} aria-labelledby="diff-h">
@@ -383,7 +378,7 @@ function RefineCompare({ onSelfCompare }) {
                   {IDS.filter((id) => data.found.includes(id)).map((id) => (
                     <div key={id} className={s.same}>
                       <Chip id={id} />
-                      <span>두 프롬프트 모두 있어요</span>
+                      <span>두 프롬프트 모두 있음</span>
                       <b>같음</b>
                     </div>
                   ))}
@@ -395,7 +390,7 @@ function RefineCompare({ onSelfCompare }) {
                     <SampleBadge on={sample} />
                   </div>
                   <MarkedOutput output={data.run.output} marks={data.run.marks} solid numOf={numOf} focus={lit} />
-                  <LengthLine output={data.run.output} solid numOf={numOf} focus={lit} />
+                  <LengthLine output={data.run.output} solid numOf={numOf} focus={lit} sample={sample} />
                 </section>
               </div>
 
@@ -404,7 +399,7 @@ function RefineCompare({ onSelfCompare }) {
                   <Arrow back />
                   이전
                 </button>
-                <p className="display">이제 내 프롬프트를 직접 고쳐 볼까요?</p>
+                <p className="display">이제 내 프롬프트 직접 고치기</p>
                 <Link href="/prompt" className={s.textLink}>
                   프롬프트 도우미에서 이어서 다듬기
                 </Link>
@@ -413,7 +408,7 @@ function RefineCompare({ onSelfCompare }) {
                     <rect x="5" y="5" width="8.5" height="8.5" rx="2" />
                     <path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" />
                   </svg>
-                  {copied ? "복사했어요" : "다듬은 프롬프트 복사"}
+                  {copied ? "복사함" : "다듬은 프롬프트 복사"}
                 </button>
                 <Link href="/diagnosis/prompt?edit=1" className={`${s.cta} ${s.ctaBig}`}>
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

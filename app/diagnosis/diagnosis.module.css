@@ -1,93 +1,17 @@
 /* 진단 흐름(설문 → 프롬프트 써 보기 → 결과) 세 페이지가 함께 쓰는 스타일 */
 
 .wrap {
-  max-width: 688px;
+  max-width: 768px;
   margin: 0 auto;
   padding: 40px 24px 96px;
   display: grid;
   gap: 32px;
 }
 
-/* ---------- 진행 표시 ---------- */
+/* ---------- 진행 표시(공통 단계 알약) ---------- */
 
 .progress {
-  display: grid;
-  gap: 12px;
-}
-
-.track {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--wash);
-  overflow: hidden;
-}
-
-.track > span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--ink);
-}
-
-.steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  font-size: 14px;
-  line-height: 1.35;
-  color: var(--ink-3);
-}
-
-.steps li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.steps li:nth-child(2) {
   justify-content: center;
-}
-
-.steps li:last-child {
-  justify-content: flex-end;
-}
-
-.stepNum {
-  flex: none;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-}
-
-.steps li.done {
-  color: var(--ink-2);
-}
-
-.steps li.done .stepNum {
-  border-color: var(--wash);
-  background: var(--wash);
-  color: var(--ink);
-}
-
-.steps li.current {
-  color: var(--ink);
-  font-weight: 600;
-}
-
-.steps li.current .stepNum {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: #fff;
 }
 
 /* ---------- 제목 ---------- */
@@ -104,46 +28,58 @@
   line-height: 1.22;
 }
 
-/* ---------- 설문 ---------- */
+/* ---------- 설문(디자인 캔버스 A2): 카드 하나에 질문 셋, 선택지는 2~3열 ---------- */
+
+.wide {
+  max-width: 928px;
+}
+
+.centerTitle {
+  text-align: center;
+  font-size: 40px;
+  line-height: 1.25;
+}
 
 .form {
   display: grid;
   gap: 20px;
 }
 
-.question {
+.surveyCard {
   display: grid;
-  gap: 22px;
+  gap: 32px;
   padding: 28px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 16px;
   background: var(--surface);
+}
+
+.question {
+  display: grid;
+  gap: 14px;
 }
 
 .qTitle {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  font-family: var(--font-display);
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 22px;
   font-weight: 700;
-  font-size: clamp(22px, 3.4vw, 26px);
-  line-height: 1.35;
-  letter-spacing: -0.02em;
+  line-height: 1.4;
 }
 
 .qNum {
-  flex: none;
-  width: 34px;
-  height: 34px;
-  margin-top: 1px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  border: 1.5px solid var(--ink);
   font-family: var(--font-mono);
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.qHint {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink-2);
 }
 
 .choices {
@@ -151,26 +87,36 @@
   gap: 10px;
 }
 
+.cols2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cols3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .choice {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 18px 20px;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 72px;
+  padding: 14px 16px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--surface);
   cursor: pointer;
-  transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, background-color 0.15s;
 }
 
 .choice:hover {
   border-color: var(--ink-2);
 }
 
+/* 고른 선택지: 2px 진한 테두리 + 옅은 면(진한 채움은 주 버튼에만) */
 .choice:has(.radio:checked) {
-  border-color: var(--ink);
-  box-shadow: inset 0 0 0 1px var(--ink);
-  background: color-mix(in srgb, var(--ink) 3%, var(--surface));
+  border: 2px solid var(--ink);
+  padding: 13px 15px;
+  background: color-mix(in srgb, var(--paper) 55%, var(--surface));
 }
 
 .choice:has(.radio:focus-visible) {
@@ -182,20 +128,17 @@
   appearance: none;
   -webkit-appearance: none;
   flex: none;
-  width: 22px;
-  height: 22px;
-  margin: 0;
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
   border-radius: 50%;
-  border: 2px solid var(--ink-3);
+  border: 2px solid var(--ink-2);
   background: var(--surface);
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .radio:checked {
-  border-color: var(--ink);
-  background: var(--ink);
-  box-shadow: inset 0 0 0 4px var(--surface);
+  border: 6px solid var(--ink);
 }
 
 .radio:focus-visible {
@@ -203,13 +146,12 @@
 }
 
 .checkbox {
-  border-radius: 6px;
+  border-radius: 5px;
 }
 
-.qHint {
-  margin: -6px 0 0 48px;
-  font-size: 14px;
-  color: var(--ink-2);
+.checkbox:checked {
+  border: 2px solid var(--ink);
+  background: var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 14px no-repeat;
 }
 
 .choiceText {
@@ -219,12 +161,19 @@
 }
 
 .choiceText strong {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
+  line-height: 1.4;
 }
 
 .choiceText span {
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.note {
+  font-size: 13px;
   color: var(--ink-2);
 }
 
@@ -239,11 +188,17 @@
   margin-left: auto;
 }
 
+/* '이전'과 '진단 받기'·'다음'을 같은 높이로 */
+.actions :global(.btn) {
+  height: 48px;
+}
+
 /* 전역 .btn보다 먼저 읽혀도 크기가 덮이지 않게 두 클래스로 쓴다. */
 :global(.btn).cta {
-  min-width: 128px;
-  padding: 14px 24px;
-  font-size: 17px;
+  min-width: 160px;
+  height: 48px;
+  padding: 0 22px;
+  font-size: 16px;
 }
 
 /* ---------- 프롬프트 써 보기 ---------- */
@@ -679,4 +634,217 @@
 
 .fileCoach p {
   margin: 0;
+}
+
+/* ---------- 진단 결과(디자인 캔버스 A4) ---------- */
+
+.h2 {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.h3 {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.right {
+  margin-left: auto;
+}
+
+.summary {
+  padding: 32px;
+  gap: 18px;
+}
+
+.summaryTop {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+}
+
+.summary .level {
+  margin-top: 6px;
+  font-size: 56px;
+  line-height: 1.1;
+}
+
+.summaryBar {
+  margin-left: auto;
+  width: 420px;
+}
+
+.summaryLine {
+  font-size: 18px;
+}
+
+.summaryActions {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+:global(.btn).bigBtn {
+  height: 52px;
+  padding: 0 22px;
+  font-size: 16px;
+}
+
+.mineCard {
+  padding: 28px 32px;
+  gap: 24px;
+}
+
+.promptText {
+  margin-top: 10px;
+  font-size: 17px;
+  line-height: 1.8;
+}
+
+.mineCard :global(.anatomy) + div {
+  margin-top: 14px;
+}
+
+.mineCard .fileCoach {
+  display: flex;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--wash);
+}
+
+.mineCard .fileCoach h3 {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.rowHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rowHead > :last-child:not(:first-child) {
+  margin-left: auto;
+}
+
+.missList {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.miss {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  padding: 14px 0;
+  border-top: 1px solid var(--wash);
+  font-size: 15px;
+}
+
+.miss p + p {
+  margin-top: 4px;
+}
+
+.missKey {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.nextSteps {
+  margin-top: 16px;
+  display: grid;
+  gap: 4px;
+}
+
+.nextSteps .courses {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.nx {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+
+.nx:hover {
+  border-color: var(--ink);
+}
+
+.nx strong {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.nxWhy {
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.nxGo {
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.nextSteps .services {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.nxRow {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+}
+
+.bottomRow {
+  margin-top: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 760px) {
+  .summaryTop {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .summaryBar {
+    width: auto;
+    margin-left: 0;
+  }
+
+  .miss,
+  .nextSteps .courses,
+  .nextSteps .services {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

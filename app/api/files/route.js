@@ -10,17 +10,17 @@ export async function POST(request) {
   // 크기를 밝히지 않은 요청(chunked)은 다 읽기 전에는 크기를 알 수 없어 받지 않는다. 브라우저 FormData는 늘 밝힌다.
   const length = Number(request.headers.get("content-length"));
   if (!request.headers.get("content-length") || !Number.isFinite(length)) {
-    return Response.json({ error: "요청 형식이 올바르지 않아요." }, { status: 411 });
+    return Response.json({ error: "요청 형식이 올바르지 않음." }, { status: 411 });
   }
   // FormData 머리글까지 조금 여유를 둔다. 실제 크기는 파일을 꺼내 다시 본다.
   if (length > MAX_FILE_BYTES + 64 * 1024) {
-    return Response.json({ error: "4MB가 넘어서 올리지 못했어요. 필요한 쪽만 PDF로 저장해서 올려 주세요." }, { status: 413 });
+    return Response.json({ error: "4MB 넘어서 올리지 못함. 필요한 쪽만 PDF로 저장해서 올리기." }, { status: 413 });
   }
   let file;
   try {
     file = (await request.formData()).get("file");
   } catch {
-    return Response.json({ error: "요청 형식이 올바르지 않아요." }, { status: 400 });
+    return Response.json({ error: "요청 형식이 올바르지 않음." }, { status: 400 });
   }
   const error = checkUpload(file);
   if (error) return Response.json({ error }, { status: 400 });
@@ -34,6 +34,6 @@ export async function POST(request) {
     return Response.json(await uploadToGemini(file, { ai }));
   } catch (err) {
     console.warn("[/api/files] 올리기 실패:", err?.message || "unknown");
-    return Response.json({ error: "파일을 올리지 못했어요. 다시 올려 주세요." }, { status: 502 });
+    return Response.json({ error: "파일을 올리지 못함. 다시 올리기." }, { status: 502 });
   }
 }

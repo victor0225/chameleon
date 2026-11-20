@@ -65,11 +65,23 @@ export function Header() {
             );
           })}
         </nav>
-        {tour && (
-          <button type="button" className={styles.tourButton} onClick={replayTour}>
-            화면 안내
-          </button>
-        )}
+        {/* 오른쪽 칸: 화면 안내 · 수준 칩 · 로그인 순서를 모든 화면에서 같게 둔다(공통 칸 ①).
+            안내가 없는 화면에서도 자리는 남겨 칩이 옆으로 밀리지 않게 한다. */}
+        <div className={styles.right}>
+        <button
+          type="button"
+          className={styles.tourButton}
+          onClick={replayTour}
+          hidden={!tour}
+          style={tour ? undefined : { display: "inline-flex", visibility: "hidden" }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6" />
+            <circle cx="12" cy="17" r=".6" fill="currentColor" />
+          </svg>
+          화면 안내
+        </button>
         <Link
           href="/mypage"
           className={`level-chip ${styles.chip}${onMypage ? ` ${styles.active}` : ""}`}
@@ -90,6 +102,7 @@ export function Header() {
             로그인
           </Link>
         )}
+        </div>
       </div>
     </header>
   );

@@ -2,9 +2,9 @@
    요소 색은 --c(칠하는 색)와 --t(글자에 쓰는 색)로 받는다. 흐린 회색(--ink-3)은 테두리와 점선에만 쓴다. */
 
 .wrap {
-  max-width: 1280px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 24px 32px 72px;
+  padding: 28px 32px 72px;
   font-size: 15px;
   line-height: 1.6;
 }
@@ -32,7 +32,7 @@
 }
 
 .title {
-  font-size: 30px;
+  font-size: 40px;
   line-height: 1.25;
 }
 
@@ -307,10 +307,14 @@
   background: var(--paper);
 }
 
-/* 단계 표시 */
+/* 단계 표시: 진단·미션과 같은 알약(공통 칸 ②). 비교는 누르면 그 단계로 간다. */
 
-.flow {
-  margin-top: 24px;
+.mtop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .flow ol {
@@ -332,17 +336,22 @@
 .flowBtn {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  height: 44px;
-  padding: 0 16px 0 6px;
-  border: 0;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
   border-radius: 999px;
-  background: transparent;
+  background: var(--surface);
   color: var(--ink-2);
   font: inherit;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
+}
+
+.flowBtn:hover {
+  border-color: var(--ink-2);
 }
 
 .flowBtn.done {
@@ -350,45 +359,19 @@
 }
 
 .flowBtn.current {
-  background: var(--surface);
-  color: var(--ink);
-  font-weight: 700;
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-
-.flowDot {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 600;
-  background: var(--wash);
-  color: var(--ink-2);
-}
-
-.flowBtn.current .flowDot {
   background: var(--ink);
+  border-color: var(--ink);
   color: #fff;
 }
 
-.flowBtn.done .flowDot {
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: inset 0 0 0 1.5px var(--ink);
+.flowDot {
+  font-family: var(--font-mono);
 }
 
 .flowLine {
-  width: 48px;
-  height: 2px;
+  width: 20px;
+  height: 1px;
   background: var(--line);
-}
-
-.flowLine.done {
-  background: var(--ink);
 }
 
 /* 단계 공통 */
@@ -407,11 +390,17 @@
 }
 
 .row {
-  margin-top: 20px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 24px;
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.lbl {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
 }
 
 .card {
@@ -517,11 +506,25 @@
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  padding: 9px 12px;
-  border-radius: 4px 12px 12px 12px;
-  background: color-mix(in srgb, var(--c) 7%, transparent);
-  font-size: 13px;
-  line-height: 1.6;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--paper) 55%, var(--surface));
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.whyChip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+  color: var(--t);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .bubbles li > .num {
@@ -529,10 +532,15 @@
 }
 
 .nextRow {
-  margin-top: 28px;
+  margin-top: 20px;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 16px;
+}
+
+.nextRow > .note {
+  margin-top: 0;
 }
 
 .nextRow.between {

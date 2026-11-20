@@ -47,7 +47,7 @@ export default function ReportView() {
     return (
       <div className={styles.wrap}>
         <div className={styles.empty}>
-          <p>아직 진단 결과가 없어요.</p>
+          <p>아직 진단 결과 없음</p>
           <Link href="/diagnosis" className="btn">
             진단하러 가기
           </Link>
@@ -67,7 +67,7 @@ export default function ReportView() {
         <Link href="/diagnosis/result" className="btn ghost small">
           결과 화면으로
         </Link>
-        <p className="small muted">저장 창에서 대상을 &lsquo;PDF로 저장&rsquo;으로 고르면 파일로 받아요.</p>
+        <p className="small muted">저장 창에서 대상을 &lsquo;PDF로 저장&rsquo;으로 고르면 파일로 저장</p>
         <button type="button" className="btn small" onClick={() => window.print()}>
           PDF로 저장
         </button>
@@ -103,7 +103,7 @@ export default function ReportView() {
             <p className={styles.level}>{level}</p>
           </div>
           <p className={styles.comment}>
-            다섯 요소 중 <strong>{found.length}개</strong>가 들어 있어요.{comment ? ` ${comment}` : ""}
+            다섯 요소 중 <strong>{found.length}개</strong> 포함.{comment ? ` ${comment}` : ""}
           </p>
         </section>
 
@@ -137,7 +137,7 @@ export default function ReportView() {
             )}
           </p>
           {files?.length > 0 && <p className={styles.files}>첨부한 파일: {filesLine(files)}</p>}
-          <p className={styles.legend}>밑줄 색은 문장에 들어 있는 요소예요.</p>
+          <p className={styles.legend}>밑줄 색 = 문장에 들어 있는 요소</p>
         </section>
 
         {missing.length > 0 && (
@@ -158,11 +158,11 @@ export default function ReportView() {
           <ol className={styles.next}>
             {lesson && (
               <li>
-                AI 활용 교육에서 <strong>「{lesson.title}」</strong> 미션부터 시작해 보세요. ({lesson.level} ·{" "}
+                AI 활용 교육에서 <strong>「{lesson.title}」</strong> 미션부터 시작 ({lesson.level} ·{" "}
                 {ITEM[lesson.focus].name} 익히기)
               </li>
             )}
-            <li>프롬프트 작성 도우미에서 실제 업무 프롬프트를 만들어 보세요.</li>
+            <li>프롬프트 작성 도우미에서 실제 업무 프롬프트 만들기</li>
           </ol>
         </section>
 

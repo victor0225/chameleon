@@ -45,7 +45,7 @@ test("mem1 분류: 모두 맞히면 통과, 한 장 틀려도 7/8이면 통과",
   const one = gradeSort(mem1, { ...allRight(), budget: "keep" });
   assert.equal(one.passed, true);
   assert.equal(one.coaching, null);
-  assert.equal(one.leftover.question, "다음 달에 다른 일을 맡길 때도 이 정보가 맞을까요?");
+  assert.equal(one.leftover.question, "다음 달 다른 일을 맡길 때도 맞는 정보인가?");
 });
 
 test("mem1 분류: 금지 카드를 하나라도 다른 칸에 두면 7/8이어도 통과 못 하고, 그 카드를 묻는다", () => {
@@ -53,19 +53,19 @@ test("mem1 분류: 금지 카드를 하나라도 다른 칸에 두면 7/8이어�
   assert.equal(r.passed, false);
   assert.deepEqual(r.score, { right: 7, total: 8 });
   assert.deepEqual(r.criteria.map((c) => c.met), [true, false]);
-  assert.equal(r.coaching.question, '"옆 팀 동료의 인사 평가 내용"이 AI 서비스 기록에 남아도 괜찮을까요?');
-  assert.equal(r.coaching.detail, "이번 작업에만 쓰더라도, 대화 기록은 서비스에 남을 수 있어요.");
+  assert.equal(r.coaching.question, "'옆 팀 동료의 인사 평가 내용'이 AI 서비스 기록에 남아도 괜찮은가?");
+  assert.equal(r.coaching.detail, "이번 작업에만 써도 대화 기록은 서비스에 남을 수 있음.");
   assert.equal(r.coaching.to, "never");
   const pw = gradeSort(mem1, { ...allRight(), password: "keep" });
-  assert.match(pw.coaching.question, /^"회사 공용 계정 비밀번호"가 /);
+  assert.match(pw.coaching.question, /^'회사 공용 계정 비밀번호'가 /);
   const phone = gradeSort(mem1, { ...allRight(), phone: "once" });
-  assert.match(phone.coaching.question, /5678"이 /);
+  assert.match(phone.coaching.question, /5678'이 /);
 });
 
 test("mem1 분류: 오래↔이번만을 바꿔 놓으면 그 방향의 질문, 금지 카드가 먼저", () => {
   const r = gradeSort(mem1, { ...allRight(), role: "once", deadline: "keep" });
   assert.equal(r.passed, false);
-  assert.equal(r.coaching.question, "매번 다시 말하고 있는 정보는 아닌가요?");
+  assert.equal(r.coaching.question, "매번 다시 말하고 있는 정보는 아닌가?");
   assert.equal(r.coaching.to, null);
   const first = gradeSort(mem1, { ...allRight(), role: "once", deadline: "keep", password: "once" });
   assert.equal(first.coaching.card, "password");
@@ -89,14 +89,14 @@ test("tool1 고르기: 6장 중 5장 맞히면 통과, '맡기지 않기'를 놓
   const no = gradeSort(tool1, { ...toolRight(), grade: "file" });
   assert.equal(no.passed, false);
   assert.deepEqual(no.criteria.map((c) => c.met), [true, false]);
-  assert.equal(no.coaching.question, '"직원 평가 최종 등급 정하기"가 AI의 답대로 끝내도 되는 일일까요?');
-  assert.equal(no.coaching.detail, "결과에 책임을 지는 사람이 누구인지 생각해 보세요.");
+  assert.equal(no.coaching.question, "'직원 평가 최종 등급 정하기'가 AI의 답대로 끝내도 되는 일인가?");
+  assert.equal(no.coaching.detail, "결과에 책임을 지는 사람이 누구인지 생각해 보기.");
   // tool1은 옮겨 볼 칸을 알려 주지 않는다.
   assert.equal(no.coaching.to, null);
   const two = gradeSort(tool1, { ...toolRight(), rate: "ask", contract: "ask" });
   assert.equal(two.passed, false);
-  assert.equal(two.coaching.question, "이 일에 필요한 정보는 AI가 배울 때 이미 있었을까요?");
-  assert.match(validateSort(tool1, { rate: "search" }), /고르지 않은 상황이 5개/);
+  assert.equal(two.coaching.question, "이 일에 필요한 정보가 AI가 배울 때 이미 있었는가?");
+  assert.match(validateSort(tool1, { rate: "search" }), /고르지 않은 상황 5개/);
 });
 
 const spotAnswer = (over = {}) => ({
@@ -117,10 +117,10 @@ test("ver1 오류 찾기: 보드의 예(3곳 찾고 출처 문장 놓침)는 통
   assert.equal(s1.fix, "예산은 300만 원으로 정했어요.");
   assert.equal(s1.note, "");
   assert.equal(s3.status, "missed");
-  assert.equal(s3.question, "이 조사는 회의록 어디에 나오나요?");
+  assert.equal(s3.question, "이 조사는 회의록 어디에 나오는가?");
   // 종류가 달라도 문장을 맞게 골랐으면 찾은 것으로 치고, 한 줄로 알려 준다.
   assert.equal(s4.status, "found");
-  assert.equal(s4.note, "회의록에 아예 없는 내용이라 '지어낸 내용'에 더 가까워요.");
+  assert.equal(s4.note, "회의록에 아예 없는 내용이라 '지어낸 내용'에 더 가까움.");
   assert.equal(r.review.missing.status, "found");
 });
 
@@ -128,7 +128,7 @@ test("ver1 오류 찾기: 2곳만 찾으면 실패하고, 놓친 문장의 답�
   const r = gradeSpot(ver1, spotAnswer({ missing: "" }));
   assert.equal(r.passed, false);
   assert.equal(r.score.found, 2);
-  assert.equal(r.coaching.question, "이 조사는 회의록 어디에 나오나요?");
+  assert.equal(r.coaching.question, "이 조사는 회의록 어디에 나오는가?");
   assert.equal(r.review.sentences[2].question, undefined);
   assert.equal(r.review.missing.status, "empty");
 });
@@ -164,12 +164,12 @@ test("file1 결과 확인: 목록 번호는 빼고, 보고서에 없는 숫자�
 test("file1 채점: 보드의 프롬프트는 4개 중 3개, 예시 보고서면 키 없이도 결과물 숫자를 확인한다", async () => {
   const files = [{ name: "3분기_고객문의_보고서.pdf", mimeType: "application/pdf" }];
   const prompt = "첨부한 보고서에서 팀장님께 올릴 핵심 세 가지를 뽑아 줘. 번호 목록으로.";
-  assert.equal(validateEvaluation({ lessonId: "file1", prompt }), "파일을 붙여야 평가할 수 있어요.");
+  assert.equal(validateEvaluation({ lessonId: "file1", prompt }), "파일을 붙여야 평가 가능.");
   assert.equal(validateEvaluation({ lessonId: "file1", prompt, files }), null);
   const r = await runEvaluation({ lessonId: "file1", prompt, files, sample: true });
   assert.deepEqual(r.criteria.map((c) => c.met), [true, true, true, false]);
   assert.equal(r.passed, false);
-  assert.equal(r.coaching.question, "보고서에 없는 내용이 필요해지면 AI가 어떻게 해야 하나요?");
+  assert.equal(r.coaching.question, "보고서에 없는 내용이 필요해지면 AI가 할 일은?");
   assert.deepEqual(r.check.unknown, ["3.5", "30"]);
   const good = await runEvaluation({ lessonId: "file1", prompt: file1.model, files, sample: true });
   assert.equal(good.passed, true);
@@ -189,5 +189,5 @@ test("Gemini 채점: 자료와 다섯 요소가 아닌 기준을 함께 보낸�
   const r = await runEvaluation({ lessonId: "mem2", prompt: mem2.model }, { ask });
   assert.equal(r.passed, true);
   assert.match(sent.contents, /<material>[\s\S]*010-9876-5432[\s\S]*<\/material>/);
-  assert.match(sent.contents, /0 \[기타\]: 지금까지 정한 것을/);
+  assert.match(sent.contents, /0 \[기타\]: 지금까지 정한 것을 담으라고 지시/);
 });

@@ -24,7 +24,7 @@ test("받는 파일: PDF·그림·텍스트만, 4MB까지. MIME이 비면 확장
   assert.equal(formatSize(1.2 * 1024 * 1024), "1.2MB");
   assert.equal(formatSize(300 * 1024), "300KB");
   assert.equal(filesLine([{ name: "a.pdf" }, { name: "b.csv" }]), "a.pdf 외 1개");
-  assert.equal(checkUpload(null), "올릴 파일이 없어요.");
+  assert.equal(checkUpload(null), "올릴 파일 없음.");
   assert.match(checkUpload(new File(["x"], "견적서.docx")), /PDF로 저장/);
   assert.equal(checkUpload(new File(["x"], "a.txt", { type: "text/plain" })), null);
 });
@@ -111,7 +111,7 @@ test("파일을 가리키는 말: 붙였는데 안 가리키면 질문, 안 붙�
   assert.equal(fileCoaching({ prompt: "첨부한 회의록으로 정리해 줘", files: [PDF] }), null);
   const unused = fileCoaching({ prompt: "보고 정리해 줘", files: [PDF, PDF] });
   assert.equal(unused.kind, "unused");
-  assert.equal(unused.question, "붙인 파일은 무엇이고, AI가 그걸로 무엇을 해야 하나요?");
+  assert.equal(unused.question, "붙인 파일로 AI가 할 일은?");
   assert.match(unused.detail, /파일 두 개를 붙였지만/);
   assert.equal(fileCoaching({ prompt: "첨부한 파일 요약해 줘", files: [] }).kind, "missing");
   assert.ok(analyze("첨부한 회의록으로 정리해 줘").found.includes("context"));

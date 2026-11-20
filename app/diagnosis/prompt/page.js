@@ -10,6 +10,7 @@ import { attachedFiles, entriesFrom, FileAttach, isUploading } from "@/component
 import { Tour } from "@/components/Tour";
 import { JOB } from "@/data/jobs";
 import { analyze } from "@/lib/anatomy";
+import { HOME_DRAFT_KEY } from "@/lib/homeDraft";
 import { Progress } from "../_components/Progress";
 import s from "../diagnosis.module.css";
 
@@ -76,6 +77,19 @@ function DiagnosisPrompt() {
     setDraft(diagnosis.prompt);
     setEntries(entriesFrom(savedFiles));
   }, [ready, editing, diagnosis?.prompt, savedFiles]);
+  // 메인 입력 칸에 써 두고 온 글이 있으면 빈 칸에 한 번 채운다(캔버스 A1: 쓴 글을 들고 진단으로).
+  useLayoutEffect(() => {
+    if (editing) return;
+    let saved = null;
+    try {
+      saved = sessionStorage.getItem(HOME_DRAFT_KEY);
+      sessionStorage.removeItem(HOME_DRAFT_KEY);
+    } catch {
+      // 저장소를 못 쓰면 빈 칸으로 시작한다.
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 화면이 보일 때 한 번 채우는 것이라 effect가 맞다.
+    if (saved) setDraft((d) => d || saved);
+  }, [editing]);
   const uploading = isUploading(entries);
   const found = useMemo(() => analyze(draft).found, [draft]);
   const target = survey ? JOB[survey.job] : null;
@@ -83,7 +97,7 @@ function DiagnosisPrompt() {
   async function submit(e) {
     e.preventDefault();
     if (!draft.trim()) {
-      setError("진단하려면 프롬프트를 한 줄 이상 써 주세요.");
+      setError("프롬프트를 한 줄 이상 써야 진단 가능");
       return;
     }
     if (uploading) return;
@@ -109,7 +123,7 @@ function DiagnosisPrompt() {
       router.push("/diagnosis/result");
     } catch (err) {
       setLoading(false);
-      setError(err?.message || "진단하지 못했어요. 잠시 뒤 다시 시도해 주세요.");
+      setError(err?.message || "진단하지 못함. 잠시 뒤 다시 시도.");
     }
   }
 
@@ -125,8 +139,8 @@ function DiagnosisPrompt() {
     return (
       <div className={s.wrap}>
         <div className={s.empty}>
-          <h1 className="display">설문부터 답해 주세요</h1>
-          <p className="muted">직무를 고르면 프롬프트를 써 볼 수 있어요.</p>
+          <h1 className="display">설문부터 답하기</h1>
+          <p className="muted">직무를 고르면 프롬프트 써 보기 가능</p>
           <Link href="/diagnosis" className="btn">
             설문으로 가기
           </Link>
@@ -139,13 +153,10 @@ function DiagnosisPrompt() {
     <div className={s.wrap}>
       <Tour id="diagnosis" />
       <Progress step={2} />
-      <header className={s.head}>
-        <h1 className="display">프롬프트 한 번 써 보기</h1>
-        <p className="lede">정답은 없어요. 평소 AI에게 일을 맡기듯 그대로 써 주세요. 업무 자료가 있으면 같이 붙여도 돼요.</p>
-      </header>
+      <h1 className={`display ${s.centerTitle}`}>프롬프트 한 번 써 보기</h1>
 
       <form className={s.form} onSubmit={submit} noValidate>
-        <section className={s.question} aria-label="프롬프트 써 보기">
+        <section className={s.surveyCard} aria-label="프롬프트 써 보기">
           <div className="field">
             <label htmlFor="diagnosis-prompt">AI에게 보낼 프롬프트</label>
             <FileAttach entries={entries} setEntries={setEntries} disabled={loading}>
@@ -155,7 +166,7 @@ function DiagnosisPrompt() {
                 className={s.textarea}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder="평소 AI에게 말하듯 그대로 써 보세요"
+                placeholder="평소 AI에게 일을 맡기듯 그대로 쓰기. 정답 없음"
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? "diagnosis-prompt-error" : undefined}
               />
@@ -163,9 +174,9 @@ function DiagnosisPrompt() {
           </div>
           <div className={s.live} data-tour="diagnosis-meter">
             <ScaleBar found={found} />
-            <p className="small muted">
-              쓰는 동안 들어간 요소가 색으로 채워져요.
-              {entries.length > 0 && " 붙인 파일은 요소로 세지 않아요. 프롬프트에서 파일을 가리켜야 해요."}
+            <p className={s.note}>
+              쓰는 동안 들어간 요소가 색으로 채워짐
+              {entries.length > 0 ? " · 파일은 요소로 안 셈. 프롬프트에서 파일 가리키기" : " · 업무 자료는 파일로 붙이기 가능"}
             </p>
           </div>
           {error && (

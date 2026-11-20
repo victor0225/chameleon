@@ -23,25 +23,25 @@ export async function GET(request) {
     return Response.json(await loadRanking(user?.id ?? null, job && Object.hasOwn(JOB, job) ? job : null));
   } catch (error) {
     console.warn("[/api/ranking] 랭킹 읽기 실패:", error?.message || "unknown");
-    return Response.json({ error: "랭킹을 불러오지 못했어요. 잠시 후 다시 열어 주세요." }, { status: 500 });
+    return Response.json({ error: "랭킹을 불러오지 못함. 잠시 후 다시 열기." }, { status: 500 });
   }
 }
 
 export async function POST(request) {
-  if (!isOn()) return Response.json({ error: "랭킹은 로그인 기능이 켜져 있을 때 쓸 수 있어요." }, { status: 503 });
+  if (!isOn()) return Response.json({ error: "랭킹은 로그인 기능이 켜져 있을 때만 사용 가능." }, { status: 503 });
   // 다른 사이트의 폼은 JSON 형식으로 보낼 수 없으니, JSON 요청만 받아 몰래 바꾸는 요청을 막는다(가입·로그인과 같다).
   if (!request.headers.get("content-type")?.startsWith("application/json")) {
-    return Response.json({ error: "요청 형식이 올바르지 않아요." }, { status: 415 });
+    return Response.json({ error: "요청 형식이 올바르지 않음." }, { status: 415 });
   }
   const user = await getSessionUser();
-  if (!user) return Response.json({ error: "로그인이 필요해요." }, { status: 401 });
+  if (!user) return Response.json({ error: "로그인 필요." }, { status: 401 });
   const text = await request.text();
-  if (text.length > MAX_BODY) return Response.json({ error: "요청이 너무 커요." }, { status: 413 });
+  if (text.length > MAX_BODY) return Response.json({ error: "요청이 너무 큼." }, { status: 413 });
   let body;
   try {
     body = JSON.parse(text);
   } catch {
-    return Response.json({ error: "요청 형식이 올바르지 않아요." }, { status: 400 });
+    return Response.json({ error: "요청 형식이 올바르지 않음." }, { status: 400 });
   }
   const result = await setRanking(user.id, body);
   if (result.error) return Response.json({ error: result.error }, { status: result.status });

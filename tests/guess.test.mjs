@@ -17,9 +17,9 @@ const quietly = async (fn) => {
 };
 
 test("요청 검사: 진단과 같은 문장을 쓰고 experience는 받지 않는다", () => {
-  assert.equal(validateGuess(null), "요청 형식이 올바르지 않아요.");
-  assert.equal(validateGuess([]), "요청 형식이 올바르지 않아요.");
-  assert.equal(validateGuess({ ...body, job: "constructor" }), "관심 직무를 골라 주세요.");
+  assert.equal(validateGuess(null), "요청 형식이 올바르지 않음.");
+  assert.equal(validateGuess([]), "요청 형식이 올바르지 않음.");
+  assert.equal(validateGuess({ ...body, job: "constructor" }), "관심 직무 고르기");
   assert.match(validateGuess({ ...body, prompt: "  " }), /한 줄 이상/);
   assert.match(validateGuess({ ...body, prompt: "가".repeat(3001) }), /3000자/);
   assert.equal(validateGuess(body), null);

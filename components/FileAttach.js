@@ -9,9 +9,11 @@
 import { useId, useRef, useState } from "react";
 import * as api from "@/lib/api";
 import { ACCEPT, checkFile, FILE_ERROR, formatSize, MAX_FILES } from "@/lib/fileRules";
+import { ExampleChip } from "./Common";
 import s from "./fileAttach.module.css";
 
-const NOKEY_NOTE = "AI가 연결되어 있지 않아 파일 내용은 읽지 않고 이름만 기록해요.";
+// AI가 연결되지 않아 파일 내용을 읽지 않을 때: 입력 칸 안 문장 대신 파일 칩 옆에 '예시 결과'와 같은 칩 하나(캔버스 A3)
+const NOKEY_CHIP = "AI 미연결 · 파일 이름만 기록";
 
 // 진단·실습에 넘길 파일. 다 올렸거나(uri) 키가 없어 이름만 받은 것만 보낸다.
 export const attachedFiles = (entries) =>
@@ -65,9 +67,13 @@ export function FileAttach({ entries, setEntries, disabled = false, children }) 
           {entries.map((e) => (
             <Chip key={e.id} entry={e} onRemove={() => remove(e.id)} onRetry={() => upload(e.id, e.file)} />
           ))}
+          {entries.some((e) => e.status === "nokey") && (
+            <li className={s.item}>
+              <ExampleChip>{NOKEY_CHIP}</ExampleChip>
+            </li>
+          )}
         </ul>
       )}
-      {entries.some((e) => e.status === "nokey") && <p className={`${s.note} ${s.noteRow}`}>{NOKEY_NOTE}</p>}
       <div className={s.tools}>
         <input
           ref={input}
@@ -92,12 +98,10 @@ export function FileAttach({ entries, setEntries, disabled = false, children }) 
           파일 첨부
         </button>
         <span className={s.hint}>
-          {full
-            ? `파일은 ${MAX_FILES}개까지 붙일 수 있어요. 하나를 지우면 더 붙일 수 있어요.`
-            : `PDF · 그림 · 텍스트 파일 · ${MAX_FILES}개까지 · 하나에 4MB`}
+          {full ? `파일은 ${MAX_FILES}개까지. 하나 지우면 더 붙이기 가능` : `PDF · 그림 · 텍스트 파일 · 하나에 4MB`}
         </span>
         <span className={`${s.count} ${full ? s.countFull : ""}`} aria-label={`파일 ${entries.length}개 붙임, ${MAX_FILES}개까지`}>
-          {entries.length} / {MAX_FILES}
+          파일 {entries.length}/{MAX_FILES}
         </span>
       </div>
     </div>
@@ -134,7 +138,7 @@ function Chip({ entry: e, onRemove, onRetry }) {
         <span className={s.inline}>
           <span className={`${s.chip} ${s.bad}`}>
             <span className={s.name}>{e.name}</span>
-            <span className={s.badText}>올리지 못했어요</span>
+            <span className={s.badText}>올리지 못함</span>
             {removeButton}
           </span>
           {e.file && (
@@ -152,7 +156,6 @@ function Chip({ entry: e, onRemove, onRetry }) {
         <span className={`${s.chip} ${s.nokey}`}>
           <FileIcon />
           <span className={s.name}>{e.name}</span>
-          <span className={s.state}>내용 못 읽음</span>
           {removeButton}
         </span>
       </li>
@@ -224,7 +227,7 @@ function CloseIcon() {
 }
 
 // 결과·비교 화면: 첨부 파일이 만료(48시간)됐을 때. 파일을 다시 골라 올리면 onDone(새 files)을 부른다.
-export function ExpiredNotice({ onDone, then = "다시 올리면 이어서 비교할 수 있어요." }) {
+export function ExpiredNotice({ onDone, then = "다시 올리면 이어서 비교 가능." }) {
   const input = useRef(null);
   const [state, setState] = useState({ busy: false, error: "" });
 
@@ -240,7 +243,7 @@ export function ExpiredNotice({ onDone, then = "다시 올리면 이어서 비�
       onDone(uploaded.map(({ name, mimeType, size, uri, sig }) => (uri ? { name, mimeType, size, uri, sig } : { name, mimeType, size })));
       setState({ busy: false, error: "" });
     } catch (err) {
-      setState({ busy: false, error: err?.message || "파일을 올리지 못했어요. 다시 올려 주세요." });
+      setState({ busy: false, error: err?.message || "파일을 올리지 못함. 다시 올리기." });
     }
   }
 
@@ -251,7 +254,7 @@ export function ExpiredNotice({ onDone, then = "다시 올리면 이어서 비�
         <polyline points="12 6 12 12 16 14" />
       </svg>
       <div className={s.expiredText}>
-        <p>첨부 파일이 만료됐어요. 파일은 올린 뒤 48시간 동안만 쓸 수 있어요. {then}</p>
+        <p>첨부 파일 만료. 파일은 올린 뒤 48시간 동안만 사용 가능. {then}</p>
         {state.error && (
           <p className={s.error} role="alert">
             {state.error}

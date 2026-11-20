@@ -1,6 +1,7 @@
 "use client";
 
 // 결과 비교 화면의 두 모드(AI가 다듬은 프롬프트, 내가 고친 프롬프트)가 같이 쓰는 조각.
+import { CheckIcon, ExampleChip, NO_AI_TEXT } from "@/components/Common";
 import Link from "next/link";
 import { ExpiredNotice } from "@/components/FileAttach";
 import { countSentences, markRanges, splitBlanks } from "@/lib/compareText";
@@ -89,7 +90,8 @@ export function MarkedOutput({ output, marks, solid, numOf, focus }) {
   );
 }
 
-export function LengthLine({ output, solid, numOf, focus }) {
+// sample: AI 미연결로 미리 만든 예시 결과면 길이 줄 끝에 같은 한 줄을 붙인다(캔버스 A5: 제목 아래가 아니라 결과 카드 안).
+export function LengthLine({ output, solid, numOf, focus, sample = false }) {
   const n = numOf("constraint");
   const tone = focus ? (focus === "constraint" ? ` ${s.hot}` : ` ${s.dim}`) : "";
   return (
@@ -105,6 +107,7 @@ export function LengthLine({ output, solid, numOf, focus }) {
       ) : (
         <span>{countSentences(output)}문장</span>
       )}
+      {sample && ` · ${NO_AI_TEXT}`}
     </p>
   );
 }
@@ -123,7 +126,7 @@ export function PromptText({ segments, prompt }) {
 }
 
 export function SampleBadge({ on }) {
-  return on ? <span className={s.badge}>예시 결과</span> : null;
+  return on ? <ExampleChip /> : null;
 }
 
 export function Arrow({ back }) {
@@ -140,7 +143,7 @@ export function FilesLine({ files }) {
   return <p className={s.files}>첨부: {files.map((f) => f.name).join(", ")}</p>;
 }
 
-export function Pending({ phase, failure, onRetry, onReupload, phases = PHASES, title = "두 프롬프트를 AI에게 보내는 중이에요" }) {
+export function Pending({ phase, failure, onRetry, onReupload, phases = PHASES, title = "두 프롬프트를 AI에게 보내는 중" }) {
   return (
     <>
       <section className={s.pending} aria-live="polite">
@@ -151,7 +154,7 @@ export function Pending({ phase, failure, onRetry, onReupload, phases = PHASES, 
               <path d="M11 6.5v5.5M11 15.2v.3" />
             </svg>
             <p className={s.failText} role="alert">
-              {failure.message || "결과를 받지 못했어요. 잠시 뒤 다시 시도해 주세요."}
+              {failure.message || "결과를 받지 못함. 잠시 뒤 다시 시도."}
             </p>
           </div>
         ) : (
@@ -172,7 +175,7 @@ export function Pending({ phase, failure, onRetry, onReupload, phases = PHASES, 
                 <span className={s.phaseText}>
                   <strong>{label}</strong>
                   <span className={state === "fail" ? s.failSub : undefined}>
-                    {{ done: "끝났어요", now: "진행 중이에요", fail: "응답이 오지 않았어요", wait: "기다리는 중이에요" }[state]}
+                    {{ done: "끝남", now: "진행 중", fail: "응답 없음", wait: "기다리는 중" }[state]}
                   </span>
                 </span>
                 {i < phases.length - 1 && <span className={`${s.phaseLine}${state === "done" ? ` ${s.done}` : ""}`} aria-hidden="true" />}
@@ -225,10 +228,10 @@ export function FlowNav({ labels, step, onStep }) {
                 aria-current={n === step ? "step" : undefined}
                 onClick={() => onStep(n)}
               >
-                <span className={s.flowDot}>{state === "done" ? "✓" : n}</span>
+                {state === "done" ? <CheckIcon /> : <span className={s.flowDot}>{n}</span>}
                 {label}
               </button>
-              {n < labels.length && <span className={`${s.flowLine}${n < step ? ` ${s.done}` : ""}`} aria-hidden="true" />}
+              {n < labels.length && <span className={s.flowLine} aria-hidden="true" />}
             </li>
           );
         })}
