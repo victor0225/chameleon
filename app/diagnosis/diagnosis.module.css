@@ -586,3 +586,28 @@
     border-top: 1px solid var(--line);
   }
 }
+
+/* 결과: 파일 코칭 질문 (붙인 파일을 프롬프트가 가리키지 않을 때) */
+.fileCoach {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 18px 20px;
+  border-radius: 12px;
+  background: var(--wash);
+}
+
+.fileCoach > svg {
+  flex: none;
+  margin-top: 3px;
+}
+
+.fileCoach h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.fileCoach p {
+  margin: 0;
+}

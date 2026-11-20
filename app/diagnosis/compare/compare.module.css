@@ -865,3 +865,10 @@
   flex: 1 1 260px;
   font-size: 19px;
 }
+
+/* 첨부 파일 이름 줄 */
+.files {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}

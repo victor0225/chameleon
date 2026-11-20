@@ -7,6 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import Link from "next/link";
 import * as api from "@/lib/api";
 import { useAppState } from "@/components/AppState";
+import { ExpiredNotice } from "@/components/FileAttach";
 import { COMPARE_SAMPLE } from "@/data/compareSample";
 import { countSentences, markRanges, splitBlanks } from "@/lib/compareText";
 import { ITEM, ITEMS } from "@/lib/items";
@@ -141,7 +142,13 @@ function Arrow({ back }) {
   );
 }
 
-function Pending({ phase, failure, onRetry }) {
+// 첨부 파일 이름 줄. 키가 없을 때 보여 주는 예시에는 첨부가 없다.
+function FilesLine({ files }) {
+  if (!files?.length) return null;
+  return <p className={s.files}>첨부: {files.map((f) => f.name).join(", ")}</p>;
+}
+
+function Pending({ phase, failure, onRetry, onReupload }) {
   return (
     <>
       <section className={s.pending} aria-live="polite">
@@ -181,7 +188,8 @@ function Pending({ phase, failure, onRetry }) {
             );
           })}
         </ol>
-        {failure && (
+        {failure?.expired && <ExpiredNotice onDone={onReupload} />}
+        {failure && !failure.expired && (
           <div className={s.pendingActions}>
             <button type="button" className={s.primary} onClick={onRetry}>
               다시 시도
@@ -243,7 +251,7 @@ export default function ComparePage() {
   const start = useCallback(
     async (target) => {
       running.current = target.at;
-      const base = { job: target.job, prompt: target.prompt, missing: target.missing };
+      const base = { job: target.job, prompt: target.prompt, missing: target.missing, files: target.files };
       const keep = (patch) =>
         setDiagnosis((prev) => (prev?.at === target.at ? { ...prev, ...patch(prev) } : prev));
       let mine = target.compare?.mine ?? (target.guess?.output ? target.guess : null);
@@ -275,7 +283,7 @@ export default function ComparePage() {
           keep((prev) => ({ compare: { ...prev.compare, mine, refined, run: r } }));
         }
       } catch (err) {
-        setFailure({ at: target.at, phase: current, message: err?.message });
+        setFailure({ at: target.at, phase: current, message: err?.message, expired: Boolean(err?.expired) });
       } finally {
         running.current = null;
       }
@@ -325,6 +333,7 @@ export default function ComparePage() {
         segments: diagnosis.segments,
         found: diagnosis.found,
         missing: diagnosis.missing,
+        files: diagnosis.files,
         mine: savedMine,
         refined: saved?.refined,
         run: saved?.run,
@@ -359,7 +368,18 @@ export default function ComparePage() {
         </div>
       </div>
 
-      {!done && <Pending phase={fail ? fail.phase : phase} failure={fail} onRetry={() => setFailure(null)} />}
+      {!done && (
+        <Pending
+          phase={fail ? fail.phase : phase}
+          failure={fail}
+          onRetry={() => setFailure(null)}
+          onReupload={(files) => {
+            // 다시 올린 파일로 바꿔 저장하면, 실패를 풀었을 때 그 파일로 이어서 받는다.
+            setDiagnosis((prev) => (prev?.at === at ? { ...prev, files } : prev));
+            setFailure(null);
+          }}
+        />
+      )}
 
       {done && (
         <>
@@ -401,6 +421,7 @@ export default function ComparePage() {
                   <p className={s.prompt}>
                     <PromptText segments={data.segments} prompt={data.prompt} />
                   </p>
+                  <FilesLine files={data.files} />
                   <div className={s.empties}>
                     <span>비어 있는 요소</span>
                     {compared.map((id) => (

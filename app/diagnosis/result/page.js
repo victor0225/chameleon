@@ -5,6 +5,8 @@ import Link from "next/link";
 import * as api from "@/lib/api";
 import { AnatomyText, ScaleBar, segVar } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
+import { AttachedLine, ClipIcon, ExpiredNotice } from "@/components/FileAttach";
+import { fileCoaching } from "@/lib/fileSignals";
 import { EXPERIENCE, JOB } from "@/data/jobs";
 import { ITEM } from "@/lib/items";
 import { Progress } from "../_components/Progress";
@@ -42,9 +44,11 @@ function markQuotes(output, guesses) {
   return parts;
 }
 
-function GuessSection({ guess, error, onRetry }) {
+function GuessSection({ guess, error, onRetry, notice }) {
   let body;
-  if (error) {
+  if (notice) {
+    body = notice;
+  } else if (error) {
     body = (
       <div className={s.guessError}>
         <p className="error" role="alert">
@@ -156,10 +160,14 @@ export default function DiagnosisResult() {
     (target) => {
       asked.current = target.at;
       api
-        .guessAssumptions({ job: target.job, prompt: target.prompt })
+        .guessAssumptions({ job: target.job, prompt: target.prompt, files: target.files })
         .then((guess) => setDiagnosis((prev) => (prev?.at === target.at ? { ...prev, guess } : prev)))
         .catch((err) =>
-          setGuessError({ at: target.at, message: err?.message || "AI가 추측한 부분을 불러오지 못했어요." }),
+          setGuessError({
+            at: target.at,
+            expired: Boolean(err?.expired),
+            message: err?.message || "AI가 추측한 부분을 불러오지 못했어요.",
+          }),
         );
     },
     [setDiagnosis],
@@ -172,6 +180,14 @@ export default function DiagnosisResult() {
   function retryGuess() {
     setGuessError(null);
     loadGuess(diagnosis);
+  }
+
+  // 첨부 파일이 만료돼 다시 올렸으면 그 파일로 바꿔 저장하고 다시 부른다.
+  function reuploaded(files) {
+    const next = { ...diagnosis, files };
+    setDiagnosis((prev) => (prev?.at === diagnosis.at ? { ...prev, files } : prev));
+    setGuessError(null);
+    loadGuess(next);
   }
 
   if (!ready) {
@@ -196,8 +212,10 @@ export default function DiagnosisResult() {
     );
   }
 
-  const { level, found, missing, comment, segments, prompt, job, experience, at } = diagnosis;
+  const { level, found, missing, comment, segments, prompt, job, experience, at, files } = diagnosis;
   const target = JOB[job];
+  const fileCoach = fileCoaching({ prompt, files });
+  const expired = guessError?.at === at && guessError.expired;
 
   return (
     <div className={s.wrap}>
@@ -244,13 +262,25 @@ export default function DiagnosisResult() {
         <section className={s.section} aria-labelledby="result-prompt">
           <h2 id="result-prompt">내가 쓴 프롬프트</h2>
           <AnatomyText text={prompt} segments={segments} className={s.promptBox} />
+          <AttachedLine files={files} />
           <ScaleBar found={found} />
         </section>
+
+        {fileCoach && (
+          <section className={s.fileCoach} aria-labelledby="file-coach">
+            <ClipIcon size={20} />
+            <div>
+              <h2 id="file-coach">{fileCoach.question}</h2>
+              <p className="small muted">{fileCoach.detail}</p>
+            </div>
+          </section>
+        )}
 
         <GuessSection
           guess={diagnosis.guess}
           error={guessError?.at === at ? guessError.message : ""}
           onRetry={retryGuess}
+          notice={expired && <ExpiredNotice onDone={reuploaded} then="다시 올리면 AI 결과를 이어서 볼 수 있어요." />}
         />
 
         {missing.length > 0 && (
