@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { segVar } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
+import { AuthLinks } from "@/components/AuthLinks";
 import { SETTINGS_KEY, applyLargeText } from "@/components/Header";
 import { LESSONS } from "@/data/curriculum";
 import { EXPERIENCE, JOB } from "@/data/jobs";
@@ -80,7 +81,7 @@ function Skeleton() {
   );
 }
 
-// 로그인이 없어 이름은 게스트로 둔다. 계정이 생기면 이름과 사진만 바꿔 끼우면 된다.
+// 로그인 전에는 이름을 게스트로 둔다.
 const GUEST_NAME = "게스트";
 
 function Avatar() {
@@ -96,7 +97,7 @@ function Avatar() {
   );
 }
 
-function Profile({ profile, diagnosis }) {
+function Profile({ profile, diagnosis, name }) {
   const lastDate = formatDate(diagnosis?.at);
   return (
     <>
@@ -104,7 +105,7 @@ function Profile({ profile, diagnosis }) {
         <Avatar />
         <div className={styles.whoText}>
           <h2 id="me-title" className={`display ${styles.name}`}>
-            {GUEST_NAME}
+            {name || GUEST_NAME}
           </h2>
           {profile ? (
             <p className={styles.levelLine}>
@@ -193,8 +194,50 @@ function Progress({ record }) {
   );
 }
 
+// 계정: 로그인하면 진단·학습 기록이 DB에 저장돼 다른 기기에서도 이어서 할 수 있다. 서버에 DB가 없으면 숨긴다.
+function Account() {
+  const { authChecked, user, login, stats, logout } = useAppState();
+  if (!authChecked || (!user && !login.ready)) return null;
+
+  return (
+    <section className={`card ${styles.section}`} aria-labelledby="account-title">
+      <div className={styles.dataRow}>
+        <div className={styles.dataText}>
+          <h2 id="account-title" className={`display ${styles.title}`}>
+            계정
+          </h2>
+          {user ? (
+            <>
+              <p>
+                <strong>{user.name}</strong> <span className="muted">{user.loginId}</span>
+              </p>
+              <p className="small muted">
+                {stats
+                  ? `진단 ${stats.diagnoses}번, 실습 ${stats.attempts}번의 기록이 계정에 저장돼 있어요.`
+                  : "진단과 학습 기록이 계정에 저장돼요."}
+              </p>
+            </>
+          ) : (
+            <p className="small muted">
+              로그인하면 진단과 학습 기록이 계정에 저장돼, 다른 기기에서도 이어서 할 수 있어요. 이 브라우저에 있던
+              기록도 함께 옮겨요.
+            </p>
+          )}
+        </div>
+        {user ? (
+          <button type="button" className="btn ghost small" onClick={logout}>
+            로그아웃
+          </button>
+        ) : (
+          <AuthLinks next="/mypage" />
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function Mypage() {
-  const { ready, profile, diagnosis, record, reset } = useAppState();
+  const { ready, profile, diagnosis, record, reset, user } = useAppState();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [cleared, setCleared] = useState(false);
 
@@ -217,7 +260,8 @@ export default function Mypage() {
   }
 
   function clearAll() {
-    if (!window.confirm("진단 결과, 학습 기록, 페이지 설정을 모두 지울까요? 지우면 되돌릴 수 없어요.")) return;
+    const where = user ? " 계정에 저장된 기록도 함께 지워져요." : "";
+    if (!window.confirm(`진단 결과, 학습 기록, 페이지 설정을 모두 지울까요?${where} 지우면 되돌릴 수 없어요.`)) return;
     reset();
     try {
       localStorage.removeItem(SETTINGS_KEY);
@@ -235,8 +279,10 @@ export default function Mypage() {
       <div className={styles.column}>
         <h1 className={`display ${styles.pageTitle}`}>마이페이지</h1>
 
+        <Account />
+
         <section className={`card ${styles.profile}`} aria-labelledby="me-title" aria-busy={!ready}>
-          {ready ? <Profile profile={profile} diagnosis={diagnosis} /> : <Skeleton />}
+          {ready ? <Profile profile={profile} diagnosis={diagnosis} name={user?.name} /> : <Skeleton />}
         </section>
 
         <section className={`card ${styles.section}`} aria-labelledby="progress-title" aria-busy={!ready}>
@@ -333,7 +379,11 @@ export default function Mypage() {
               <h2 id="data-title" className={`display ${styles.title}`}>
                 데이터
               </h2>
-              <p className="small muted">진단 결과, 학습 기록, 페이지 설정은 이 브라우저에만 저장돼요.</p>
+              <p className="small muted">
+                {user
+                  ? "진단 결과와 학습 기록은 계정에도 저장돼요. 페이지 설정은 이 브라우저에만 저장돼요."
+                  : "진단 결과, 학습 기록, 페이지 설정은 이 브라우저에만 저장돼요."}
+              </p>
               <p className="small" role="status">
                 {cleared ? "기록을 모두 지웠어요." : ""}
               </p>

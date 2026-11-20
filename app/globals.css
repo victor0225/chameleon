@@ -388,7 +388,8 @@ a {
 }
 
 textarea,
-input[type="text"] {
+input[type="text"],
+input[type="password"] {
   width: 100%;
   font: inherit;
   font-size: 16px;
@@ -406,7 +407,8 @@ textarea {
 }
 
 textarea:focus,
-input[type="text"]:focus {
+input[type="text"]:focus,
+input[type="password"]:focus {
   outline: 2px solid var(--ink);
   outline-offset: 1px;
 }
@@ -1413,4 +1415,13 @@ button.node:hover:not(:disabled) .node-body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ---------- 로그인 ---------- */
+
+.login-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
