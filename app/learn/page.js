@@ -1,10 +1,11 @@
 "use client";
 
 // AI 활용 교육. 보드 K6-2(첫 화면, 손님), K6-1(로그인: 나를 위한 추천 미션), C2-1(과정 1), C2-2(과정 2~6 공통 틀), K7(미션).
-// 첫 화면: 맨 위 추천 첫 미션(로그인하면 나를 위한 추천 미션 세 장) → 여섯 과정 넘기는 카드 줄, 오른쪽에 떠 있는 학습 기록.
+// 첫 화면: 맨 위 나를 위한 추천 미션 세 장(로그인했거나 진단이 있을 때, 없으면 첫 미션 카드 하나) → 교육 과정 넘기는 카드 줄,
+// 오른쪽에 떠 있는 학습 기록. ?mission=<미션 id>로 들어오면 그 미션을 바로 연다(결과 비교 화면의 추천 카드, 작업 O-2).
 // 미션은 경험치(XP)만 올린다. 관심 직무를 골랐으면 그 직무 상황으로 바꾼 미션을 연다(lib/jobContent.js).
 // 과정 화면: 과정 1~6이 같은 미션 줄(번호·요소 칩·상태·XP·시작)과 오른쪽 진행 칸을 쓴다. 과정 1만 초급·중급·고급 탭이 있다.
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ElementChip, LessonRunner, itemVars } from "@/components/LessonRunner";
@@ -180,7 +181,7 @@ function LevelUpBanner({ from, job, onStart, onClose }) {
   );
 }
 
-// 여섯 과정: 넘기는 카드 줄(C1·E4). 한 번에 세 장씩, 오른쪽 위 ← → 버튼으로 넘긴다.
+// 교육 과정: 넘기는 카드 줄(C1·E4). 한 번에 세 장씩, 오른쪽 위 ← → 버튼으로 넘긴다.
 function CourseCarousel({ completed, recommended }) {
   const [page, setPage] = useState(0);
   const pages = Math.ceil(COURSES.length / PAGE_SIZE);
@@ -189,7 +190,7 @@ function CourseCarousel({ completed, recommended }) {
     <section aria-labelledby="courses-title" data-tour="learn-courses">
       <div className={s.sectionHead}>
         <h2 id="courses-title" className={s.h2}>
-          여섯 과정
+          교육 과정
         </h2>
         <div className={s.pager}>
           <span className={`${s.mono} ${s.cap}`}>
@@ -303,7 +304,7 @@ function BackToCourses() {
   return (
     <Link href="/learn" className={s.backLink}>
       <BackIcon />
-      여섯 과정
+      교육 과정
     </Link>
   );
 }
@@ -377,15 +378,16 @@ function CourseDetail({ course, record, onOpen }) {
   );
 }
 
-// 손님·로그인 전 첫 화면 맨 위(C1): 추천 첫 미션 카드 하나와 진한 '시작하기' 하나. 로그인 안내는 그 아래 보조 한 줄.
-function FirstMission({ lesson, fromDiagnosis, loginReady, onOpen }) {
+// 손님이고 진단도 없을 때 첫 화면 맨 위(C1): 첫 미션 카드 하나와 진한 '시작하기' 하나. 로그인 안내는 그 아래 보조 한 줄.
+// 진단이 있으면 진단으로 고른 추천 세 장(ForYou)이 대신한다(작업 Q·O-2).
+function FirstMission({ lesson, loginReady, onOpen }) {
   const pos = lessonsAt(lesson.level).findIndex((l) => l.id === lesson.id) + 1;
   const count = lessonsAt(lesson.level).length;
   return (
     <section className={`${s.card} ${s.firstCard}`} aria-labelledby="first-title" data-tour="learn-foryou">
       <div>
         <p className={s.firstMeta}>
-          <span className={s.recTag}>{fromDiagnosis ? "진단 추천" : "첫 미션"}</span>
+          <span className={s.recTag}>첫 미션</span>
           <span className={s.cap}>
             과정 1 프롬프트 작성 · {lesson.level} · 미션 {String(pos).padStart(2, "0")}/{String(count).padStart(2, "0")}
           </span>
@@ -416,7 +418,7 @@ function FirstMission({ lesson, fromDiagnosis, loginReady, onOpen }) {
   );
 }
 
-// 주소의 ?course=를 읽는 useSearchParams는 Suspense 안에 있어야 미리 렌더링할 수 있다.
+// 주소의 ?course=·?mission=을 읽는 useSearchParams는 Suspense 안에 있어야 미리 렌더링할 수 있다.
 export default function LearnPage() {
   return (
     <Suspense
@@ -433,7 +435,9 @@ export default function LearnPage() {
 
 function Learn() {
   const router = useRouter();
-  const courseParam = useSearchParams().get("course");
+  const params = useSearchParams();
+  const courseParam = params.get("course");
+  const missionParam = params.get("mission");
   const course = COURSE[courseParam] ?? null;
   const { ready, profile, record, updateRecord, diagnosis, user, login } = useAppState();
   // 수준은 푼 미션으로 계산한다(lib/level.js, 내 정보와 같은 규칙). 한 수준의 미션을 다 통과하면 다음 수준.
@@ -462,6 +466,23 @@ function Learn() {
   function open(l) {
     window.scrollTo({ top: 0 });
     setOpenId(l.id);
+  }
+
+  // ?mission=<id>(결과 비교 화면의 추천 카드)로 들어오면 그 미션을 연다. 없는 id면 교육 첫 화면으로.
+  // 주소에 따라 여는 일은 그리는 중이 아니라 effect에서 한다(cacheComponents로 숨겨 둔 화면이 지난 주소로 다시 그려질 수 있음).
+  useEffect(() => {
+    if (!missionParam) return;
+    if (findAnyLesson(missionParam)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 주소가 바뀔 때 한 번 여는 것이라 effect가 맞다.
+      setOpenId(missionParam);
+      window.scrollTo({ top: 0 });
+    } else router.replace("/learn");
+  }, [missionParam, router]);
+
+  // 미션 닫기. ?mission=으로 연 미션이면 주소에서 mission을 뺀다(뒤로 가기·새로 고침 때 다시 열리지 않게).
+  function close() {
+    setOpenId(null);
+    if (missionParam) router.replace(courseParam ? `/learn?course=${courseParam}` : "/learn");
   }
 
   // 다른 과정 화면으로(파일 실습 평가의 "과정 4에서" 링크, 과정 강의에서 나가기)
@@ -511,7 +532,8 @@ function Learn() {
 
   function openNext() {
     window.scrollTo({ top: 0 });
-    setOpenId(openIndex < track.length - 1 ? track[openIndex + 1].id : null);
+    if (openIndex < track.length - 1) setOpenId(track[openIndex + 1].id);
+    else close();
   }
 
   if (lesson) {
@@ -528,7 +550,7 @@ function Learn() {
         backLabel={own ? `과정 ${own.no} · ${own.title}` : undefined}
         metaLabel={own ? `과정 ${own.no}` : `과정 1 · ${lesson.level}`}
         nextLabel={own && isLast ? "과정으로 돌아가기" : undefined}
-        onExit={() => (own && course?.id !== own.id ? openCourse(own.id) : setOpenId(null))}
+        onExit={() => (own && course?.id !== own.id ? openCourse(own.id) : close())}
         onAttempt={(grade) => recordAttempt(lesson, grade)}
         onNext={openNext}
         onOpenCourse={openCourse}
@@ -567,10 +589,10 @@ function Learn() {
 
         <div className={s.landing}>
           <div className={s.landingMain}>
-            {user ? (
+            {user || diagnosis ? (
               <ForYou onOpen={(id) => open(findAnyLesson(id))} />
             ) : (
-              ready && <FirstMission lesson={first} fromDiagnosis={Boolean(diagnosis)} loginReady={login.ready} onOpen={open} />
+              ready && <FirstMission lesson={first} loginReady={login.ready} onOpen={open} />
             )}
             <CourseCarousel completed={record.completed} recommended={recommended} />
           </div>

@@ -6,7 +6,7 @@ import { connection } from "next/server";
 import { hasDatabase } from "@/lib/server/db";
 import { getSessionUser, hasSessionSecret } from "@/lib/server/session";
 import { cleanState } from "@/lib/server/state";
-import { clearData, loadState, saveState, userStats } from "@/lib/server/users";
+import { clearData, loadState, profileJob, saveState, userStats } from "@/lib/server/users";
 
 const MAX_BODY = 200000;
 
@@ -38,7 +38,9 @@ export async function PUT(request) {
   } catch {
     return Response.json({ error: "요청 형식이 올바르지 않음." }, { status: 400 });
   }
-  const { value, error } = cleanState(body);
+  // 직무 없는 진단(손님 때 한 진단)은 같은 요청의 직무, 없으면 계정의 관심 직무로 채운다(작업 Q).
+  const needJob = body?.diagnosis && !body.diagnosis.job && !body.profile?.job;
+  const { value, error } = cleanState(body, { accountJob: needJob ? await profileJob(user.id) : null });
   if (error) return Response.json({ error }, { status: 400 });
   await saveState(user.id, value);
   return Response.json({ ok: true, stats: await userStats(user.id) });

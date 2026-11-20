@@ -1,10 +1,11 @@
 "use client";
 
 // 시험 보는 중(보드 L4 프롬프트, L5 상황마다 고르기)과 시간이 끝났을 때 알림 창(L8).
-// 맨 위 띠: 시험 이름 · n / 6 · 진행 점 · 남은 시간(1분 안 남으면 숫자만 오류 색). 아래는 문제 카드와 이전·다음.
+// 맨 위 띠: 시험 이름 · n / 6 · 진행 점 · 남은 시간(1분 안 남으면 숫자만 오류 색).
+// 아래는 문제 카드(위 옅은 면의 문제 칸: 번호 알약 · 문제 글 · 푸는 법, 아래 흰 답 칸)와 이전·다음.
 // 채점 기준은 보여 주지 않는다. 문제 사이를 오가도 답은 그대로 둔다. 6번에서 주 버튼이 '제출하고 채점 받기'가 된다.
 // questions는 서버가 정답을 빼고 보낸 것(lib/server/exams/index.js publicExam).
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowIcon, BackIcon, CheckIcon } from "@/components/Common";
 import { MiniBar } from "@/components/lessonBits";
 import { analyze } from "@/lib/anatomy";
@@ -38,41 +39,85 @@ function WriteAnswer({ q, value, onChange }) {
   );
 }
 
-// 칸 고르기 알약. 고른 것은 옅은 면 + 굵은 진한 테두리 + 체크. 다시 누르면 뺀다.
-function BinPills({ card, bins, value, onPick }) {
+// 문제 글 아래 푸는 법 한 줄. 정답 개수 같은 힌트는 넣지 않는다.
+const HOW = {
+  prompt: "입력 칸에 프롬프트 쓰기",
+  sort: "카드마다 칸 하나 고르기",
+  pick: "해당하는 문장 모두 고르기",
+  choose: "상황마다 방법 하나 고르기",
+  template: "바뀌는 곳은 {{빈칸}}으로 쓰기",
+};
+
+// 답할 카드 앞 번호(지금 카드는 많아야 6장)
+const CARD_NO = "가나다라마바사아";
+
+// 칸 고르기 라디오. 고른 것은 글자색으로 채우고 흰 글자·속이 찬 원(옅은 면만 바뀌면 안 고른 것과 비슷해 보였다).
+// 화살표 키로 같은 카드 안 선지를 옮겨 다니며 고른다. Tab은 고른 선지(없으면 첫 선지)에만 멈춘다.
+function BinRadios({ labelledBy, bins, value, onPick }) {
+  const refs = useRef([]);
+  const picked = bins.findIndex((bin) => bin.id === value);
+  const stop = picked >= 0 ? picked : 0;
+
+  function onKeyDown(e, i) {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    let next;
+    if (step) next = (i + step + bins.length) % bins.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = bins.length - 1;
+    else return;
+    e.preventDefault();
+    onPick(bins[next].id);
+    refs.current[next]?.focus();
+  }
+
   return (
-    <div className={s.options} role="group" aria-label={card.text}>
-      {bins.map((bin) => {
-        const on = value === bin.id;
-        return (
-          <button key={bin.id} type="button" className={s.option} aria-pressed={on} onClick={() => onPick(on ? null : bin.id)}>
-            {on && <CheckIcon />}
-            {bin.title}
-          </button>
-        );
-      })}
+    <div className={s.options} role="radiogroup" aria-labelledby={labelledBy}>
+      {bins.map((bin, i) => (
+        <button
+          key={bin.id}
+          ref={(el) => {
+            refs.current[i] = el;
+          }}
+          type="button"
+          role="radio"
+          aria-checked={value === bin.id}
+          tabIndex={i === stop ? 0 : -1}
+          className={s.option}
+          onClick={() => onPick(bin.id)}
+          onKeyDown={(e) => onKeyDown(e, i)}
+        >
+          <span className={s.radio} aria-hidden="true" />
+          {bin.title}
+        </button>
+      ))}
     </div>
   );
 }
 
 // 2번(정보 카드 나누기)은 한 줄에 카드 하나, 5번(상황마다 고르기)은 상황 카드 2열.
 function CardsAnswer({ q, value, onChange }) {
+  const id = useId();
   const placed = value?.placed ?? {};
   const grid = q.kind === "choose";
   const count = q.cards.filter((c) => placed[c.id]).length;
-  function pick(cardId, binId) {
-    const next = { ...placed };
-    if (binId) next[cardId] = binId;
-    else delete next[cardId];
-    onChange({ placed: next });
-  }
+  const pick = (cardId, binId) => onChange({ placed: { ...placed, [cardId]: binId } });
   return (
     <>
       <ul className={grid ? s.sitGrid : s.sortList}>
-        {q.cards.map((card) => (
+        {q.cards.map((card, i) => (
           <li key={card.id} className={grid ? s.sit : s.sortRow}>
-            <p className={s.cardText}>{card.text}</p>
-            <BinPills card={card} bins={q.bins} value={placed[card.id]} onPick={(binId) => pick(card.id, binId)} />
+            <p className={s.cardText}>
+              <span id={`${id}-${i}-no`} className={s.cardNo}>
+                {CARD_NO[i] ?? i + 1}
+              </span>
+              <span id={`${id}-${i}`}>{card.text}</span>
+            </p>
+            <BinRadios
+              labelledBy={`${id}-${i}-no ${id}-${i}`}
+              bins={q.bins}
+              value={placed[card.id]}
+              onPick={(binId) => pick(card.id, binId)}
+            />
           </li>
         ))}
       </ul>
@@ -86,11 +131,17 @@ function CardsAnswer({ q, value, onChange }) {
   );
 }
 
+// 자료 칸: 옅은 바탕, 테두리 없음. 읽기만 하는 곳이라 고르는 칸(흰 바탕·테두리)과 모양을 다르게 한다.
+// 제목 앞 "자료 · "는 위 라벨과 겹쳐 뗀다(문제 데이터는 그대로).
 function Material({ material }) {
+  const id = useId();
   return (
-    <section className={s.material} aria-labelledby="exam-material">
-      <h3 id="exam-material" className={s.materialTitle}>
-        {material.title}
+    <section className={s.material} aria-labelledby={`${id}-tag ${id}`}>
+      <p id={`${id}-tag`} className={s.zoneTag}>
+        자료 · 읽기만
+      </p>
+      <h3 id={id} className={s.materialTitle}>
+        {material.title.replace(/^자료\s*·\s*/, "")}
       </h3>
       {material.subtitle && <p className={s.cap}>{material.subtitle}</p>}
       {material.kind === "table" ? (
@@ -125,16 +176,20 @@ function Material({ material }) {
   );
 }
 
-// 3·4번: 왼쪽 자료, 오른쪽 AI가 쓴 글. 문장을 누르면 고르고 다시 누르면 뺀다(줄을 긋지 않는다).
+// 3·4번: 왼쪽 자료, 오른쪽 AI가 쓴 글. 문장을 누르면(Space·Enter) 고르고 다시 누르면 뺀다(줄을 긋지 않는다).
 function PickAnswer({ q, value, onChange }) {
+  const id = useId();
   const picks = value?.picks ?? [];
   const toggle = (i) =>
     onChange({ picks: picks.includes(i) ? picks.filter((p) => p !== i) : [...picks, i].sort((a, b) => a - b) });
   return (
     <div className={s.pickLayout}>
       <Material material={q.material} />
-      <section className={s.material} aria-labelledby="exam-ai-text">
-        <h3 id="exam-ai-text" className={s.materialTitle}>
+      <section className={s.aiText} aria-labelledby={`${id}-tag ${id}`}>
+        <p id={`${id}-tag`} className={s.zoneTag}>
+          AI가 쓴 글 · 고르는 곳
+        </p>
+        <h3 id={id} className={s.materialTitle}>
           {q.answerTitle}
         </h3>
         <ol className={s.sentences}>
@@ -142,9 +197,9 @@ function PickAnswer({ q, value, onChange }) {
             const on = picks.includes(i);
             return (
               <li key={i}>
-                <button type="button" className={s.sentence} aria-pressed={on} onClick={() => toggle(i)}>
-                  <span className={s.sentenceNo} aria-hidden="true">
-                    {on ? <CheckIcon /> : i + 1}
+                <button type="button" role="checkbox" aria-checked={on} className={s.sentence} onClick={() => toggle(i)}>
+                  <span className={s.box} aria-hidden="true">
+                    {on && <CheckIcon size={12} width={3.5} />}
                   </span>
                   <span>{text}</span>
                 </button>
@@ -228,6 +283,7 @@ export function Taking({ title, questions, startedAt, deadline, practice, onGrad
   const [now, setNow] = useState(startedAt);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const qid = useId();
 
   const leftMs = deadline - now;
   const timeUp = leftMs <= 0;
@@ -301,14 +357,23 @@ export function Taking({ title, questions, startedAt, deadline, practice, onGrad
         </p>
       </div>
 
-      <section className={`${s.card} ${s.qCard}`} aria-labelledby="exam-question">
-        <h2 id="exam-question" className={s.lbl}>
-          {index + 1}번 · {area.name} · {q.way}
-        </h2>
-        <div className={s.todo}>
-          <span className={s.lbl}>할 일</span>
-          <p>{q.task}</p>
+      <section className={`${s.card} ${s.qCard}`} aria-labelledby={`${qid}-no ${qid}`}>
+        {/* 문제 칸(옅은 면)과 그 아래 답 칸(흰 바탕)을 나눠, 답할 카드 글이 문제보다 먼저 눈에 띄지 않게 한다. */}
+        <div className={s.ask}>
+          <p className={s.askHead}>
+            <span id={`${qid}-no`} className={s.qNo}>
+              {index + 1}번
+            </span>
+            <span className={s.qWay}>
+              {area.name} · {q.way}
+            </span>
+          </p>
+          <h2 id={qid} className={s.task}>
+            {q.task}
+          </h2>
+          <p className={s.how}>{HOW[q.kind]}</p>
         </div>
+        <p className={s.answerLbl}>답</p>
         <Answer key={index} q={q} value={answers[index]} onChange={setAnswer} />
       </section>
 
