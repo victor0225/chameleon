@@ -165,7 +165,7 @@ function Progress({ record }) {
         </p>
         <ScoreLine />
         <p className="small muted">
-          완료한 레슨 <span className="mono">{done}</span> / <span className="mono">{LESSONS.length}</span>
+          완료한 미션 <span className="mono">{done}</span> / <span className="mono">{LESSONS.length}</span>
         </p>
       </div>
       <span className="bar" aria-hidden="true">
@@ -258,7 +258,7 @@ export default function Mypage() {
   }
 
   function clearAll() {
-    const where = user ? " 계정에 저장된 기록도 함께 지워져요. 랭킹 점수(강의마다 처음 받은 점수)는 남아요." : "";
+    const where = user ? " 계정에 저장된 기록도 함께 지워져요. 랭킹 점수(미션마다 처음 받은 점수)는 남아요." : "";
     if (!window.confirm(`진단 결과, 학습 기록, 페이지 설정을 모두 지울까요?${where} 지우면 되돌릴 수 없어요.`)) return;
     reset();
     try {
@@ -336,7 +336,7 @@ export default function Mypage() {
               <Switch
                 id="notify-study"
                 label="학습 알림 받기"
-                desc="정한 시간에 오늘 할 레슨을 알려 드려요."
+                desc="정한 시간에 오늘 할 미션을 알려 드려요."
                 checked={settings.studyReminder}
                 onChange={(v) => update({ studyReminder: v })}
               />

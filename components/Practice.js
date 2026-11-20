@@ -33,7 +33,7 @@ function ResultHead({ title, desc, score, grade, wasDone }) {
         <span className={p.scoreNum}>{score}</span>
         {grade.passed &&
           (wasDone ? (
-            <span className={l.note}>이미 마친 강의라 XP는 그대로예요</span>
+            <span className={l.note}>이미 마친 미션이라 XP는 그대로예요</span>
           ) : (
             <span className={l.xpPill}>+{grade.xp} XP</span>
           ))}
@@ -46,7 +46,7 @@ function MissionCard({ lesson }) {
   return (
     <section className={`${l.card} ${l.missionCard}`} aria-labelledby="practice-mission">
       <h2 id="practice-mission" className={l.smallTitle}>
-        미션
+        할 일
       </h2>
       <p>{lesson.mission}</p>
     </section>
@@ -234,7 +234,7 @@ export function PracticeSort({ lesson, runner }) {
       {result ? (
         <div className={p.footer}>
           <button type="button" className={l.secondary} onClick={() => runner.go("lecture")}>
-            강의 다시 보기
+            배우기 다시 보기
           </button>
           {result.passed ? (
             <button type="button" className={l.primary} onClick={runner.onNext}>
@@ -334,7 +334,7 @@ export function PracticeChoose({ lesson, runner }) {
       {result ? (
         <div className={p.footer}>
           <button type="button" className={l.secondary} onClick={() => runner.go("lecture")}>
-            강의 다시 보기
+            배우기 다시 보기
           </button>
           {result.passed ? (
             <button type="button" className={l.primary} onClick={runner.onNext}>
@@ -563,7 +563,7 @@ export function PracticeSpot({ lesson, runner }) {
           ) : (
             <>
               <button type="button" className={l.secondary} onClick={() => runner.go("lecture")}>
-                강의 다시 보기
+                배우기 다시 보기
               </button>
               <button type="button" className={l.primary} onClick={() => runner.go("practice")}>
                 다시 찾아보기
@@ -896,7 +896,7 @@ function FileResult({ lesson, runner, result, draft, fileName }) {
       <div className={p.footer}>
         <div className={p.footerLinks}>
           <button type="button" className={l.secondary} onClick={() => runner.go("lecture")}>
-            강의 다시 보기
+            배우기 다시 보기
           </button>
           <button type="button" className={p.textLink} onClick={() => runner.onOpenCourse?.("verify")}>
             결과를 직접 확인하는 법은 과정 4에서 →

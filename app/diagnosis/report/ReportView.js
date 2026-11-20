@@ -158,7 +158,7 @@ export default function ReportView() {
           <ol className={styles.next}>
             {lesson && (
               <li>
-                AI 활용 교육에서 <strong>「{lesson.title}」</strong> 강의부터 시작해 보세요. ({lesson.level} ·{" "}
+                AI 활용 교육에서 <strong>「{lesson.title}」</strong> 미션부터 시작해 보세요. ({lesson.level} ·{" "}
                 {ITEM[lesson.focus].name} 익히기)
               </li>
             )}

@@ -14,15 +14,15 @@ import s from "./lesson.module.css";
 export { ElementChip, itemVars, marksOf, MiniBar, PromptText } from "./lessonBits";
 
 const STAGES = [
-  { id: "lecture", name: "강의" },
-  { id: "practice", name: "실습" },
-  { id: "result", name: "평가·피드백" },
+  { id: "lecture", name: "배우기" },
+  { id: "practice", name: "해 보기" },
+  { id: "result", name: "피드백" },
 ];
 const BLANK_NAMES = /\{\{([^{}\n]+)\}\}/g;
 
 function Steps({ index }) {
   return (
-    <ol className={s.steps} aria-label="강의 진행">
+    <ol className={s.steps} aria-label="미션 진행">
       {STAGES.map((st, i) => (
         <Fragment key={st.id}>
           {i > 0 && <li aria-hidden="true" className={`${s.stepLine} ${i <= index ? s.lineDone : ""}`} />}
@@ -173,7 +173,7 @@ export function LessonRunner({
     setError,
     go,
     onNext,
-    nextLabel: nextLabel ?? (isLast ? "강의 목록으로" : "다음 강의"),
+    nextLabel: nextLabel ?? (isLast ? "미션 목록으로" : "다음 미션"),
     onOpenCourse,
   };
 
@@ -254,7 +254,7 @@ export function LessonRunner({
           <section className={`${s.card} ${s.mission}`} aria-labelledby="lesson-mission">
             <div>
               <h2 id="lesson-mission" className={s.missionTitle}>
-                미션
+                할 일
               </h2>
               <p className={s.missionText}>{lesson.mission}</p>
             </div>
@@ -285,7 +285,7 @@ export function LessonRunner({
         <>
           <section className={`${s.card} ${s.missionCard}`} aria-labelledby="practice-mission">
             <h2 id="practice-mission" className={s.smallTitle}>
-              미션
+              할 일
             </h2>
             <p>{lesson.mission}</p>
           </section>
@@ -400,7 +400,7 @@ export function LessonRunner({
             </span>
             {grade.passed &&
               (wasDone ? (
-                <span className={s.note}>이미 마친 강의라 XP는 그대로예요</span>
+                <span className={s.note}>이미 마친 미션이라 XP는 그대로예요</span>
               ) : (
                 <span className={s.xpPill}>+{grade.xp} XP</span>
               ))}
@@ -434,7 +434,7 @@ export function LessonRunner({
                       다시 써 보기
                     </button>
                     <button type="button" className={s.secondary} onClick={() => go("lecture")}>
-                      강의 다시 보기
+                      배우기 다시 보기
                     </button>
                   </div>
                 </>
@@ -451,7 +451,7 @@ export function LessonRunner({
                       {runner.nextLabel}
                     </button>
                     <button type="button" className={s.secondary} onClick={() => go("lecture")}>
-                      강의 다시 보기
+                      배우기 다시 보기
                     </button>
                   </div>
                 </>

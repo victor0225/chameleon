@@ -353,7 +353,7 @@ export default function DiagnosisResult() {
           <Link href="/learn" className={`service-card ${s.service}`}>
             <span className="service-no">서비스 2</span>
             <strong>AI 활용 교육</strong>
-            <span className="flow">짧은 강의 → 문제 풀이 → 평가·피드백 → 레벨 상승</span>
+            <span className="flow">배우기 → 해 보기 → 피드백 → 레벨 상승</span>
           </Link>
         </div>
       </section>

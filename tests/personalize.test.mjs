@@ -55,7 +55,7 @@ test("커리큘럼: 끝낸 강의는 빼고, 지난번에 못 넘은 강의는 �
   const ids = plan.items.map((i) => i.lessonId);
   assert.ok(!ids.includes("b1") && !ids.includes("b3"));
   assert.equal(ids[0], "b2");
-  assert.equal(plan.items[0].reasons[0], "지난번에 이 강의를 통과하지 못했어요");
+  assert.equal(plan.items[0].reasons[0], "지난번에 이 미션을 통과하지 못했어요");
 });
 
 test("커리큘럼: 내 수준을 다 마치면 다음 단계 강의를 고르고, 위 단계는 미리 고르지 않는다", () => {
