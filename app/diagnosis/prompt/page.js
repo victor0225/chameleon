@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useLayoutEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import * as api from "@/lib/api";
 import { ScaleBar } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
@@ -11,12 +11,43 @@ import { analyze } from "@/lib/anatomy";
 import { Progress } from "../_components/Progress";
 import s from "../diagnosis.module.css";
 
-export default function DiagnosisPrompt() {
+// 주소의 ?edit=1을 읽는 useSearchParams는 Suspense 안에 있어야 미리 렌더링할 수 있다.
+export default function DiagnosisPromptPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className={s.wrap}>
+          <Progress step={2} />
+        </div>
+      }
+    >
+      <DiagnosisPrompt />
+    </Suspense>
+  );
+}
+
+function DiagnosisPrompt() {
   const router = useRouter();
-  const { ready, survey, setProfile, setDiagnosis } = useAppState();
+  const editing = useSearchParams().get("edit") === "1";
+  const { ready, survey, diagnosis, setProfile, setDiagnosis } = useAppState();
   const [draft, setDraft] = useState("");
+  // 결과 화면의 "고쳐서 다시 진단하기"(?edit=1)로 들어오면 저장소를 읽은 뒤 한 번만 지난 프롬프트를 채워 둔다.
+  const [prefilled, setPrefilled] = useState(false);
+  if (ready && !prefilled) {
+    setPrefilled(true);
+    if (editing && diagnosis?.prompt) setDraft(diagnosis.prompt);
+  }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // cacheComponents에서는 다른 화면으로 가도 이 화면을 숨겨 두고 상태를 그대로 둔다.
+  // 숨겨질 때 진단 중 표시를 풀고, 다시 들어올 때 고쳐 쓰기 채우기를 한 번 더 하게 한다.
+  useLayoutEffect(
+    () => () => {
+      setLoading(false);
+      setPrefilled(false);
+    },
+    [],
+  );
   const found = useMemo(() => analyze(draft).found, [draft]);
   const target = survey ? JOB[survey.job] : null;
 
