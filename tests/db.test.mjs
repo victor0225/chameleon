@@ -115,6 +115,14 @@ test("가입 직무와 내 정보: 직무는 가입과 함께 넣고, 이름·�
     // 이미 있는 아이디면 null이고, 직무 줄도 넣지 않는다(한 트랜잭션).
     assert.equal(await users.createUser({ loginId, password: "12345678", name: "또", job: "office" }), null);
     assert.equal((await users.loadState(u.id)).profile.job, "dev");
+    assert.equal(await users.profileJob(u.id), "dev");
+
+    // 작업 Q: 가입 뒤 합칠 때 직무 없는 손님 진단을 계정 직무로 채워 저장한다.
+    const { cleanState } = await import("../lib/server/state.js");
+    const guest = { at: "2026-11-21T09:00:00.000Z", job: null, level: "초급", prompt: "신제품 SNS 글 써 줘", found: ["goal"], missing: [] };
+    const state = cleanState({ diagnosis: guest, record: {} }, { accountJob: await users.profileJob(u.id) }).value;
+    await users.saveState(u.id, { ...state, profile: { job: "dev", experience: null, level: null } });
+    assert.equal((await users.loadState(u.id)).diagnosis?.job, "dev");
 
     assert.deepEqual(await users.updateName(u.id, " 새 이름 "), { id: u.id, loginId, name: "새 이름" });
     assert.equal(await users.updateName("not-a-uuid", "x"), null);

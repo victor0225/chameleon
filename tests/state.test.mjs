@@ -115,3 +115,27 @@ test("로그인할 때 관심 직무: 계정에 있으면 계정 것, 없으면 
   // 둘 다 없으면 프로필도 없다.
   assert.equal(mergeStates({ ...guest, profile: null }, { ...account, profile: null }).profile, null);
 });
+
+// 작업 Q: 손님은 관심 직무 없이 진단할 수 있다. 가입하며 합칠 때 그 진단을 버리면 진단 추천이 사라진다.
+test("직무 없는 손님 진단: 같은 요청의 관심 직무, 없으면 계정 직무로 채워 저장하고, 둘 다 없으면 버린다", () => {
+  const guest = diagnosis("2026-11-21T09:00:00.000Z", { job: null });
+  const withProfile = cleanState({ profile: { job: "sales" }, diagnosis: guest }).value.diagnosis;
+  assert.equal(withProfile.job, "sales");
+  assert.equal(withProfile.prompt, guest.prompt);
+  assert.equal(cleanState({ diagnosis: guest }, { accountJob: "dev" }).value.diagnosis.job, "dev");
+  assert.equal(cleanState({ profile: { job: "cs" }, diagnosis: guest }, { accountJob: "dev" }).value.diagnosis.job, "cs");
+  assert.equal(cleanState({ diagnosis: guest }).value.diagnosis, null);
+  assert.equal(cleanState({ diagnosis: guest }, { accountJob: "nope" }).value.diagnosis, null);
+  // 진단에 직무가 있으면 그대로 쓴다.
+  assert.equal(cleanState({ profile: { job: "sales" }, diagnosis: diagnosis("2026-11-21T09:00:00.000Z") }).value.diagnosis.job, "marketing");
+});
+
+test("가입 직후 합치기: 손님 진단이 계정 직무와 함께 서버로 가서 저장된다", () => {
+  const local = { profile: null, survey: null, diagnosis: diagnosis("2026-11-21T09:00:00.000Z", { job: null }), record: undefined };
+  const server = { profile: { job: "marketing", experience: null, level: null }, survey: null, diagnosis: null, record: undefined };
+  const merged = mergeStates(local, server);
+  assert.equal(merged.diagnosis.at, local.diagnosis.at);
+  const saved = cleanState(merged).value;
+  assert.equal(saved.profile.job, "marketing");
+  assert.equal(saved.diagnosis.job, "marketing");
+});
