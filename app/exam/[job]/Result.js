@@ -107,11 +107,10 @@ export function Result({ title, result, onRanking }) {
         {result.saved ? (
           <p className={s.ruleChip}>
             <InfoIcon size={18} />
-            {result.counted
+            {result.late && "시간이 지난 뒤 낸 답이라 0점 · "}
+            {result.counted || !first
               ? "처음 본 점수라 랭킹에 반영됨"
-              : first
-                ? `연습이라 랭킹 점수는 그대로 · 처음 본 점수 ${first.total}`
-                : "시간이 지난 뒤 낸 답 · 랭킹 미반영"}
+              : `연습이라 랭킹 점수는 그대로 · 처음 본 점수 ${first.total}`}
           </p>
         ) : (
           <p className={s.notice}>기록 저장 준비 중 · 랭킹 미반영</p>
