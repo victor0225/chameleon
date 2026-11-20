@@ -5,6 +5,7 @@ import Link from "next/link";
 import { segVar } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
 import { AuthLinks } from "@/components/AuthLinks";
+import { ScoreLine } from "@/components/ScoreLine";
 import { SETTINGS_KEY, applyLargeText } from "@/components/Header";
 import { LESSONS } from "@/data/curriculum";
 import { EXPERIENCE, JOB } from "@/data/jobs";
@@ -166,6 +167,7 @@ function Progress({ record }) {
         <p className="xp">
           <span className="mono">{record.xp}</span>XP
         </p>
+        <ScoreLine />
         <p className="small muted">
           완료한 레슨 <span className="mono">{done}</span> / <span className="mono">{LESSONS.length}</span>
         </p>
