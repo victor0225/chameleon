@@ -300,16 +300,28 @@ export default function DiagnosisResult() {
         <p className={`small muted ${s.printOnly}`}>카멜레온에서 받은 프롬프트 진단 결과예요.</p>
       </article>
 
-      {missing.length > 0 && (
+      {diagnosis.before ? (
         <section className={`${s.compareCta} ${s.noPrint}`} aria-labelledby="compare-cta">
           <div>
-            <h2 id="compare-cta">빠진 요소를 채우면 결과가 어떻게 달라질까요?</h2>
-            <p className="small muted">AI가 다듬은 프롬프트로 같은 일을 시켜, 두 결과를 나란히 보여 줘요.</p>
+            <h2 id="compare-cta">고친 프롬프트로 결과가 어떻게 달라졌을까요?</h2>
+            <p className="small muted">고치기 전 프롬프트와 내가 고친 프롬프트로 같은 일을 시켜, 두 결과를 나란히 보여 줘요.</p>
           </div>
           <Link href="/diagnosis/compare" className="btn">
-            다듬은 프롬프트와 결과 비교하기
+            고치기 전과 결과 비교하기
           </Link>
         </section>
+      ) : (
+        missing.length > 0 && (
+          <section className={`${s.compareCta} ${s.noPrint}`} aria-labelledby="compare-cta">
+            <div>
+              <h2 id="compare-cta">빠진 요소를 채우면 결과가 어떻게 달라질까요?</h2>
+              <p className="small muted">AI가 다듬은 프롬프트로 같은 일을 시켜, 두 결과를 나란히 보여 줘요.</p>
+            </div>
+            <Link href="/diagnosis/compare" className="btn">
+              다듬은 프롬프트와 결과 비교하기
+            </Link>
+          </section>
+        )
       )}
 
       <div className={`${s.resultActions} ${s.noPrint}`}>

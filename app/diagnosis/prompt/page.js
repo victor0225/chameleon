@@ -12,6 +12,21 @@ import { analyze } from "@/lib/anatomy";
 import { Progress } from "../_components/Progress";
 import s from "../diagnosis.module.css";
 
+// 이전 진단에서 비교에 쓸 것만 남긴다. before.before는 버린다.
+// guess는 결과 화면의 추측 결과, 없으면 결과 비교에서 받은 내 결과를 쓴다.
+function beforeOf(d) {
+  const guess = d.guess?.output ? d.guess : (d.compare?.mine ?? d.guess ?? null);
+  return {
+    prompt: d.prompt,
+    found: d.found ?? [],
+    missing: d.missing ?? [],
+    segments: d.segments,
+    files: d.files ?? [],
+    guess,
+    at: d.at,
+  };
+}
+
 // 주소의 ?edit=1을 읽는 useSearchParams는 Suspense 안에 있어야 미리 렌더링할 수 있다.
 export default function DiagnosisPromptPage() {
   return (
@@ -75,6 +90,8 @@ function DiagnosisPrompt() {
     setLoading(true);
     const { job, experience } = survey;
     const files = attachedFiles(entries);
+    // 고쳐서 다시 진단하면(?edit=1) 이전 진단을 한 단계만 남겨, 비교 화면이 "내가 고친 프롬프트" 모드로 연다.
+    const before = editing && diagnosis?.prompt ? beforeOf(diagnosis) : undefined;
     try {
       const result = await api.diagnose({ job, experience, prompt: draft, files });
       setProfile({ job, experience, level: result.level });
@@ -85,6 +102,7 @@ function DiagnosisPrompt() {
         job,
         experience,
         at: new Date().toISOString(),
+        ...(before && { before }),
       });
       submitted.current = true;
       router.push("/diagnosis/result");
