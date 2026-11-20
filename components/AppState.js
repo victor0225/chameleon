@@ -29,7 +29,7 @@ function loadSaved() {
   }
 }
 
-// profile:   { job, experience, level } 진단을 마친 사용자
+// profile:   { job, experience, level } job은 관심 직무(가입·내 정보에서 고름). 직무만 고르고 진단 전이면 { job }뿐이다.
 // survey:    { job, experience } 설문 중 답 (진단 1단계 → 2단계로 넘길 때 씀)
 // diagnosis: { level, found, missing, comment, segments, source, prompt, task, job, experience, at } 마지막 진단 결과
 // ready:     브라우저 저장소를 읽고 난 뒤 true. 그 전에는 "진단 전" 화면을 섣불리 보이지 않는다.
@@ -151,9 +151,24 @@ export function AppStateProvider({ children }) {
     setRecord(EMPTY_RECORD);
   }
 
-  // 기록 모두 지우기: 로그인했으면 계정의 진단·학습 기록도 지운다.
+  // 관심 직무 고르기(가입·내 정보). 프로필의 다른 칸은 그대로 두고, null이면 직무만 뺀다.
+  const setJob = useCallback((job) => {
+    setProfile((p) => {
+      const rest = { ...p };
+      delete rest.job;
+      if (job) return { ...rest, job };
+      return Object.values(rest).some((v) => v != null) ? { ...rest, job: null } : null;
+    });
+  }, []);
+
+  // 내 정보에서 이름을 바꾸면 서버가 돌려준 사용자 값으로 화면의 user를 맞춘다.
+  const updateUser = useCallback((patch) => setUser((u) => (u ? { ...u, ...patch } : u)), []);
+
+  // 기록 모두 지우기: 로그인했으면 계정의 진단·학습 기록도 지운다. 관심 직무는 기록이 아니라 설정이라 남긴다.
   function reset() {
+    const job = profile?.job ?? null;
     clearLocal();
+    if (job) setProfile({ job });
     if (user) {
       setStats({ diagnoses: 0, attempts: 0 });
       fetch("/api/me", { method: "DELETE" }).catch(() => {});
@@ -176,6 +191,7 @@ export function AppStateProvider({ children }) {
         ready,
         profile,
         setProfile,
+        setJob,
         survey,
         setSurvey,
         diagnosis,
@@ -184,6 +200,7 @@ export function AppStateProvider({ children }) {
         updateRecord: setRecord,
         reset,
         user,
+        updateUser,
         login,
         authChecked,
         stats,

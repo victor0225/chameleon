@@ -70,14 +70,17 @@ test("Gemini가 실패하면 규칙 기반으로 대신한다", async () => {
 });
 
 test("기준에 question이 있으면 그 질문으로 코칭한다", async () => {
-  const m1 = findLesson("m1");
+  // 다루는 요소(focus)의 기준에 질문이 따로 적힌 첫 미션
+  const l = ["b1", "b2", "b3", "b4", "b5", "m2", "m4", "m5", "a3", "a4", "a5"]
+    .map((id) => findLesson(id))
+    .find((x) => x.criteria.some((c) => c.item === x.focus && c.question));
   const ask = async () => ({
     found: ["goal"],
-    criteriaMet: m1.criteria.map((c, index) => ({ index, met: c.item !== m1.focus })),
+    criteriaMet: l.criteria.map((c, index) => ({ index, met: c.item !== l.focus })),
     output: "",
   });
-  const r = await runEvaluation({ lessonId: "m1", prompt: "요약해 줘" }, { ask });
-  const first = m1.criteria.find((c) => c.item === m1.focus);
-  assert.equal(r.coaching.item, m1.focus);
+  const r = await runEvaluation({ lessonId: l.id, prompt: "해 줘" }, { ask });
+  const first = l.criteria.find((c) => c.item === l.focus);
+  assert.equal(r.coaching.item, l.focus);
   assert.equal(r.coaching.question, first.question);
 });

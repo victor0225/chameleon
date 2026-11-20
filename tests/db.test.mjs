@@ -101,11 +101,49 @@ test("상태: 저장한 그대로 읽고, 같은 진단(at)은 덮어쓰고, 지
 
   await users.clearData(user.id);
   const cleared = await users.loadState(user.id);
-  assert.deepEqual(cleared, { profile: null, survey: null, diagnosis: null, record: null });
+  // 관심 직무는 기록이 아니라 설정이라 남는다.
+  assert.deepEqual(cleared, { profile: { job: "marketing", experience: null, level: null }, survey: null, diagnosis: null, record: null });
   assert.ok(await users.getUser(user.id), "계정은 남는다");
 });
 
-test("랭킹: 강의마다 점수가 있는 첫 기록만 세고, 참여한 사람만 별명으로 보여 준다", { skip }, async () => {
+test("가입 직무와 내 정보: 직무는 가입과 함께 넣고, 이름·비밀번호를 바꾸고, 비밀번호를 바꾸면 다른 세션은 끊는다", { skip }, async () => {
+  const { db, users } = await load();
+  const loginId = `${ID}j`;
+  const u = await users.createUser({ loginId, password: "12345678", name: "직무", job: "dev" });
+  try {
+    assert.deepEqual((await users.loadState(u.id)).profile, { job: "dev", experience: null, level: null });
+    // 이미 있는 아이디면 null이고, 직무 줄도 넣지 않는다(한 트랜잭션).
+    assert.equal(await users.createUser({ loginId, password: "12345678", name: "또", job: "office" }), null);
+    assert.equal((await users.loadState(u.id)).profile.job, "dev");
+
+    assert.deepEqual(await users.updateName(u.id, " 새 이름 "), { id: u.id, loginId, name: "새 이름" });
+    assert.equal(await users.updateName("not-a-uuid", "x"), null);
+
+    const here = await users.createSession(u.id, 60);
+    const other = await users.createSession(u.id, 60);
+    assert.deepEqual(await users.changePassword(u.id, { current: "wrong-pass", next: "abcdefgh", keepSid: here }), {
+      error: "wrong",
+    });
+    assert.ok(await users.userForSession(other), "지금 비밀번호가 틀리면 아무것도 안 바뀐다");
+    assert.deepEqual(await users.changePassword(u.id, { current: "12345678", next: "abcdefgh", keepSid: here }), { ok: true });
+    assert.equal((await users.userForSession(here))?.id, u.id, "지금 세션은 남는다");
+    assert.equal(await users.userForSession(other), null, "다른 세션은 끊긴다");
+    assert.deepEqual(await users.authenticate(loginId, "12345678"), { error: "wrong" });
+    assert.ok((await users.authenticate(loginId, "abcdefgh")).user);
+
+    // 비밀번호 바꾸기도 로그인과 같은 잠금을 쓴다.
+    for (let i = 0; i < users.MAX_FAILS; i += 1) await users.changePassword(u.id, { current: "wrong-pass", next: "zzzzzzzz" });
+    assert.deepEqual(await users.changePassword(u.id, { current: "abcdefgh", next: "zzzzzzzz" }), { error: "locked" });
+
+    await users.clearData(u.id);
+    assert.deepEqual((await users.loadState(u.id)).profile, { job: "dev", experience: null, level: null }, "기록 지우기는 직무를 남긴다");
+  } finally {
+    await db.query("DELETE FROM users WHERE id = $1", [u.id]);
+  }
+});
+
+// 미션 점수 랭킹은 없어졌다(작업 L). 첫 점수(first_scores)는 개인화의 부문 점수로 계속 쓰고, 닉네임은 시험 랭킹에 쓴다.
+test("부문 점수와 닉네임: 강의마다 점수가 있는 첫 기록만 세고, 닉네임은 겹치지 않게", { skip }, async () => {
   const { db, users } = await load();
   const ranking = await import("../lib/server/ranking.js");
   const a = await users.createUser({ loginId: `${ID}a`, password: "12345678", name: "가입이름A" });
@@ -116,49 +154,20 @@ test("랭킹: 강의마다 점수가 있는 첫 기록만 세고, 참여한 사�
     await users.recordAttempt(a.id, { lessonId: "b1", passed: false, found: [], missed: [], score: 40 });
     await users.recordAttempt(a.id, { lessonId: "b1", passed: true, found: [], missed: [], score: 100 });
     await users.recordAttempt(a.id, { lessonId: "mem1", passed: true, found: [], missed: [], score: 88 });
-    await users.recordAttempt(b.id, { lessonId: "ver1", passed: true, found: [], missed: [], score: 75 });
-    await db.query("INSERT INTO profiles (user_id, job) VALUES ($1, 'office')", [a.id]);
-
-    // 참여 전에도 내 점수는 보이고, 순위는 없다.
-    let r = await ranking.loadRanking(a.id, null);
-    assert.equal(r.me.total, 128);
-    assert.equal(r.me.max, 600);
-    assert.equal(r.me.rank, null);
+    assert.equal((await ranking.myAreas(a.id)).total, 128);
 
     const nickA = `T${process.pid}`.slice(0, 12);
     const nickB = `U${process.pid}`.slice(0, 12);
     assert.deepEqual(await ranking.setRanking(a.id, { ranked: true, nickname: ` ${nickA} ` }), { ok: true });
-    assert.equal((await ranking.setRanking(b.id, { ranked: true, nickname: nickA })).error, "이미 쓰는 별명.");
+    assert.equal((await ranking.setRanking(b.id, { ranked: true, nickname: nickA })).error, "이미 쓰는 닉네임.");
     assert.match((await ranking.setRanking(b.id, { ranked: true, nickname: "<b>" })).error, /2~12자|한글/);
-    await ranking.setRanking(b.id, { ranked: true, nickname: nickB });
-
-    r = await ranking.loadRanking(a.id, null);
-    const rowA = r.top.find((t) => t.nickname === nickA);
-    const rowB = r.top.find((t) => t.nickname === nickB);
-    assert.equal(rowA.total, 128);
-    assert.equal(rowA.me, true);
-    assert.equal(rowB.total, 75);
-    assert.ok(rowA.rank < rowB.rank);
-    assert.equal(r.me.rank, rowA.rank);
-    assert.ok(!/가입이름|test\d/.test(JSON.stringify(r)), "가입 이름과 아이디는 랭킹에 나오지 않는다");
-
-    // 직무를 주면 그 직무만 센다(B는 직무가 없다).
-    const office = await ranking.loadRanking(null, "office");
-    assert.equal(office.me, null);
-    assert.ok(office.top.some((t) => t.nickname === nickA));
-    assert.ok(!office.top.some((t) => t.nickname === nickB));
+    const { rows } = await db.query("SELECT nickname, ranked FROM users WHERE id = $1", [a.id]);
+    assert.deepEqual(rows[0], { nickname: nickA, ranked: true });
 
     // 기록을 지우고 다시 풀어도 첫 점수는 그대로다.
     await users.clearData(a.id);
     await users.recordAttempt(a.id, { lessonId: "mem1", passed: true, found: [], missed: [], score: 100 });
-    assert.equal((await ranking.loadRanking(a.id, null)).me.total, 128);
-
-    // 빠지면 표에서 사라지고 내 순위도 없다.
-    await ranking.setRanking(a.id, { ranked: false });
-    r = await ranking.loadRanking(a.id, null);
-    assert.equal(r.me.ranked, false);
-    assert.equal(r.me.rank, null);
-    assert.ok(!r.top.some((t) => t.nickname === nickA));
+    assert.equal((await ranking.myAreas(a.id)).total, 128);
   } finally {
     await db.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [[a.id, b.id]]);
   }

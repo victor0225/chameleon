@@ -370,7 +370,7 @@ export const COURSES = [
     summary: "문서를 붙이고 분석 맡기기",
     lede: "보고서, 회의록 같은 파일을 붙이고, AI가 그걸로 무엇을 할지 분명하게 맡기는 법.",
     lessons: ["file1", "file2", "file3"],
-    related: ["m1"],
+    related: [],
     ready: true,
   },
   {
@@ -381,7 +381,7 @@ export const COURSES = [
     summary: "틀린 정보, 지어낸 내용, 출처 확인",
     lede: "AI가 쓴 결과에서 틀린 정보, 지어낸 내용, 확인 안 되는 출처를 찾아내는 법.",
     lessons: ["ver1", "ver2", "ver3"],
-    related: ["a2"],
+    related: [],
     ready: true,
   },
   {
@@ -403,7 +403,7 @@ export const COURSES = [
     summary: "요약 → 초안 → 검토 흐름 짜기",
     lede: "자료 요약 → 보고서 초안 → 검토처럼 반복되는 일을 흐름으로 짜는 법.",
     lessons: ["flow1", "flow2", "flow3"],
-    related: ["m3", "a1"],
+    related: [],
     ready: true,
   },
 ];

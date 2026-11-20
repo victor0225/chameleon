@@ -1,7 +1,8 @@
 "use client";
 
-// AI 활용 교육. 디자인 캔버스 '화면 전체 점검' C1(첫 화면, 손님), E4(로그인: 나를 위한 커리큘럼), C2-1(과정 1), C2-2(과정 2~6 공통 틀).
-// 첫 화면: 맨 위 추천 첫 미션(로그인하면 나를 위한 커리큘럼) → 여섯 과정 넘기는 카드 줄, 오른쪽에 떠 있는 학습 기록.
+// AI 활용 교육. 보드 K6-2(첫 화면, 손님), K6-1(로그인: 나를 위한 추천 미션), C2-1(과정 1), C2-2(과정 2~6 공통 틀), K7(미션).
+// 첫 화면: 맨 위 추천 첫 미션(로그인하면 나를 위한 추천 미션 세 장) → 여섯 과정 넘기는 카드 줄, 오른쪽에 떠 있는 학습 기록.
+// 미션은 경험치(XP)만 올린다. 관심 직무를 골랐으면 그 직무 상황으로 바꾼 미션을 연다(lib/jobContent.js).
 // 과정 화면: 과정 1~6이 같은 미션 줄(번호·요소 칩·상태·XP·시작)과 오른쪽 진행 칸을 쓴다. 과정 1만 초급·중급·고급 탭이 있다.
 import { Suspense, useState } from "react";
 import Link from "next/link";
@@ -9,10 +10,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ElementChip, LessonRunner, itemVars } from "@/components/LessonRunner";
 import { useAppState } from "@/components/AppState";
 import { ArrowIcon, BackIcon, ChevronIcon } from "@/components/Common";
-import { useMyScore } from "@/components/ScoreLine";
 import { Tour } from "@/components/Tour";
 import { LESSONS, XP_PER_LESSON } from "@/data/curriculum";
 import { COURSE, COURSES, findAnyLesson } from "@/data/courses";
+import { JOB } from "@/data/jobs";
+import { lessonFor } from "@/lib/jobContent";
+import { LEVELS, levelOf } from "@/lib/level";
 import { courseSignals } from "@/lib/courseSignals";
 import { josa } from "@/lib/josa";
 import { ITEMS } from "@/lib/items";
@@ -20,7 +23,6 @@ import { ForYou } from "./ForYou";
 import { authHref } from "@/components/AuthLinks";
 import s from "./learn.module.css";
 
-const LEVELS = ["초급", "중급", "고급"];
 const LEVEL_DESC = {
   초급: "다섯 요소 익히기",
   중급: "자료·예시·순서로 더 정확하게",
@@ -45,17 +47,9 @@ const nextLevel = (level) => LEVELS[LEVELS.indexOf(level) + 1] ?? null;
 const allDone = (level, completed) => lessonsAt(level).every((l) => completed.includes(l.id));
 const courseLessons = (course) => course.lessons.map(findAnyLesson);
 
-// 지금 수준의 강의를 모두 통과했으면 다음 수준으로 올린다. 이미 끝낸 위 단계가 있으면 그만큼 더 오른다.
-function levelAfter(level, completed) {
-  let lv = level;
-  while (nextLevel(lv) && allDone(lv, completed)) lv = nextLevel(lv);
-  return lv;
-}
-
-// 학습 기록(C1·E4 오른쪽 떠 있는 칸, C2-1 오른쪽 칸). 경험치와 랭킹 점수는 이름을 붙여 둘로 나눈다(공통 칸 ⑨).
+// 학습 기록(K6 오른쪽 떠 있는 칸, C2-1 오른쪽 칸). 경험치(XP)만 보인다. 랭킹은 시험 화면에 있다.
 function RecordPanel({ record, myLevel, onOpen, compact = false }) {
   const [openRecent, setOpenRecent] = useState(false);
-  const { me, available } = useMyScore();
   const next = nextLevel(myLevel);
   const track = lessonsAt(myLevel);
   const done = track.filter((l) => record.completed.includes(l.id)).length;
@@ -79,48 +73,21 @@ function RecordPanel({ record, myLevel, onOpen, compact = false }) {
       </h2>
       {empty && <p className={s.cap}>아직 기록 없음. 첫 미션부터 시작.</p>}
 
-      {me ? (
-        <div className={s.twoScores} data-tour="score-line">
-          <div>
-            <p className={s.lbl}>경험치</p>
-            <p className={s.scoreNum}>
-              {record.xp}
-              <small> XP</small>
-            </p>
-          </div>
-          <div>
-            <p className={s.lbl}>랭킹 점수</p>
-            <p className={s.scoreNum}>
-              {me.total}
-              <small> / {me.max}</small>
-            </p>
-          </div>
-        </div>
-      ) : (
-        <p className={s.xpRow}>
-          <span className={s.bigNum}>{record.xp}</span>
-          <span className={s.cap}>XP · {myLevel}</span>
-        </p>
-      )}
+      <p className={s.xpRow}>
+        <span className={s.cap}>XP</span>
+        <span className={s.bigNum}>{record.xp}</span>
+      </p>
       <span className={s.bar} aria-hidden="true">
         <span style={{ width: `${Math.round(progress * 100)}%` }} />
       </span>
       <p className={s.cap}>
         {next ? (
           <>
-            다음 수준({next})까지 <b className={s.mono}>{remaining} XP</b>
+            다음 수준까지 <b className={s.mono}>{remaining} XP</b>
           </>
         ) : (
           <>
             {myLevel} 미션 <b className={s.mono}>{done}/{track.length}</b>
-          </>
-        )}
-        {available && (
-          <>
-            {" · "}
-            <Link href="/ranking" className={s.link} data-tour={me ? undefined : "score-line"}>
-              랭킹 보기
-            </Link>
           </>
         )}
       </p>
@@ -180,7 +147,7 @@ function RecordPanel({ record, myLevel, onOpen, compact = false }) {
   );
 }
 
-function LevelUpBanner({ from, onStart, onClose }) {
+function LevelUpBanner({ from, job, onStart, onClose }) {
   const to = nextLevel(from);
   return (
     <section className={s.levelup} aria-live="polite" aria-label="레벨업" data-tour-wait="">
@@ -191,17 +158,17 @@ function LevelUpBanner({ from, onStart, onClose }) {
       </span>
       <div className={s.levelupText}>
         <p className={s.levelupTitle}>
-          {to ? `${from} 다섯 미션 모두 마침. 이제 ${to}.` : `${from} 다섯 미션까지 모두 마침. 이제 실제 업무에.`}
+          {to ? `${from} 미션 모두 마침. 이제 ${to}.` : `${from} 미션까지 모두 마침. 이제 시험으로.`}
         </p>
-        <p className={s.levelupSub}>{to ? LEVEL_NEXT_LINE[to] : "프롬프트 도우미에서 내 업무 프롬프트 바로 만들기."}</p>
+        <p className={s.levelupSub}>{to ? LEVEL_NEXT_LINE[to] : "직무별 AI 활용 시험으로 실력 확인하기."}</p>
       </div>
       {to ? (
         <button type="button" className={s.levelupCta} onClick={onStart}>
           {to} 첫 미션 시작
         </button>
       ) : (
-        <Link href="/prompt" className={s.levelupCta} onClick={onClose}>
-          프롬프트 도우미로
+        <Link href={job ? `/exam/${job}` : "/exam"} className={s.levelupCta} onClick={onClose}>
+          시험 보러 가기
         </Link>
       )}
       <button type="button" className={s.close} aria-label="안내 닫기" onClick={onClose}>
@@ -251,7 +218,10 @@ function CourseCarousel({ completed, recommended }) {
                     <b>{c.title}</b>
                   </span>
                   <span className={s.cardBody}>
-                    <span className={s.cardSum}>{c.summary}</span>
+                    <span className={s.cardSum}>
+                      {c.summary}
+                      {c.id === "prompt" && <span className={s.cardLevels}>{LEVELS.map((lv) => `${lv} ${lessonsAt(lv).length}`).join(" · ")}</span>}
+                    </span>
                     <span className={s.cardMeta}>
                       <span>미션 {ids.length}개</span>
                       <span className={s.bar} aria-hidden="true">
@@ -317,18 +287,14 @@ function MissionRows({ lessons, record, nextId, onOpen, showSummary = (l) => l.s
   );
 }
 
-// 과정 화면 머리: 여섯 과정으로 돌아가기, "과정 N", "{과정} 미션 고르기", 소개와 알림은 제목 아래 한 덩어리
+// 과정 화면 머리(보드 C2-1·C2-2): "과정 N", "{과정} 미션 고르기". 제목 아래 소개 줄은 두지 않는다.
+// 과정 2의 메모리 안내(note)는 바깥 AI 서비스 기능이라는 오해를 막는 정보라 제목 아래 띠로 남긴다(메모 C2-2).
 function CourseHead({ course }) {
   return (
     <div className={s.courseHead}>
       <p className={s.meta}>과정 {course.no}</p>
       <h1 className={s.title}>{course.title} 미션 고르기</h1>
-      {(course.lede || course.note) && (
-        <div className={s.courseIntro}>
-          {course.lede && <p>{course.lede}</p>}
-          {course.note && <p className={s.cap}>{course.note}</p>}
-        </div>
-      )}
+      {course.note && <p className={s.courseIntro}>{course.note}</p>}
     </div>
   );
 }
@@ -414,13 +380,14 @@ function CourseDetail({ course, record, onOpen }) {
 // 손님·로그인 전 첫 화면 맨 위(C1): 추천 첫 미션 카드 하나와 진한 '시작하기' 하나. 로그인 안내는 그 아래 보조 한 줄.
 function FirstMission({ lesson, fromDiagnosis, loginReady, onOpen }) {
   const pos = lessonsAt(lesson.level).findIndex((l) => l.id === lesson.id) + 1;
+  const count = lessonsAt(lesson.level).length;
   return (
     <section className={`${s.card} ${s.firstCard}`} aria-labelledby="first-title" data-tour="learn-foryou">
       <div>
         <p className={s.firstMeta}>
           <span className={s.recTag}>{fromDiagnosis ? "진단 추천" : "첫 미션"}</span>
           <span className={s.cap}>
-            과정 1 프롬프트 작성 · {lesson.level} · 미션 {String(pos).padStart(2, "0")}/05
+            과정 1 프롬프트 작성 · {lesson.level} · 미션 {String(pos).padStart(2, "0")}/{String(count).padStart(2, "0")}
           </span>
           {lesson.focus && <ElementChip id={lesson.focus} />}
         </p>
@@ -441,7 +408,7 @@ function FirstMission({ lesson, fromDiagnosis, loginReady, onOpen }) {
             <Link href={authHref("login", "/learn")} className={s.link}>
               로그인
             </Link>
-            하면 기록 저장 · 맞춤 커리큘럼 추천
+            하면 기록 저장 · 맞춤 미션 추천
           </p>
         )}
       </div>
@@ -468,15 +435,15 @@ function Learn() {
   const router = useRouter();
   const courseParam = useSearchParams().get("course");
   const course = COURSE[courseParam] ?? null;
-  const { ready, profile, setProfile, record, updateRecord, diagnosis, survey, user, login } = useAppState();
-  // 진단 전(프로필 없음)에는 수준을 저장하지 않고 푼 미션으로 계산한다.
-  // 손님용 기본값(GUEST)을 프로필로 저장하면 고르지 않은 직무가 생기기 때문이다.
-  const myLevel = profile ? (LEVELS.includes(profile.level) ? profile.level : "초급") : levelAfter("초급", record.completed);
+  const { ready, profile, record, updateRecord, diagnosis, user, login } = useAppState();
+  // 수준은 푼 미션으로 계산한다(lib/level.js, 내 정보와 같은 규칙). 한 수준의 미션을 다 통과하면 다음 수준.
+  const myLevel = levelOf(record.completed);
+  const job = JOB[profile?.job] ? profile.job : null;
   // 탭을 직접 고르기 전에는 내 수준 탭을 연다. 저장된 수준은 마운트 뒤에 읽히니 null로 둔다.
   const [tab, setTab] = useState(null);
   const shown = tab ?? myLevel;
   const [openId, setOpenId] = useState(null);
-  const lesson = findAnyLesson(openId);
+  const lesson = lessonFor(findAnyLesson(openId), job);
   const track = lesson ? trackOf(lesson) : [];
   const openIndex = track.findIndex((l) => l.id === openId);
 
@@ -522,8 +489,7 @@ function Learn() {
   function recordAttempt(l, grade) {
     const firstPass = grade.passed && !record.completed.includes(l.id);
     const completed = firstPass ? [...record.completed, l.id] : record.completed;
-    // 레벨업은 올리기만 한다. 진단으로 정해진 수준보다 낮아지지 않는다.
-    const level = firstPass ? levelAfter(myLevel, completed) : myLevel;
+    const level = firstPass ? levelOf(completed) : myLevel;
     const rose = level !== myLevel;
     updateRecord((r) => {
       const tries = (r.tries[l.id] ?? 0) + 1;
@@ -540,10 +506,7 @@ function Learn() {
         history: [...entries, ...r.history].slice(0, 6),
       };
     });
-    if (rose) {
-      if (profile) setProfile({ ...profile, level });
-      setTab(null);
-    }
+    if (rose) setTab(null);
   }
 
   function openNext() {
@@ -561,7 +524,6 @@ function Learn() {
         position={openIndex + 1}
         total={track.length}
         alreadyDone={record.completed.includes(lesson.id)}
-        tried={(record.tries[lesson.id] ?? 0) > 0}
         isLast={isLast}
         backLabel={own ? `과정 ${own.no} · ${own.title}` : undefined}
         metaLabel={own ? `과정 ${own.no}` : `과정 1 · ${lesson.level}`}
@@ -574,7 +536,7 @@ function Learn() {
     );
   }
 
-  const banner = bannerFrom && <LevelUpBanner from={bannerFrom} onStart={startNextLevel} onClose={closeBanner} />;
+  const banner = bannerFrom && <LevelUpBanner from={bannerFrom} job={job} onStart={startNextLevel} onClose={closeBanner} />;
 
   if (course && course.id !== "prompt") {
     return (
@@ -586,7 +548,7 @@ function Learn() {
   }
 
   if (!course) {
-    const recommended = new Set(ready && diagnosis ? courseSignals({ diagnosis, survey }).map((r) => r.course) : []);
+    const recommended = new Set(ready && diagnosis ? courseSignals({ diagnosis, survey: null }).map((r) => r.course) : []);
     const first =
       lessonsAt(myLevel).find((l) => !record.completed.includes(l.id)) ?? LESSONS.find((l) => !record.completed.includes(l.id)) ?? LESSONS[0];
     return (
@@ -597,13 +559,8 @@ function Learn() {
         <div className={s.landingHead}>
           <h1 className={s.title}>미션으로 AI 활용 연습하기</h1>
           {ready && diagnosis?.prompt && (
-            <Link href="/diagnosis/prompt?edit=1" className={s.link}>
+            <Link href="/?edit=1" className={s.link}>
               진단 때 쓴 프롬프트 다시 고쳐 보기 →
-            </Link>
-          )}
-          {ready && !profile && (
-            <Link href="/" className={s.link}>
-              진단 전 · 초급부터 표시. 내 수준 진단하기 →
             </Link>
           )}
         </div>
@@ -637,14 +594,6 @@ function Learn() {
       <div className={s.courseLayout}>
         <div>
           <CourseHead course={course} />
-          {ready && !profile && (
-            <p className={s.cap} style={{ marginTop: 8 }}>
-              진단 전 · 초급부터 표시.{" "}
-              <Link href="/" className={s.link}>
-                내 수준 진단하기
-              </Link>
-            </p>
-          )}
           <div className={s.tabsRow}>
             <div className={s.tabs} role="tablist" aria-label="수준">
               {LEVELS.map((lv) => (

@@ -4,6 +4,7 @@
 import { connection } from "next/server";
 import { courseSignals } from "@/lib/courseSignals";
 import { diagnosisTrend } from "@/lib/diagnosisTrend";
+import { levelOf } from "@/lib/level";
 import { personalize } from "@/lib/personalize";
 import { jobGaps } from "@/lib/scoreboard";
 import { recentDiagnoses } from "@/lib/server/history";
@@ -24,7 +25,8 @@ export async function GET() {
   const job = state.profile?.job ?? null;
   const averages = await jobAverages(job);
   const result = personalize({
-    level: state.profile?.level ?? "초급",
+    // 수준은 푼 미션으로 정한다(진단 설문이 없어졌다). 교육 화면·내 정보와 같은 규칙.
+    level: levelOf(state.record?.completed),
     diagnosis: state.diagnosis,
     record: state.record,
     attempts,

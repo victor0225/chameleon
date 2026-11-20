@@ -13,7 +13,7 @@ const file1 = findAnyLesson("file1");
 const mem2 = findAnyLesson("mem2");
 const allRight = () => Object.fromEntries(mem1.cards.map((c) => [c.id, c.answer]));
 
-test("여섯 과정: 미션 id가 모두 있고, 과정 1은 15개 그대로, 과정 2~6은 3개씩이고 모두 열려 있다", () => {
+test("여섯 과정: 미션 id가 모두 있고, 과정 1은 11개, 과정 2~6은 3개씩이고 모두 열려 있다", () => {
   assert.deepEqual(COURSES.map((c) => c.id), ["prompt", "memory", "file", "verify", "tool", "flow"]);
   assert.deepEqual(COURSE.prompt.lessons, LESSONS.map((l) => l.id));
   for (const c of COURSES) {
@@ -22,7 +22,8 @@ test("여섯 과정: 미션 id가 모두 있고, 과정 1은 15개 그대로, �
   }
   assert.ok(COURSES.every((c) => c.ready));
   for (const c of COURSES.slice(1)) assert.equal(c.lessons.length, 3, c.id);
-  assert.deepEqual(COURSE.flow.related, ["m3", "a1"]);
+  assert.equal(COURSE.prompt.lessons.length, 11);
+  assert.deepEqual(COURSE.flow.related, [], "과정 1에서 뺀 미션(m3, a1)은 더 묶지 않는다");
   assert.equal(new Set(ALL_LESSONS.map((l) => l.id)).size, ALL_LESSONS.length);
 });
 

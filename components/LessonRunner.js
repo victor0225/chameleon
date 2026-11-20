@@ -17,6 +17,7 @@ import {
   ElementChip,
   FeedbackHead,
   foundOf,
+  JobChip,
   marksOf,
   MiniBar,
   PencilIcon,
@@ -104,13 +105,12 @@ export function OutputCard({ title, example, note, children, chip }) {
 const PRACTICE = { sort: PracticeSort, choose: PracticeChoose, spot: PracticeSpot, file: PracticeFile };
 
 // backLabel: 왼쪽 위 돌아가기 글, metaLabel: 제목 위 과정 글(없으면 "과정 1 · 초급"), nextLabel: 통과 뒤 버튼 글
-// tried: 이 미션을 전에 풀어 본 적이 있음(처음 푼 점수는 이미 정해짐) · onOpenCourse(id): 다른 과정으로 가기
+// alreadyDone: 이미 통과한 미션(다시 풀어도 XP 그대로) · onOpenCourse(id): 다른 과정으로 가기
 export function LessonRunner({
   lesson,
   position,
   total,
   alreadyDone,
-  tried = false,
   isLast,
   onExit,
   onAttempt,
@@ -128,18 +128,14 @@ export function LessonRunner({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [wasDone] = useState(alreadyDone);
-  const [wasTried] = useState(tried);
-  // 이 화면에서 채점받은 횟수. 두 번째부터는 다시 푼 점수다.
-  const [tries, setTries] = useState(0);
   const inputRef = useRef(null);
   const live = useMemo(() => analyze(draft), [draft]);
   const blanks = useMemo(() => [...new Set([...draft.matchAll(BLANK_NAMES)].map((m) => m[1].trim()))], [draft]);
   const stageIndex = STAGES.findIndex((st) => st.id === stage);
   const template = lesson.practice?.template;
   const { lecture } = lesson;
-  // 해 보기 칩: 이미 한 번 채점받았으면 이번 점수는 랭킹에 들어가지 않는다. 피드백 머리 칸: 지금 본 점수가 첫 점수인지.
-  const retryNext = wasTried || tries > 0;
-  const retryShown = wasTried || tries > 1;
+  // 해 보기 칩: 이미 통과한 미션이면 다시 풀어도 XP가 더 오르지 않는다(미션 점수는 랭킹과 무관).
+  const retryNext = wasDone;
 
   function go(next) {
     setStage(next);
@@ -158,7 +154,7 @@ export function LessonRunner({
     let result;
     try {
       const options = extra?.answer !== undefined ? { answer: extra.answer } : extra?.files ? { files: extra.files, sample: extra.sample } : {};
-      result = await api.gradeAttempt(lesson.id, prompt, options);
+      result = await api.gradeAttempt(lesson.id, prompt, { ...options, job: lesson.job });
     } catch (err) {
       setError(err?.message || "평가하지 못함. 잠시 뒤 다시 시도.");
       return err;
@@ -166,7 +162,6 @@ export function LessonRunner({
       setBusy(false);
     }
     setGrade(result);
-    setTries((n) => n + 1);
     onAttempt(result);
     go("result");
     return null;
@@ -179,7 +174,6 @@ export function LessonRunner({
     error,
     wasDone,
     retryNext,
-    retryShown,
     submit,
     setError,
     go,
@@ -207,7 +201,7 @@ export function LessonRunner({
   // 미리 만든 결과(키 없이 채점, noRun 미션)면 '예시 결과' 칩. noRun 미션(tool2)은 왜 예시인지 미션 안내를 붙인다.
   const example = Boolean(lesson.noRun || grade?.source === "rule");
   const outputNote = lesson.noRun ? lesson.outputs?.weakNote : undefined;
-  const nextAction = { label: runner.nextLabel, onClick: onNext, icon: <ArrowIcon /> };
+  const nextAction = { label: runner.nextLabel, onClick: onNext, icon: <ArrowIcon />, iconAfter: true };
   const retryAction = { label: "다시 해 보기", onClick: () => go("practice"), icon: <PencilIcon /> };
 
   return (
@@ -297,6 +291,7 @@ export function LessonRunner({
               <h2 id="lesson-mission" className={s.smallTitle}>
                 할 일
               </h2>
+              {lesson.job && <JobChip job={lesson.job} />}
               <p className={s.missionText}>{lesson.mission}</p>
               <h3 className={s.smallTitle} style={{ marginTop: 16 }}>
                 통과 기준
@@ -409,7 +404,6 @@ export function LessonRunner({
             total={grade.criteria.length}
             xp={grade.xp}
             wasDone={wasDone}
-            retry={retryShown}
             action={grade.passed ? nextAction : retryAction}
           />
           {grade.coaching && <CoachCard question={grade.coaching.question} hint={coachCriterion?.hint} />}

@@ -7,7 +7,7 @@ import Link from "next/link";
 import { segVar } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
 import { LESSONS } from "@/data/curriculum";
-import { EXPERIENCE, JOB } from "@/data/jobs";
+import { JOB } from "@/data/jobs";
 import { analyze } from "@/lib/anatomy";
 import { filesLine } from "@/lib/fileRules";
 import { ITEM, ITEMS } from "@/lib/items";
@@ -48,7 +48,7 @@ export default function ReportView() {
       <div className={styles.wrap}>
         <div className={styles.empty}>
           <p>아직 진단 결과 없음</p>
-          <Link href="/diagnosis" className="btn">
+          <Link href="/" className="btn">
             진단하러 가기
           </Link>
         </div>
@@ -56,7 +56,7 @@ export default function ReportView() {
     );
   }
 
-  const { level, found, missing, comment, prompt, job, experience, at, files } = diagnosis;
+  const { level, found, missing, comment, prompt, job, at, files } = diagnosis;
   const segments = diagnosis.segments ?? analyze(prompt).segments;
   const lesson = recommendLesson(level, missing, record.completed);
   const date = new Date(at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
@@ -84,12 +84,6 @@ export default function ReportView() {
                 <dd>{JOB[job].name}</dd>
               </div>
             )}
-            {EXPERIENCE[experience] && (
-              <div>
-                <dt>AI 사용 경험</dt>
-                <dd>{EXPERIENCE[experience].title}</dd>
-              </div>
-            )}
             <div>
               <dt>진단일</dt>
               <dd>{date}</dd>
@@ -97,14 +91,13 @@ export default function ReportView() {
           </dl>
         </header>
 
-        <section className={styles.levelRow} aria-label="내 수준">
+        {/* 사람 등급 대신 프롬프트 상태를 크게(보드 K3과 같음) */}
+        <section className={styles.levelRow} aria-label="진단 요약">
           <div>
-            <p className={styles.label}>내 수준</p>
-            <p className={styles.level}>{level}</p>
+            <p className={styles.label}>다섯 요소 중</p>
+            <p className={styles.level}>{found.length}개</p>
           </div>
-          <p className={styles.comment}>
-            다섯 요소 중 <strong>{found.length}개</strong> 포함.{comment ? ` ${comment}` : ""}
-          </p>
+          {comment && <p className={styles.comment}>{comment}</p>}
         </section>
 
         <section className={styles.section}>
@@ -162,7 +155,7 @@ export default function ReportView() {
                 {ITEM[lesson.focus].name} 익히기)
               </li>
             )}
-            <li>프롬프트 작성 도우미에서 실제 업무 프롬프트 만들기</li>
+            <li>{JOB[job] ? `${JOB[job].name} AI 활용 시험` : "직무별 AI 활용 시험"}으로 실력 확인(5분 · 6문제)</li>
           </ol>
         </section>
 

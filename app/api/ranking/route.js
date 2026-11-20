@@ -1,31 +1,13 @@
-// GET  /api/ranking?job=… : 부문 점수와 랭킹
-//   → { me: { total, max, areas, done, rank, ranked, nickname, job } | null, top: [{ rank, nickname, job, total, demo, me }] }
-//   top은 랭킹에 참여한 사용자 상위 10명이다. job을 주면 그 직무만 센다.
-//   me는 로그인했을 때만 준다. 참여하지 않았어도 내 점수와 부문 점수는 준다(rank: null).
-//   로그인 기능(DB와 세션 키)이 꺼져 있으면 { me: null, top: [], off: true }
-// POST /api/ranking { ranked, nickname } : 내 참여 여부와 별명을 바꾼다. 로그인해야 한다.
-// 점수 규칙은 lib/scoreboard.js, DB 읽기는 lib/server/ranking.js.
-import { connection } from "next/server";
-import { JOB } from "@/data/jobs";
+// POST /api/ranking { ranked, nickname } : 랭킹에 보일 닉네임을 정한다({ ranked: true, nickname }) 또는 빠진다({ ranked: false }).
+//   로그인해야 한다. 랭킹은 직무별 시험마다 있고(/api/exam/[job]), 닉네임을 정한 사람만 이름이 보인다.
+//   미션 점수 랭킹(예전 GET)은 새 흐름(작업 L)에서 없앴다. 미션은 경험치만 올린다.
+// 닉네임 규칙은 lib/scoreboard.js(nicknameError), DB 쓰기는 lib/server/ranking.js(setRanking).
 import { hasDatabase } from "@/lib/server/db";
-import { loadRanking, setRanking } from "@/lib/server/ranking";
+import { setRanking } from "@/lib/server/ranking";
 import { getSessionUser, hasSessionSecret } from "@/lib/server/session";
 
 const MAX_BODY = 2000;
 const isOn = () => hasDatabase() && hasSessionSecret();
-
-export async function GET(request) {
-  await connection();
-  if (!isOn()) return Response.json({ me: null, top: [], off: true });
-  const job = new URL(request.url).searchParams.get("job");
-  try {
-    const user = await getSessionUser();
-    return Response.json(await loadRanking(user?.id ?? null, job && Object.hasOwn(JOB, job) ? job : null));
-  } catch (error) {
-    console.warn("[/api/ranking] 랭킹 읽기 실패:", error?.message || "unknown");
-    return Response.json({ error: "랭킹을 불러오지 못함. 잠시 후 다시 열기." }, { status: 500 });
-  }
-}
 
 export async function POST(request) {
   if (!isOn()) return Response.json({ error: "랭킹은 로그인 기능이 켜져 있을 때만 사용 가능." }, { status: 503 });

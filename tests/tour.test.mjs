@@ -5,12 +5,13 @@ import { TOURS } from "../data/tours.js";
 import { cleanSeen, cleanTourView, mergeSeen, shouldShow, toUpload, visibleSteps } from "../lib/tour.js";
 
 test("안내 데이터: 화면 열 곳에 2~4단계, 단계마다 짚을 곳·제목·설명이 있다", () => {
-  assert.deepEqual(Object.keys(TOURS), ["home", "diagnosis", "result", "compare", "helper", "learn", "mission", "feedback", "ranking", "mypage"]);
+  assert.deepEqual(Object.keys(TOURS), ["home", "result", "compare", "learn", "mission", "feedback", "mypage"]);
   for (const [id, tour] of Object.entries(TOURS)) {
     assert.ok(tour.steps.length >= 2 && tour.steps.length <= 4, id);
     for (const step of tour.steps) assert.ok(step.target && step.title && step.body, `${id} ${step.target}`);
   }
-  assert.match(TOURS.mission.steps.at(-1).body, /처음 푼 점수만 부문 점수와 랭킹에 반영/);
+  assert.match(TOURS.mission.steps.at(-1).body, /처음 통과할 때만 \+30 XP/);
+  assert.deepEqual(TOURS.home.steps.map((st) => st.target), ["home-input", "nav-learn", "nav-exam", "nav-me"]);
 });
 
 test("shouldShow: 본 적 없는 안내만 띄우고, 건너뛴 것도 본 것으로 친다", () => {
@@ -34,9 +35,9 @@ test("visibleSteps: 화면에 짚을 곳이 있는 단계만 남긴다", () => {
 
 test("mergeSeen·toUpload: 같은 안내면 서버 것을 쓰고, 서버에 없는 브라우저 기록만 올린다", () => {
   const local = { home: "done", mission: "skipped", junk: "done", learn: "maybe" };
-  const server = { mission: "done", ranking: "skipped" };
+  const server = { mission: "done", learn: "skipped" };
   assert.deepEqual(cleanSeen(local), { home: "done", mission: "skipped" });
-  assert.deepEqual(mergeSeen(local, server), { home: "done", mission: "done", ranking: "skipped" });
+  assert.deepEqual(mergeSeen(local, server), { home: "done", mission: "done", learn: "skipped" });
   assert.deepEqual(toUpload(local, server), [["home", "done"]]);
   assert.deepEqual(cleanSeen("깨진 값"), {});
 });

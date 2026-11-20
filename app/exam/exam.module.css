@@ -1,0 +1,1181 @@
+/* 직무별 시험(작업 L, 보드 L1~L8). 색은 app/globals.css 토큰만 쓴다. 보드의 #f7f9f8·#eef2ef는 토큰을 섞어 만든다. */
+
+.page {
+  --soft: color-mix(in srgb, var(--paper) 55%, var(--surface));
+  --hair: color-mix(in srgb, var(--line) 50%, var(--surface));
+  max-width: 1104px;
+  margin: 0 auto;
+  padding: 36px 24px 80px;
+}
+
+.pageNarrow {
+  max-width: 928px;
+}
+
+.title {
+  text-align: center;
+  font-size: clamp(30px, 4vw, 40px);
+  line-height: 1.25;
+}
+
+.titleTight {
+  margin-top: 6px;
+}
+
+.h3 {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.lbl {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.cap {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.monoInk {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.error {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--danger);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  min-width: 0;
+}
+
+/* ---------- 버튼·칩 ---------- */
+
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 22px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.primary {
+  border: 0;
+  background: var(--ink);
+  color: #fff;
+}
+
+.primary:hover:not(:disabled) {
+  background: #24332c;
+}
+
+.secondary {
+  padding: 0 20px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.secondary:hover:not(:disabled) {
+  border-color: var(--ink);
+}
+
+.primary:disabled,
+.secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.wide {
+  width: 100%;
+}
+
+.push {
+  margin-left: auto;
+}
+
+/* 로그인·가입·참가: 테두리 작은 버튼(헤더 로그인과 같은 모양) */
+.outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.outline:hover:not(:disabled) {
+  border-color: var(--ink);
+}
+
+.outline:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pills {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pillsCenter {
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--wash);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 예시 사용자 표시 */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: var(--wash);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: none;
+}
+
+/* '내 직무', '나' 칩 */
+.mine {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex: none;
+}
+
+/* 손님 안내 줄: 시험은 로그인 후 응시 · 로그인 · 가입 */
+.infoBox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--soft);
+  font-size: 15px;
+}
+
+.infoInCard {
+  margin-top: 0;
+}
+
+.infoActions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ---------- 시험 목록 L1·L2 ---------- */
+
+.grid {
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.grid > li {
+  display: flex;
+}
+
+.examCard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+
+.examCard:hover {
+  border-color: var(--ink);
+}
+
+.art {
+  position: relative;
+  height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--wash);
+  color: var(--ink);
+}
+
+.artChip {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+}
+
+.cardBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px 18px;
+}
+
+.cardTitle {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.tasks {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.cardFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--hair);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.cardFoot b {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* ---------- 시험 화면 L3·L7 ---------- */
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--ink);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  align-items: start;
+  gap: 20px;
+  margin-top: 28px;
+}
+
+.rules {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--wash);
+}
+
+.rules li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 15px;
+}
+
+.rules svg {
+  margin-top: 4px;
+  flex: none;
+}
+
+.areas {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.area {
+  display: grid;
+  grid-template-columns: 28px 120px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--hair);
+  font-size: 15px;
+}
+
+.areaNo {
+  font-family: var(--font-mono);
+  color: var(--ink-2);
+}
+
+.areaScore {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.areaScore small,
+.totalNum small {
+  color: var(--ink-2);
+  font-weight: 400;
+}
+
+.totalRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.totalNum {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.totalNum small {
+  font-size: 13px;
+}
+
+.action {
+  margin-top: 20px;
+}
+
+.action:empty {
+  display: none;
+}
+
+/* 랭킹 카드 */
+.rankCard {
+  padding: 20px;
+  scroll-margin-top: 88px;
+}
+
+.rankHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.table {
+  width: 100%;
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.table th {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--soft);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table .r {
+  text-align: right;
+}
+
+.m {
+  font-family: var(--font-mono);
+}
+
+.meRow td {
+  background: var(--wash);
+  font-weight: 700;
+}
+
+.nameCell {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.noName {
+  color: var(--ink-2);
+}
+
+.gapRow td {
+  padding: 4px;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+.emptyCell {
+  color: var(--ink-2);
+  text-align: center;
+}
+
+.join {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.join label {
+  display: block;
+}
+
+.joinRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* 전역 input[type="text"]보다 강하게(CSS 묶음 순서와 상관없이 이 값이 이기게) */
+.joinRow input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 14px;
+  font-size: 15px;
+}
+
+.joinRow .outline {
+  height: 40px;
+}
+
+/* ---------- 시험 보는 중 L4·L5 ---------- */
+
+.band {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  padding: 14px 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.bandTitle {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.count {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 6px;
+}
+
+.dots li {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--wash);
+}
+
+.dots li.dotDone {
+  background: var(--ink-2);
+}
+
+.dots li.dotNow {
+  background: var(--ink);
+}
+
+.timer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer.low {
+  color: var(--danger);
+}
+
+.qCard {
+  margin-top: 20px;
+  padding: 28px 32px;
+}
+
+.todo {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.todo > .lbl {
+  min-width: 44px;
+  padding-top: 4px;
+  flex: none;
+}
+
+.todo p {
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.textarea {
+  display: block;
+  width: 100%;
+  height: 240px;
+  min-height: 160px;
+  margin-top: 20px;
+  padding: 16px 18px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  font-size: 16px;
+  line-height: 1.7;
+  resize: vertical;
+}
+
+.textarea:focus {
+  outline: 3px solid color-mix(in srgb, var(--c-goal) 35%, transparent);
+  outline-offset: 0;
+}
+
+.editorFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-top: 14px;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* 고른 것: 옅은 면 + 굵은 진한 테두리 + 체크(주 버튼과 헷갈리지 않게 채우지 않는다) */
+.option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.option:hover {
+  border-color: var(--ink-2);
+}
+
+.option[aria-pressed="true"] {
+  padding: 0 15px;
+  border: 2px solid var(--ink);
+  background: var(--wash);
+  font-weight: 700;
+}
+
+.sortList,
+.sitGrid {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.sitGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sortRow,
+.sit {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.sortRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.sit {
+  padding: 16px 18px;
+}
+
+.sit .options {
+  margin-top: 10px;
+}
+
+.cardText {
+  font-weight: 600;
+}
+
+.sortRow .cardText {
+  flex: 1 1 260px;
+}
+
+.counter {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.counter b {
+  font-family: var(--font-mono);
+  color: var(--ink);
+}
+
+.pickLayout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.material {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  min-width: 0;
+}
+
+.materialTitle {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.mtable {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.mtable th,
+.mtable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.mtable th {
+  background: var(--soft);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mtable th:not(:first-child),
+.mtable td:not(:first-child) {
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+.mlines {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.sentences {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.sentence {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sentence:hover {
+  border-color: var(--ink-2);
+}
+
+.sentence[aria-pressed="true"] {
+  padding: 10px 13px;
+  border: 2px solid var(--ink);
+  background: var(--wash);
+}
+
+.sentenceNo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 24px;
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.sentence[aria-pressed="true"] .sentenceNo {
+  color: var(--ink);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.navError {
+  text-align: right;
+}
+
+/* 시간 종료 알림 창 L8 */
+.timeUp {
+  width: min(420px, calc(100vw - 32px));
+  padding: 28px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: center;
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--ink) 30%, transparent);
+}
+
+.timeUp::backdrop {
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+
+.timeIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: var(--wash);
+}
+
+.timeTitle {
+  margin-top: 12px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.timeDesc {
+  margin: 6px 0 20px;
+  color: var(--ink-2);
+}
+
+.leave {
+  margin-top: 12px;
+}
+
+/* ---------- 결과 L6 ---------- */
+
+.summary {
+  padding: 28px 32px;
+}
+
+.scoreLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px 24px;
+  margin-top: 8px;
+}
+
+.big {
+  font-family: var(--font-mono);
+  font-size: 52px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.big small {
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.rankCol {
+  padding-left: 24px;
+  border-left: 1px solid var(--line);
+}
+
+.rankText {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.ruleChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 6px 14px 6px 10px;
+  border-radius: 999px;
+  background: var(--wash);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.areasCard {
+  margin-top: 16px;
+  padding: 20px 32px;
+}
+
+.scoreRows {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+}
+
+.scoreRow {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 72px;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--hair);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+}
+
+button.scoreRow {
+  cursor: pointer;
+}
+
+.areaName {
+  display: flex;
+  flex-direction: column;
+}
+
+.bar {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--wash);
+  overflow: hidden;
+}
+
+/* 부문 막대는 진한 글자색. 요소 색은 요소를 뜻할 때만 쓴다. */
+.bar i {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--ink);
+}
+
+.barScore {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.barScore svg {
+  color: var(--ink-2);
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 12px 166px;
+}
+
+.missBox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 2px solid var(--danger);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.missBox ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 15px;
+}
+
+.missIcon,
+.icNo,
+.icOk {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.missIcon {
+  margin-top: 1px;
+}
+
+.missIcon,
+.icNo {
+  box-shadow: inset 0 0 0 2px var(--danger);
+}
+
+.icOk {
+  background: var(--ink);
+}
+
+.critBox {
+  display: grid;
+  gap: 8px;
+}
+
+.critList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.critList li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--soft);
+  font-size: 14px;
+}
+
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 코칭 질문 카드(미션 CoachCard와 같은 모양, 작게) */
+.coach {
+  padding: 16px 20px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.coachQ {
+  margin-top: 4px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.resultFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.lnk {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- 좁은 화면: 깨지지 않게만 ---------- */
+
+@media (max-width: 960px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .grid,
+  .sitGrid,
+  .pickLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .qCard,
+  .summary,
+  .areasCard {
+    padding: 20px;
+  }
+
+  .area {
+    grid-template-columns: 20px 72px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .scoreRow {
+    grid-template-columns: 96px minmax(0, 1fr) 64px;
+    gap: 10px;
+  }
+
+  .detail {
+    margin-left: 0;
+  }
+
+  .timer {
+    font-size: 28px;
+  }
+}

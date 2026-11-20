@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
 import { authHref } from "@/components/AuthLinks";
@@ -10,10 +10,10 @@ import { replayTour, useCurrentTour } from "@/components/Tour";
 import { JOB } from "@/data/jobs";
 import styles from "./Header.module.css";
 
+// 메뉴는 교육·시험 둘(보드 K1). 진단은 첫 화면 입력 칸에서 시작한다.
 const NAV = [
-  { href: "/", name: "진단", tour: "nav-diagnosis", match: (path) => path === "/" || path.startsWith("/diagnosis") },
-  { href: "/prompt", name: "프롬프트 도우미", tour: "nav-helper", match: (path) => path === "/prompt" },
-  { href: "/learn", name: "AI 활용 교육", tour: "nav-learn", match: (path) => path === "/learn" },
+  { href: "/learn", name: "교육", tour: "nav-learn", match: (path) => path.startsWith("/learn") },
+  { href: "/exam", name: "시험", tour: "nav-exam", match: (path) => path.startsWith("/exam") },
 ];
 
 // 마이페이지의 "페이지 설정"을 이 브라우저에 저장하는 키.
@@ -26,10 +26,18 @@ export function applyLargeText(on) {
 
 export function Header() {
   const pathname = usePathname();
-  const { ready, profile, user, login, authChecked } = useAppState();
+  const router = useRouter();
+  const { ready, profile, user, login, authChecked, logout } = useAppState();
   const onAuthPage = pathname === "/login" || pathname === "/signup";
   const onMypage = pathname === "/mypage";
-  const chipText = profile ? `${profile.level} · ${JOB[profile.job]?.name ?? "직무 미정"}` : "진단 전";
+  // 관심 직무를 골랐으면 "내 정보 · 마케팅", 안 골랐으면 "내 정보"
+  const jobName = JOB[profile?.job]?.name;
+  const chipText = jobName ? `내 정보 · ${jobName}` : "내 정보";
+
+  async function onLogout() {
+    await logout();
+    router.push("/");
+  }
   // 지금 화면에 안내(components/Tour.js)가 있으면 "화면 안내"로 다시 띄울 수 있다.
   const tour = useCurrentTour();
 
@@ -65,7 +73,7 @@ export function Header() {
             );
           })}
         </nav>
-        {/* 오른쪽 칸: 화면 안내 · 수준 칩 · 로그인 순서를 모든 화면에서 같게 둔다(공통 칸 ①).
+        {/* 오른쪽 칸: 화면 안내 · 내 정보 칩 · 로그인(로그아웃) 순서를 모든 화면에서 같게 둔다(공통 칸 ①).
             안내가 없는 화면에서도 자리는 남겨 칩이 옆으로 밀리지 않게 한다. */}
         <div className={styles.right}>
         <button
@@ -85,22 +93,26 @@ export function Header() {
         <Link
           href="/mypage"
           className={`level-chip ${styles.chip}${onMypage ? ` ${styles.active}` : ""}`}
-          aria-label={ready ? `마이페이지, ${user ? `${user.name || user.loginId}, ` : ""}${chipText}` : "마이페이지"}
           aria-current={onMypage ? "page" : undefined}
+          data-tour="nav-me"
         >
-          {/* 저장소를 읽기 전에는 "진단 전"이 잠깐 보였다 바뀌지 않도록 빈 칩 자리만 둔다. */}
-          {user && (
-            <span className={styles.avatar} aria-hidden="true">
-              {(user.name || user.loginId).trim().charAt(0)}
-            </span>
-          )}
-          {ready ? chipText : <span className={styles.placeholder} aria-hidden="true" />}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
+          </svg>
+          {/* 저장소를 읽기 전에는 직무가 잠깐 비었다 바뀌지 않도록 글자만 "내 정보"로 둔다. */}
+          {ready ? chipText : "내 정보"}
         </Link>
         {/* 서버에 DB가 연결돼 있을 때만 로그인 버튼을 보인다. 연결 전에는 지금처럼 브라우저 저장만 쓴다. */}
         {authChecked && !user && login.ready && !onAuthPage && (
           <Link href={authHref("login", pathname)} className={styles.login}>
             로그인
           </Link>
+        )}
+        {user && (
+          <button type="button" className={styles.login} onClick={onLogout}>
+            로그아웃
+          </button>
         )}
         </div>
       </div>

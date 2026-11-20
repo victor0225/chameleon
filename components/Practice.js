@@ -2,7 +2,7 @@
 
 // kind별 해 보기 칸과 피드백 칸. 디자인 캔버스 D5(분류), D12(분류 피드백), D13·D14(고르기), D9·D10(오류 찾기), D8·D7(파일).
 // 배우기 → 해 보기 → 피드백 흐름, 채점 요청, 기록 저장은 LessonRunner가 맡고, 여기서는 runner로 받아 쓴다.
-//   runner: { stage, grade, busy, error, wasDone, retryNext, retryShown, submit(extra), setError, go(stage), onNext, nextLabel, onOpenCourse }
+//   runner: { stage, grade, busy, error, wasDone, retryNext, submit(extra), setError, go(stage), onNext, nextLabel, onOpenCourse }
 // 해 보기와 피드백을 같은 컴포넌트가 그려서, 피드백 뒤 "다시 해 보기"를 누르면 고른 것을 그대로 둔 채 해 보기로 돌아간다.
 // 틀: 할 일 → 첫 점수 칩 → 내가 하는 칸(왼쪽)·자료와 기준(오른쪽). 피드백은 공통 머리 칸 → 코칭 질문 → 다시 볼 것 먼저.
 import { useMemo, useState } from "react";
@@ -36,7 +36,7 @@ const counted = (n, unit) => (WORD[n] ? `${WORD[n]} ${unit}` : `${n}${unit}`);
 // 머리 칸의 주 버튼: 통과면 다음 미션, 아니면 다시 해 보기
 function headAction(runner, passed, retry) {
   return passed
-    ? { label: runner.nextLabel, onClick: runner.onNext, icon: <ArrowIcon /> }
+    ? { label: runner.nextLabel, onClick: runner.onNext, icon: <ArrowIcon />, iconAfter: true }
     : { label: "다시 해 보기", onClick: retry ?? (() => runner.go("practice")), icon: <PencilIcon /> };
 }
 
@@ -49,7 +49,6 @@ function Head({ runner, result, desc, got, total, retry }) {
       total={total}
       xp={result.xp}
       wasDone={runner.wasDone}
-      retry={runner.retryShown}
       action={headAction(runner, result.passed, retry)}
     />
   );
@@ -92,6 +91,13 @@ function BackToLecture({ runner, children }) {
   );
 }
 
+// 자료 한 줄의 끝이 숫자 값이면(예: "원목 식탁 · 42개 · 3,780만 원") 값만 떼어 오른쪽에 둔다(보드 D9).
+function splitValue(line) {
+  const at = line.lastIndexOf(" · ");
+  const value = at > 0 ? line.slice(at + 3) : "";
+  return /^[\d,.]+/.test(value) ? [line.slice(0, at), value] : [line, null];
+}
+
 // 해 보기 때 함께 보는 자료: 대화 기록(kind: chat)이나 줄 목록. 오른쪽 칸에 둔다.
 export function MaterialPanel({ material }) {
   return (
@@ -111,9 +117,15 @@ export function MaterialPanel({ material }) {
         </ol>
       ) : (
         <ul className={p.lines}>
-          {material.lines.map((t) => (
-            <li key={t}>{t}</li>
-          ))}
+          {material.lines.map((t) => {
+            const [label, value] = splitValue(t);
+            return (
+              <li key={t} className={value ? p.valueLine : undefined}>
+                <span>{label}</span>
+                {value && <span className={p.value}>{value}</span>}
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
@@ -448,7 +460,10 @@ export function PracticeSpot({ lesson, runner }) {
     }
     const rows = result.review.sentences.map((r, i) => ({ ...r, i, text: lesson.sentences[i].text }));
     // 통과 전에는 놓친 곳을 드러내지 않는다(코칭 질문 하나만). 그래서 놓친 문장은 '나머지'에 섞인다.
-    const again = rows.filter((r) => r.status === "false" || (r.status === "missed" && r.question));
+    // 다시 볼 곳: 놓친 곳을 먼저, 잘못 고른 문장을 다음에(보드 D10)
+    const again = rows
+      .filter((r) => r.status === "false" || (r.status === "missed" && r.question))
+      .sort((a, b) => Number(b.status === "missed") - Number(a.status === "missed"));
     const foundRows = rows.filter((r) => r.status === "found");
     const rest = rows.filter((r) => !again.includes(r) && !foundRows.includes(r));
     const miss = result.review.missing;
@@ -807,7 +822,7 @@ export function PracticeFile({ lesson, runner }) {
           </div>
           <div role="group" aria-label="쓸 파일" className={p.tabs}>
             <button type="button" className="chip" aria-pressed={mode === "sample"} onClick={() => setMode("sample")}>
-              {label}로 하기
+              {josa(label, ["으로", "로"])} 하기
             </button>
             <button type="button" className="chip" aria-pressed={mode === "own"} onClick={() => setMode("own")}>
               내 파일 올리기

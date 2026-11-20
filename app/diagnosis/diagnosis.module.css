@@ -667,7 +667,7 @@
 
 .summary .level {
   margin-top: 6px;
-  font-size: 56px;
+  font-size: 48px;
   line-height: 1.1;
 }
 
@@ -820,6 +820,26 @@
   align-items: center;
   gap: 10px;
   padding: 14px 20px;
+}
+
+/* 다음에 할 것(보드 K3): 한 줄에 하나, 맨 앞 칸 이름(교육·시험) */
+.services:has(.nxKey) {
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.nxKey {
+  width: 56px;
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.nxRow .nxGo {
+  margin-top: 0;
+  margin-left: 16px;
 }
 
 .bottomRow {

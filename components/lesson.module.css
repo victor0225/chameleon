@@ -87,11 +87,12 @@
   background: var(--ink);
 }
 
-/* ---------- 제목 ---------- */
+/* ---------- 제목: 과정·수준·미션 번호 한 줄과 미션 이름, 가운데 정렬(보드 D1·D3·K7) ---------- */
 
 .meta {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   font-size: 13px;
   color: var(--ink-2);
@@ -99,6 +100,7 @@
 
 .title {
   margin-top: 10px;
+  text-align: center;
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 36px;
@@ -986,8 +988,10 @@
 
 /* ---------- 해 보기 공통 틀(D3): 할 일 한 줄, 내가 하는 칸 왼쪽, 자료·기준 오른쪽 ---------- */
 
+/* 할 일: 왼쪽에 '할 일', 오른쪽에 직무 칩과 할 일 글(보드 D3·D9·K7). .card의 세로 쌓기를 가로로 바꾼다. */
 .todoRow {
   display: flex;
+  flex-direction: row;
   align-items: flex-start;
   gap: 16px;
   padding: 18px 24px;
@@ -1147,4 +1151,19 @@
   font-size: 15px;
   line-height: 1.7;
   white-space: pre-wrap;
+}
+
+/* 관심 직무 칩: 할 일 위에 작게(보드 K7). 직무는 요소가 아니라 요소 색을 쓰지 않는다. */
+.jobChip {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  margin-bottom: 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
 }

@@ -382,7 +382,7 @@ export function SelfCompare({ onAiCompare }) {
                     ? "고친 만큼 결과가 달라짐. 다음 과정으로."
                     : "아직 비어 있는 요소 있음. 한 번 더 고치기."}
                 </p>
-                <Link href="/diagnosis/prompt?edit=1" className={s.secondary}>
+                <Link href="/?edit=1" className={s.secondary}>
                   한 번 더 고쳐 보기
                 </Link>
                 <Link href="/diagnosis/result#next-course" className={`${s.cta} ${s.ctaBig}`}>

@@ -212,7 +212,7 @@ export function Pending({ phase, failure, onRetry, onReupload, phases = PHASES, 
   );
 }
 
-// 비교 단계 이동. 누르면 그 단계로 간다.
+// 비교 단계 이동. 누르면 그 단계로 간다. 단계 표시에 번호는 쓰지 않는다(보드 A5).
 export function FlowNav({ labels, step, onStep }) {
   return (
     <nav aria-label="비교 단계" className={s.flow} data-tour="compare-steps">
@@ -228,7 +228,7 @@ export function FlowNav({ labels, step, onStep }) {
                 aria-current={n === step ? "step" : undefined}
                 onClick={() => onStep(n)}
               >
-                {state === "done" ? <CheckIcon /> : <span className={s.flowDot}>{n}</span>}
+                {state === "done" && <CheckIcon />}
                 {label}
               </button>
               {n < labels.length && <span className={s.flowLine} aria-hidden="true" />}
