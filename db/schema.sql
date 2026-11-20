@@ -94,5 +94,15 @@ INSERT INTO first_scores (user_id, lesson_id, score, created_at)
 SELECT DISTINCT ON (user_id, lesson_id) user_id, lesson_id, score, created_at
 FROM attempts
 WHERE score IS NOT NULL
+
+CREATE TABLE IF NOT EXISTS tour_views (
+  user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tour_id    text NOT NULL,                                        -- home, diagnosis, result, mypage, ranking 등 안내 화면 식별자
+  status     text NOT NULL CHECK (status IN ('done', 'skipped')),  -- 끝까지 봤나, 건너뛰었나
+  step       smallint NOT NULL DEFAULT 0,                          -- 건너뛴 단계 번호(끝까지 봤으면 마지막 단계)
+  first_at   timestamptz NOT NULL DEFAULT now(),                   -- 처음 본 시각
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, tour_id)
+);
 ORDER BY user_id, lesson_id, created_at
 ON CONFLICT (user_id, lesson_id) DO NOTHING;
