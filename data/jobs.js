@@ -34,3 +34,13 @@ export const EXPERIENCES = [
 ];
 
 export const EXPERIENCE = Object.fromEntries(EXPERIENCES.map((e) => [e.id, e]));
+
+// 설문 3번 "AI를 이렇게 써 봤어요"(여러 개 고름, 안 골라도 됨). 과정 추천 규칙(lib/courseSignals.js)이 쓴다.
+export const AI_USES = [
+  { id: "long", title: "긴 대화 이어 가기", desc: "한 대화에서 여러 번 주고받으며 일을 이어 갔어요" },
+  { id: "file", title: "파일 올리기", desc: "문서, 표, 그림을 올려서 물어봤어요" },
+  { id: "search", title: "검색 켜기", desc: "AI가 인터넷을 찾아보게 했어요" },
+  { id: "repeat", title: "같은 일 반복", desc: "매주 비슷한 일을 AI에게 맡겨요" },
+];
+
+export const AI_USE = Object.fromEntries(AI_USES.map((u) => [u.id, u]));

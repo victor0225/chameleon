@@ -346,7 +346,7 @@ function Learn() {
   const router = useRouter();
   const courseParam = useSearchParams().get("course");
   const course = COURSE[courseParam] ?? null;
-  const { ready, profile, setProfile, record, updateRecord, diagnosis } = useAppState();
+  const { ready, profile, setProfile, record, updateRecord, diagnosis, survey } = useAppState();
   const me = profile ?? GUEST;
   const myLevel = LEVELS.includes(me.level) ? me.level : "초급";
   // 탭을 직접 고르기 전에는 내 수준 탭을 연다. 저장된 수준은 마운트 뒤에 읽히니 null로 둔다.
@@ -462,7 +462,7 @@ function Learn() {
   }
 
   if (!course) {
-    const recommended = new Set(ready && diagnosis ? courseSignals({ diagnosis }).map((r) => r.course) : []);
+    const recommended = new Set(ready && diagnosis ? courseSignals({ diagnosis, survey }).map((r) => r.course) : []);
     return (
       <div className={s.page}>
         {banner}

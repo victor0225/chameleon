@@ -150,7 +150,7 @@ function GuessSection({ guess, error, onRetry, notice }) {
 }
 
 export default function DiagnosisResult() {
-  const { ready, diagnosis, setDiagnosis } = useAppState();
+  const { ready, diagnosis, setDiagnosis, survey } = useAppState();
   // 오류는 어느 진단에서 났는지(at)와 함께 둔다. 화면이 숨겨졌다 다시 보일 때 지난 진단의 오류를 띄우지 않는다.
   const [guessError, setGuessError] = useState(null);
   // 같은 진단으로 두 번 부르지 않게 마지막으로 부른 진단의 시각(at)을 기억한다.
@@ -338,7 +338,7 @@ export default function DiagnosisResult() {
         </Link>
       </div>
 
-      <NextCourses diagnosis={diagnosis} />
+      <NextCourses diagnosis={diagnosis} survey={survey} />
 
       <section className={`${s.next} ${s.noPrint}`} aria-labelledby="next-title">
         <h2 id="next-title" className="display">
@@ -363,8 +363,8 @@ export default function DiagnosisResult() {
 
 // 다음에 배울 과정(보드 1-3): 진단에서 보인 신호로 팀 규칙(lib/courseSignals.js)이 고른 과정 2~3개.
 // 비교 화면의 "다음에 배울 과정 보기"가 #next-course로 여기를 연다.
-function NextCourses({ diagnosis }) {
-  const picks = courseSignals({ diagnosis });
+function NextCourses({ diagnosis, survey }) {
+  const picks = courseSignals({ diagnosis, survey });
   const ref = useRef(null);
   const shown = picks.length > 0;
   // 저장된 진단을 읽은 뒤에 그려져서, 주소의 #next-course로 브라우저가 스스로 내려오지 못한다. 그린 뒤에 내려 준다.

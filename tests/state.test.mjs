@@ -80,3 +80,10 @@ test("상태 합치기: 더 최근 진단을 쓰고, 프로필도 그 진단을 
   assert.equal(b.profile.level, "초급");
   assert.equal(mergeStates(local, null), local);
 });
+
+test("설문 3번 답(uses)은 아는 것만 한 번씩 남기고, 없으면 넣지 않는다", () => {
+  const { value } = cleanState({ survey: { job: "office", experience: "often", uses: ["file", "file", "hack", 3, "long"] } });
+  assert.deepEqual(value.survey, { job: "office", experience: "often", uses: ["file", "long"] });
+  assert.deepEqual(cleanState({ survey: { job: "office", experience: "often" } }).value.survey, { job: "office", experience: "often" });
+});
+

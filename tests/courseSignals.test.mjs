@@ -49,3 +49,25 @@ test("개인정보 패턴: 강의 a3 채점과 같은 목록을 쓴다", () => {
   assert.ok(NO_PERSONAL_INFO.test("고객A 환불 문의 요약해 줘"));
   assert.ok(!NO_PERSONAL_INFO.test("김민수(010-1234-5678) 문의 요약"));
 });
+
+test("설문 3번 답은 진단 신호보다 약하게 더하고, 같은 과정이면 진단 이유를 남긴다", () => {
+  const full = diag({ found: ["goal", "context", "constraint", "format", "criteria"], missing: [] });
+  assert.deepEqual(courseSignals({ diagnosis: full, survey: { uses: ["long", "search"] } }), [
+    { course: "memory", reason: "긴 대화를 이어 가며 AI를 써 봤다고 했어요" },
+    { course: "verify", reason: "검색을 켜고 써 봤다고 했어요. 찾아 준 내용도 출처를 확인해야 해요" },
+  ]);
+  // 빠진 요소 셋(프롬프트 작성 3점, 결과 검증 1.5점)이 설문보다 앞서고, 결과 검증은 진단 이유가 남는다.
+  const r = courseSignals({ diagnosis: diag(), survey: { uses: ["search", "repeat"] } });
+  assert.deepEqual(r.map((x) => x.course), ["prompt", "verify", "flow"]);
+  assert.equal(r[1].reason, "AI가 지어낸 부분을 걸러낼 기준이 없어요");
+});
+
+test("설문에 답했는데 파일도 검색도 안 썼으면 AI 도구 활용, 답하기 전 설문은 건너뛴다", () => {
+  const full = diag({ found: ["goal", "context", "constraint", "format", "criteria"], missing: [] });
+  assert.deepEqual(courseSignals({ diagnosis: full, survey: { uses: [] } }), [
+    { course: "tool", reason: "검색이나 파일 분석은 아직 안 써 봤다고 했어요" },
+  ]);
+  assert.deepEqual(courseSignals({ diagnosis: full, survey: { job: "office" } }), []);
+  assert.deepEqual(courseSignals({ diagnosis: full, survey: { uses: ["file"] } }).map((x) => x.course), ["file"]);
+});
+
