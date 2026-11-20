@@ -601,3 +601,263 @@
   align-items: center;
   gap: 2px;
 }
+
+/* ---------- 여섯 과정(보드 3-1), 과정 상세(보드 3-2) ---------- */
+
+.coursesTitle {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+}
+
+.courseGrid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 14px;
+}
+
+.courseGrid > li {
+  display: flex;
+  min-width: 0;
+}
+
+.courseCard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  min-width: 0;
+  transition: border-color 0.15s ease;
+}
+
+a.courseCard:hover {
+  border-color: var(--ink);
+}
+
+a.courseCard:focus-visible,
+.courseNow:focus-visible,
+.courseLesson:focus-visible,
+.relatedCard:focus-visible,
+.backLink:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.courseSoon {
+  border-style: dashed;
+  background: var(--paper);
+  color: var(--ink-2);
+}
+
+.courseTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.courseNo {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.pickTag,
+.soonTag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.pickTag {
+  background: var(--ink);
+  color: #fff;
+}
+
+.soonTag {
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.courseName {
+  font-size: 19px;
+  color: var(--ink);
+  overflow-wrap: break-word;
+}
+
+.courseSum {
+  flex: 1;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.courseProgress {
+  display: grid;
+  gap: 6px;
+}
+
+.courseTrack {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--wash);
+  overflow: hidden;
+}
+
+.courseTrack span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+}
+
+.courseCount {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.courseNow {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  color: var(--ink-2);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: var(--ink);
+}
+
+.courseHead {
+  margin-top: 8px;
+  display: grid;
+  gap: 4px;
+}
+
+.courseHead .title {
+  margin-top: 2px;
+}
+
+.courseNote {
+  margin-top: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 760px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--wash);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.courseNote svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.courseSection {
+  margin-top: 32px;
+  display: grid;
+  gap: 14px;
+  max-width: 880px;
+}
+
+.courseLessons,
+.relatedList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.courseLesson,
+.relatedCard {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.courseLesson:hover,
+.relatedCard:hover {
+  border-color: var(--ink);
+}
+
+.lessonNo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.lessonDone {
+  background: var(--ink);
+  color: #fff;
+  box-shadow: none;
+}
+
+.lessonEnd {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: none;
+}
+
+.lessonXp {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.lessonGo {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.relatedMeta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-2);
+}

@@ -9,6 +9,7 @@ import { useAppState } from "@/components/AppState";
 import { LESSONS } from "@/data/curriculum";
 import { EXPERIENCE, JOB } from "@/data/jobs";
 import { analyze } from "@/lib/anatomy";
+import { filesLine } from "@/lib/fileRules";
 import { ITEM, ITEMS } from "@/lib/items";
 import styles from "./report.module.css";
 
@@ -55,9 +56,8 @@ export default function ReportView() {
     );
   }
 
-  const { level, found, missing, comment, prompt, job, experience, at } = diagnosis;
+  const { level, found, missing, comment, prompt, job, experience, at, files } = diagnosis;
   const segments = diagnosis.segments ?? analyze(prompt).segments;
-  const task = diagnosis.task ?? JOB[job]?.diagnosisTask;
   const lesson = recommendLesson(level, missing, record.completed);
   const date = new Date(at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
 
@@ -125,7 +125,6 @@ export default function ReportView() {
 
         <section className={styles.section}>
           <h2>내가 쓴 프롬프트</h2>
-          {task && <p className={styles.task}>과제: {task}</p>}
           <p className={styles.prompt}>
             {segments.map((s, i) =>
               s.items.length ? (
@@ -137,6 +136,7 @@ export default function ReportView() {
               ),
             )}
           </p>
+          {files?.length > 0 && <p className={styles.files}>첨부한 파일: {filesLine(files)}</p>}
           <p className={styles.legend}>밑줄 색은 문장에 들어 있는 요소예요.</p>
         </section>
 

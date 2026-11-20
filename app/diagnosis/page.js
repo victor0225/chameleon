@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppState } from "@/components/AppState";
-import { EXPERIENCE, EXPERIENCES, JOB, JOBS } from "@/data/jobs";
+import { AI_USE, AI_USES, EXPERIENCE, EXPERIENCES, JOB, JOBS } from "@/data/jobs";
 import { Choice } from "./_components/Choice";
 import { Progress } from "./_components/Progress";
 import s from "./diagnosis.module.css";
@@ -16,12 +16,21 @@ export default function Survey() {
   const [picked, setPicked] = useState({});
   const job = picked.job ?? (JOB[saved?.job] ? saved.job : null);
   const experience = picked.experience ?? (EXPERIENCE[saved?.experience] ? saved.experience : null);
+  // 3번은 여러 개를 고르고, 안 골라도 넘어갈 수 있다.
+  const uses = picked.uses ?? (survey?.uses ?? []).filter((id) => AI_USE[id]);
   const answered = Boolean(job && experience);
+
+  function toggleUse(id) {
+    setPicked((p) => {
+      const now = p.uses ?? uses;
+      return { ...p, uses: now.includes(id) ? now.filter((u) => u !== id) : AI_USES.map((u) => u.id).filter((u) => u === id || now.includes(u)) };
+    });
+  }
 
   function next(e) {
     e.preventDefault();
     if (!answered) return;
-    setSurvey({ job, experience });
+    setSurvey({ job, experience, uses });
     router.push("/diagnosis/prompt");
   }
 
@@ -30,7 +39,7 @@ export default function Survey() {
       <Progress step={1} />
       <header className={s.head}>
         <h1 className="display">내 수준 진단하기</h1>
-        <p className="lede">두 가지를 고르고 프롬프트를 한 번 써 보면, 지금 수준과 먼저 채울 요소를 알려 드려요.</p>
+        <p className="lede">몇 가지를 고르고 프롬프트를 한 번 써 보면, 지금 수준과 먼저 채울 요소를 알려 드려요.</p>
       </header>
 
       <form className={s.form} onSubmit={next}>
@@ -72,8 +81,29 @@ export default function Survey() {
           </div>
         </section>
 
+        <section className={s.question} aria-labelledby="q-uses">
+          <h2 id="q-uses" className={s.qTitle}>
+            <span className={s.qNum}>3</span> AI를 이렇게 써 봤어요
+          </h2>
+          <p className={s.qHint}>해당하는 것을 모두 골라 주세요. 없으면 그냥 넘어가도 돼요.</p>
+          <div className={s.choices} role="group" aria-labelledby="q-uses">
+            {AI_USES.map((u) => (
+              <Choice
+                key={u.id}
+                type="checkbox"
+                name="uses"
+                value={u.id}
+                checked={uses.includes(u.id)}
+                onChange={() => toggleUse(u.id)}
+                title={u.title}
+                desc={u.desc}
+              />
+            ))}
+          </div>
+        </section>
+
         <div className={s.actions}>
-          {!answered && <p className="small muted">두 질문에 모두 답하면 다음으로 넘어가요.</p>}
+          {!answered && <p className="small muted">1번과 2번에 답하면 다음으로 넘어가요.</p>}
           <button type="submit" className={`btn ${s.cta}`} disabled={!answered}>
             다음
           </button>

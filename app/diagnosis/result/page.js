@@ -5,6 +5,10 @@ import Link from "next/link";
 import * as api from "@/lib/api";
 import { AnatomyText, ScaleBar, segVar } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
+import { AttachedLine, ClipIcon, ExpiredNotice } from "@/components/FileAttach";
+import { courseSignals } from "@/lib/courseSignals";
+import { fileCoaching } from "@/lib/fileSignals";
+import { COURSE } from "@/data/courses";
 import { EXPERIENCE, JOB } from "@/data/jobs";
 import { ITEM } from "@/lib/items";
 import { Progress } from "../_components/Progress";
@@ -42,9 +46,11 @@ function markQuotes(output, guesses) {
   return parts;
 }
 
-function GuessSection({ guess, error, onRetry }) {
+function GuessSection({ guess, error, onRetry, notice }) {
   let body;
-  if (error) {
+  if (notice) {
+    body = notice;
+  } else if (error) {
     body = (
       <div className={s.guessError}>
         <p className="error" role="alert">
@@ -144,7 +150,7 @@ function GuessSection({ guess, error, onRetry }) {
 }
 
 export default function DiagnosisResult() {
-  const { ready, diagnosis, setDiagnosis } = useAppState();
+  const { ready, diagnosis, setDiagnosis, survey } = useAppState();
   // 오류는 어느 진단에서 났는지(at)와 함께 둔다. 화면이 숨겨졌다 다시 보일 때 지난 진단의 오류를 띄우지 않는다.
   const [guessError, setGuessError] = useState(null);
   // 같은 진단으로 두 번 부르지 않게 마지막으로 부른 진단의 시각(at)을 기억한다.
@@ -156,10 +162,14 @@ export default function DiagnosisResult() {
     (target) => {
       asked.current = target.at;
       api
-        .guessAssumptions({ job: target.job, prompt: target.prompt })
+        .guessAssumptions({ job: target.job, prompt: target.prompt, files: target.files })
         .then((guess) => setDiagnosis((prev) => (prev?.at === target.at ? { ...prev, guess } : prev)))
         .catch((err) =>
-          setGuessError({ at: target.at, message: err?.message || "AI가 추측한 부분을 불러오지 못했어요." }),
+          setGuessError({
+            at: target.at,
+            expired: Boolean(err?.expired),
+            message: err?.message || "AI가 추측한 부분을 불러오지 못했어요.",
+          }),
         );
     },
     [setDiagnosis],
@@ -172,6 +182,14 @@ export default function DiagnosisResult() {
   function retryGuess() {
     setGuessError(null);
     loadGuess(diagnosis);
+  }
+
+  // 첨부 파일이 만료돼 다시 올렸으면 그 파일로 바꿔 저장하고 다시 부른다.
+  function reuploaded(files) {
+    const next = { ...diagnosis, files };
+    setDiagnosis((prev) => (prev?.at === diagnosis.at ? { ...prev, files } : prev));
+    setGuessError(null);
+    loadGuess(next);
   }
 
   if (!ready) {
@@ -196,8 +214,10 @@ export default function DiagnosisResult() {
     );
   }
 
-  const { level, found, missing, comment, segments, prompt, job, experience, at } = diagnosis;
+  const { level, found, missing, comment, segments, prompt, job, experience, at, files } = diagnosis;
   const target = JOB[job];
+  const fileCoach = fileCoaching({ prompt, files });
+  const expired = guessError?.at === at && guessError.expired;
 
   return (
     <div className={s.wrap}>
@@ -243,15 +263,26 @@ export default function DiagnosisResult() {
 
         <section className={s.section} aria-labelledby="result-prompt">
           <h2 id="result-prompt">내가 쓴 프롬프트</h2>
-          {target && <p className="small muted">과제: {target.diagnosisTask}</p>}
           <AnatomyText text={prompt} segments={segments} className={s.promptBox} />
+          <AttachedLine files={files} />
           <ScaleBar found={found} />
         </section>
+
+        {fileCoach && (
+          <section className={s.fileCoach} aria-labelledby="file-coach">
+            <ClipIcon size={20} />
+            <div>
+              <h2 id="file-coach">{fileCoach.question}</h2>
+              <p className="small muted">{fileCoach.detail}</p>
+            </div>
+          </section>
+        )}
 
         <GuessSection
           guess={diagnosis.guess}
           error={guessError?.at === at ? guessError.message : ""}
           onRetry={retryGuess}
+          notice={expired && <ExpiredNotice onDone={reuploaded} then="다시 올리면 AI 결과를 이어서 볼 수 있어요." />}
         />
 
         {missing.length > 0 && (
@@ -271,16 +302,28 @@ export default function DiagnosisResult() {
         <p className={`small muted ${s.printOnly}`}>카멜레온에서 받은 프롬프트 진단 결과예요.</p>
       </article>
 
-      {missing.length > 0 && (
+      {diagnosis.before ? (
         <section className={`${s.compareCta} ${s.noPrint}`} aria-labelledby="compare-cta">
           <div>
-            <h2 id="compare-cta">빠진 요소를 채우면 결과가 어떻게 달라질까요?</h2>
-            <p className="small muted">AI가 다듬은 프롬프트로 같은 일을 시켜, 두 결과를 나란히 보여 줘요.</p>
+            <h2 id="compare-cta">고친 프롬프트로 결과가 어떻게 달라졌을까요?</h2>
+            <p className="small muted">고치기 전 프롬프트와 내가 고친 프롬프트로 같은 일을 시켜, 두 결과를 나란히 보여 줘요.</p>
           </div>
           <Link href="/diagnosis/compare" className="btn">
-            다듬은 프롬프트와 결과 비교하기
+            고치기 전과 결과 비교하기
           </Link>
         </section>
+      ) : (
+        missing.length > 0 && (
+          <section className={`${s.compareCta} ${s.noPrint}`} aria-labelledby="compare-cta">
+            <div>
+              <h2 id="compare-cta">빠진 요소를 채우면 결과가 어떻게 달라질까요?</h2>
+              <p className="small muted">AI가 다듬은 프롬프트로 같은 일을 시켜, 두 결과를 나란히 보여 줘요.</p>
+            </div>
+            <Link href="/diagnosis/compare" className="btn">
+              다듬은 프롬프트와 결과 비교하기
+            </Link>
+          </section>
+        )
       )}
 
       <div className={`${s.resultActions} ${s.noPrint}`}>
@@ -294,6 +337,8 @@ export default function DiagnosisResult() {
           다시 진단하기
         </Link>
       </div>
+
+      <NextCourses diagnosis={diagnosis} survey={survey} />
 
       <section className={`${s.next} ${s.noPrint}`} aria-labelledby="next-title">
         <h2 id="next-title" className="display">
@@ -313,5 +358,38 @@ export default function DiagnosisResult() {
         </div>
       </section>
     </div>
+  );
+}
+
+// 다음에 배울 과정(보드 1-3): 진단에서 보인 신호로 팀 규칙(lib/courseSignals.js)이 고른 과정 2~3개.
+// 비교 화면의 "다음에 배울 과정 보기"가 #next-course로 여기를 연다.
+function NextCourses({ diagnosis, survey }) {
+  const picks = courseSignals({ diagnosis, survey });
+  const ref = useRef(null);
+  const shown = picks.length > 0;
+  // 저장된 진단을 읽은 뒤에 그려져서, 주소의 #next-course로 브라우저가 스스로 내려오지 못한다. 그린 뒤에 내려 준다.
+  useEffect(() => {
+    if (shown && window.location.hash === "#next-course") ref.current?.scrollIntoView({ block: "start" });
+  }, [shown]);
+  if (!shown) return null;
+  return (
+    <section ref={ref} className={`${s.next} ${s.nextCourses} ${s.noPrint}`} aria-labelledby="next-course">
+      <div className={s.nextHead}>
+        <h2 id="next-course" className="display">
+          다음에 배울 과정
+        </h2>
+        <p className="muted">이번 진단에서 보인 것을 바탕으로 골랐어요.</p>
+      </div>
+      <div className={s.courses}>
+        {picks.map(({ course, reason }) => (
+          <Link key={course} href={`/learn?course=${course}`} className={s.course}>
+            <span className={s.courseNo}>과정 {COURSE[course].no}</span>
+            <strong>{COURSE[course].title}</strong>
+            <span className={s.courseWhy}>{reason}</span>
+            <span className={s.courseGo}>과정 보기{"\u00a0"}→</span>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }

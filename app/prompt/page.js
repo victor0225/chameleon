@@ -47,7 +47,7 @@ async function copyText(text) {
   }
 }
 export default function PromptHelper() {
-  const { profile } = useAppState();
+  const { profile, diagnosis } = useAppState();
   const me = profile ?? GUEST;
   const [purpose, setPurpose] = useState("");
   const [reader, setReader] = useState("");
@@ -116,6 +116,12 @@ export default function PromptHelper() {
       {!profile && (
         <p className="notice">
           진단 전이라 초급·사무·행정 기준으로 만들어요. <Link href="/">내 수준 진단하기</Link>
+        </p>
+      )}
+      {diagnosis?.prompt && (
+        <p className="notice">
+          여기서 익힌 대로 진단 때 쓴 프롬프트를 직접 고쳐 보면, 고치기 전과 결과를 비교할 수 있어요.{" "}
+          <Link href="/diagnosis/prompt?edit=1">진단 프롬프트 다시 고쳐 보기</Link>
         </p>
       )}
 

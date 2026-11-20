@@ -22,7 +22,7 @@ test("저장 전 검사: 모르는 직무·강의·요소는 버리고 숫자는
     diagnosis: diagnosis("2026-11-20T10:00:00.000Z", { found: ["goal", "mood"] }),
     record: {
       xp: -5,
-      completed: ["b1", "b1", "zz"],
+      completed: ["b1", "b1", "zz", "mem1"],
       tries: { b1: 2, zz: 9, m1: "a" },
       mastery: { goal: 140, format: 30, mood: 50 },
       history: [{ lessonId: "b1", title: "x", passed: true, tries: 1, xp: 30, extra: "drop" }],
@@ -33,7 +33,8 @@ test("저장 전 검사: 모르는 직무·강의·요소는 버리고 숫자는
   assert.equal(value.survey, null);
   assert.deepEqual(value.diagnosis.found, ["goal"]);
   assert.deepEqual(value.diagnosis.detail.segments, [{ text: "신제품 SNS 글 써 줘", items: ["goal"] }]);
-  assert.deepEqual(value.record.completed, ["b1"]);
+  // 과정 2~4 강의 id도 남는다.
+  assert.deepEqual(value.record.completed, ["b1", "mem1"]);
   assert.deepEqual(value.record.tries, { b1: 2, m1: 0 });
   assert.equal(value.record.xp, 0);
   assert.deepEqual(value.record.mastery, { goal: 0, context: 0, constraint: 0, format: 30, criteria: 0 });
@@ -79,3 +80,10 @@ test("상태 합치기: 더 최근 진단을 쓰고, 프로필도 그 진단을 
   assert.equal(b.profile.level, "초급");
   assert.equal(mergeStates(local, null), local);
 });
+
+test("설문 3번 답(uses)은 아는 것만 한 번씩 남기고, 없으면 넣지 않는다", () => {
+  const { value } = cleanState({ survey: { job: "office", experience: "often", uses: ["file", "file", "hack", 3, "long"] } });
+  assert.deepEqual(value.survey, { job: "office", experience: "often", uses: ["file", "long"] });
+  assert.deepEqual(cleanState({ survey: { job: "office", experience: "often" } }).value.survey, { job: "office", experience: "often" });
+});
+

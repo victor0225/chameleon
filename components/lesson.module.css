@@ -732,3 +732,27 @@
     font-size: 28px;
   }
 }
+
+/* 과정 2~4 강의: 핵심 아래 요점 목록, kind별 실습 칸 묶음 */
+.points {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.practiceArea {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.practiceArea[hidden] {
+  display: none;
+}
+
+.side[hidden] {
+  display: none;
+}
