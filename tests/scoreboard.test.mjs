@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { findAnyLesson } from "../data/courses.js";
 import { gradeSort, gradeSpot } from "../lib/server/practice.js";
-import { areaScores, lessonPoints, nicknameError, rankRows } from "../lib/scoreboard.js";
+import { areaScores, buildRanking, lessonPoints, nicknameError, rankRows } from "../lib/scoreboard.js";
 
 const lesson = (id) => findAnyLesson(id);
 const met = (...flags) => ({ criteria: flags.map((m) => ({ label: "", item: null, met: m })) });
@@ -71,4 +71,31 @@ test("별명: 2~12자, 한글·영문·숫자·띄어쓰기만", () => {
   assert.match(nicknameError("열세글자가넘는아주긴별명이에요"), /2~12자/);
   assert.match(nicknameError("<script>"), /한글, 영문, 숫자/);
   assert.match(nicknameError(42), /2~12자/);
+});
+
+test("가짜 행으로 랭킹 만들기: 참여한 사람만 표에, 나는 참여 전이어도 점수가 있고, 직무로 거른다", () => {
+  const people = [
+    { id: "u1", nickname: "예시 사용자 1", ranked: true, demo: true, job: "office" },
+    { id: "u2", nickname: "별명2", ranked: true, demo: false, job: "marketing" },
+    { id: "me", nickname: null, ranked: false, demo: false, job: "office" },
+  ];
+  const firstRows = [
+    { user_id: "u1", lesson_id: "b1", score: 100 },
+    { user_id: "u1", lesson_id: "mem1", score: 50 },
+    { user_id: "u2", lesson_id: "tool1", score: 83 },
+    { user_id: "me", lesson_id: "ver1", score: 75 },
+  ];
+  const all = buildRanking({ people, firstRows, meId: "me" });
+  assert.deepEqual(
+    all.top.map((r) => [r.rank, r.nickname, r.total, r.demo, r.me]),
+    [
+      [1, "예시 사용자 1", 150, true, false],
+      [2, "별명2", 83, false, false],
+    ],
+  );
+  assert.equal(all.me.total, 75);
+  assert.equal(all.me.rank, null, "참여 전이면 순위가 없다");
+  assert.deepEqual(buildRanking({ people, firstRows, job: "marketing" }).top.map((r) => r.nickname), ["별명2"]);
+  assert.equal(buildRanking({ people, firstRows, limit: 1 }).top.length, 1);
+  assert.equal(buildRanking({ people, firstRows }).me, null, "로그인 전이면 me가 없다");
 });

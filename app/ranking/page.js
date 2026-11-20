@@ -266,6 +266,7 @@ export default function RankingPage() {
                 내 직무{JOB[myJob] ? `(${JOB[myJob].name})` : ""}
               </button>
             </div>
+            {data.top.some((r) => r.demo) && <p className="small muted">시연용 예시 사용자가 들어 있어요.</p>}
             <Board top={data.top} me={data.me} />
           </section>
         )}
