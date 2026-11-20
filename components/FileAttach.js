@@ -3,7 +3,7 @@
 // 입력 칸 아래 파일 첨부: [파일 첨부] 버튼, 안내, 첨부한 파일 칩. 고르자마자 /api/files로 올린다.
 // 진단 프롬프트 쓰기와 파일 활용 실습이 같이 쓴다. 상태(entries)는 부모가 useState로 들고 setEntries를 넘긴다.
 //
-// entry: { id, name, size, mimeType?, uri?, status, progress, file? }  file은 다시 올리기에 쓰는 원본(화면에서만)
+// entry: { id, name, size, mimeType?, uri?, sig?, status, progress, file? }  file은 다시 올리기에 쓰는 원본(화면에서만)
 //   status: uploading 올리는 중 | done 다 올림 | nokey AI 연결 안 됨(이름만) | failed 올리지 못함
 //           big 4MB보다 큼 | office HWP·DOCX 같은 문서 | type 못 읽는 형식 | empty 빈 파일
 import { useId, useRef, useState } from "react";
@@ -17,7 +17,7 @@ const NOKEY_NOTE = "AI가 연결되어 있지 않아 파일 내용은 읽지 않
 export const attachedFiles = (entries) =>
   entries
     .filter((e) => e.status === "done" || e.status === "nokey")
-    .map(({ name, mimeType, size, uri }) => (uri ? { name, mimeType, size, uri } : { name, mimeType, size }));
+    .map(({ name, mimeType, size, uri, sig }) => (uri ? { name, mimeType, size, uri, sig } : { name, mimeType, size }));
 
 export const isUploading = (entries) => entries.some((e) => e.status === "uploading");
 
@@ -38,7 +38,7 @@ export function FileAttach({ entries, setEntries, disabled = false, children }) 
     patch(id, { status: "uploading", progress: 0 });
     api
       .uploadFile(file, (progress) => patch(id, { progress }))
-      .then((r) => patch(id, { status: r.uri ? "done" : "nokey", mimeType: r.mimeType, uri: r.uri, progress: 1 }))
+      .then((r) => patch(id, { status: r.uri ? "done" : "nokey", mimeType: r.mimeType, uri: r.uri, sig: r.sig, progress: 1 }))
       .catch((err) => patch(id, { status: "failed", message: err?.message }));
   }
 
@@ -231,7 +231,7 @@ export function ExpiredNotice({ onDone, then = "다시 올리면 이어서 비�
     setState({ busy: true, error: "" });
     try {
       const uploaded = await Promise.all(chosen.map((f) => api.uploadFile(f)));
-      onDone(uploaded.map(({ name, mimeType, size, uri }) => (uri ? { name, mimeType, size, uri } : { name, mimeType, size })));
+      onDone(uploaded.map(({ name, mimeType, size, uri, sig }) => (uri ? { name, mimeType, size, uri, sig } : { name, mimeType, size })));
       setState({ busy: false, error: "" });
     } catch (err) {
       setState({ busy: false, error: err?.message || "파일을 올리지 못했어요. 다시 올려 주세요." });

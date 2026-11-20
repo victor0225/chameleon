@@ -2,14 +2,15 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { checkFile, filesLine, formatSize, MAX_FILE_BYTES } from "../lib/fileRules.js";
 import { fileCoaching, mentionsFile } from "../lib/fileSignals.js";
-import { checkUpload, cleanFiles, FileExpiredError, isFileGone, uploadToGemini, withFiles } from "../lib/server/files.js";
+import { checkUpload, cleanFiles, FileExpiredError, isFileGone, signUri, uploadToGemini, withFiles } from "../lib/server/files.js";
 import { runCompare } from "../lib/server/compare.js";
 import { runDiagnosis, validateDiagnosis } from "../lib/server/diagnosis.js";
 import { runGuess } from "../lib/server/guess.js";
 import { analyze } from "../lib/anatomy.js";
 
+process.env.GEMINI_API_KEY = "test-key";
 const URI = "https://generativelanguage.googleapis.com/v1beta/files/abc123";
-const PDF = { name: "회의록_1118.pdf", mimeType: "application/pdf", uri: URI };
+const PDF = { name: "회의록_1118.pdf", mimeType: "application/pdf", uri: URI, sig: signUri(URI) };
 
 test("받는 파일: PDF·그림·텍스트만, 4MB까지. MIME이 비면 확장자로, 오피스 문서는 따로 안내", () => {
   assert.deepEqual(checkFile({ name: "a.pdf", type: "application/pdf", size: 10 }), { mimeType: "application/pdf" });
@@ -28,9 +29,14 @@ test("받는 파일: PDF·그림·텍스트만, 4MB까지. MIME이 비면 확장
   assert.equal(checkUpload(new File(["x"], "a.txt", { type: "text/plain" })), null);
 });
 
-test("요청의 files: 3개까지, Gemini 파일 주소만 받고, 키가 없을 때는 이름만 와도 된다", () => {
+test("요청의 files: 3개까지, 이 서버가 서명한 Gemini 파일 주소만 받고, 키가 없을 때는 이름만 와도 된다", () => {
   assert.deepEqual(cleanFiles(undefined), { value: [] });
-  assert.deepEqual(cleanFiles([PDF]).value, [PDF]);
+  assert.deepEqual(cleanFiles([PDF]).value, [{ name: PDF.name, mimeType: PDF.mimeType, uri: URI }]);
+  // 남이 올린 파일 주소를 서명 없이, 또는 다른 주소의 서명으로 넣으면 받지 않는다.
+  const other = "https://generativelanguage.googleapis.com/v1beta/files/someoneelse";
+  assert.match(cleanFiles([{ ...PDF, uri: other }]).error, /주소/);
+  assert.match(cleanFiles([{ ...PDF, sig: undefined }]).error, /주소/);
+  assert.match(cleanFiles([{ ...PDF, sig: "x".repeat(43) }]).error, /주소/);
   assert.deepEqual(cleanFiles([{ name: "a.pdf", mimeType: "application/pdf" }]).value, [{ name: "a.pdf", mimeType: "application/pdf" }]);
   assert.match(cleanFiles([PDF, PDF, PDF, PDF]).error, /3개까지/);
   assert.match(cleanFiles([{ ...PDF, uri: "https://evil.example/files/a" }]).error, /주소/);
@@ -38,6 +44,7 @@ test("요청의 files: 3개까지, Gemini 파일 주소만 받고, 키가 없을
   assert.match(cleanFiles([{ ...PDF, mimeType: "application/zip" }]).error, /형식/);
   assert.match(cleanFiles("a.pdf").error, /3개까지/);
   assert.match(validateDiagnosis({ job: "office", experience: "none", prompt: "써 줘", files: [{ ...PDF, uri: "http://x" }] }), /주소/);
+  assert.equal(validateDiagnosis({ job: "office", experience: "none", prompt: "써 줘", files: [PDF] }), null);
 });
 
 test("contents: uri가 있는 파일만 parts로 붙이고, 없으면 글 그대로", () => {
@@ -56,7 +63,7 @@ test("업로드: 처리 중이면 ACTIVE가 될 때까지 기다리고, 실패�
     },
   };
   const r = await uploadToGemini(file, { ai, wait: async () => {} });
-  assert.deepEqual(r, { name: "보고서.pdf", mimeType: "application/pdf", size: 4, uri: URI, source: "ai" });
+  assert.deepEqual(r, { name: "보고서.pdf", mimeType: "application/pdf", size: 4, uri: URI, sig: signUri(URI), source: "ai" });
   assert.equal(gets, 2);
   const bad = { files: { upload: async () => ({ state: "FAILED", uri: URI }) } };
   await assert.rejects(uploadToGemini(file, { ai: bad }));
