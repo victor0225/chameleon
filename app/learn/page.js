@@ -8,6 +8,7 @@ import { GUEST, useAppState } from "@/components/AppState";
 import { LESSONS, XP_PER_LESSON } from "@/data/curriculum";
 import { josa } from "@/lib/josa";
 import { ITEMS } from "@/lib/items";
+import { ForYou } from "./ForYou";
 import s from "./learn.module.css";
 
 const LEVELS = ["초급", "중급", "고급"];
@@ -272,6 +273,8 @@ export default function Learn() {
           진단 전이라 초급부터 보여 드려요. <Link href="/">내 수준 진단하기</Link>
         </p>
       )}
+
+      <ForYou onOpen={(id) => open(LESSONS.find((l) => l.id === id))} />
 
       <div className={s.layout}>
         <section className={s.list} aria-labelledby="level-title">

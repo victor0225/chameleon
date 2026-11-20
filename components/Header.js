@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
+import { authHref } from "@/components/AuthLinks";
 import { JOB } from "@/data/jobs";
 import styles from "./Header.module.css";
 
@@ -24,7 +25,8 @@ export function applyLargeText(on) {
 
 export function Header() {
   const pathname = usePathname();
-  const { ready, profile } = useAppState();
+  const { ready, profile, user, login, authChecked } = useAppState();
+  const onAuthPage = pathname === "/login" || pathname === "/signup";
   const onMypage = pathname === "/mypage";
   const chipText = profile ? `${profile.level} · ${JOB[profile.job]?.name ?? "직무 미정"}` : "진단 전";
 
@@ -62,12 +64,23 @@ export function Header() {
         <Link
           href="/mypage"
           className={`level-chip ${styles.chip}${onMypage ? ` ${styles.active}` : ""}`}
-          aria-label={ready ? `마이페이지, ${chipText}` : "마이페이지"}
+          aria-label={ready ? `마이페이지, ${user ? `${user.name || user.loginId}, ` : ""}${chipText}` : "마이페이지"}
           aria-current={onMypage ? "page" : undefined}
         >
           {/* 저장소를 읽기 전에는 "진단 전"이 잠깐 보였다 바뀌지 않도록 빈 칩 자리만 둔다. */}
+          {user && (
+            <span className={styles.avatar} aria-hidden="true">
+              {(user.name || user.loginId).trim().charAt(0)}
+            </span>
+          )}
           {ready ? chipText : <span className={styles.placeholder} aria-hidden="true" />}
         </Link>
+        {/* 서버에 DB가 연결돼 있을 때만 로그인 버튼을 보인다. 연결 전에는 지금처럼 브라우저 저장만 쓴다. */}
+        {authChecked && !user && login.ready && !onAuthPage && (
+          <Link href={authHref("login", pathname)} className={styles.login}>
+            로그인
+          </Link>
+        )}
       </div>
     </header>
   );
