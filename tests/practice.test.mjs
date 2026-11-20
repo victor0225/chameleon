@@ -88,7 +88,7 @@ test("tool1 고르기: 6장 중 5장 맞히면 통과, '맡기지 않기'를 놓
   const no = gradeSort(tool1, { ...toolRight(), grade: "file" });
   assert.equal(no.passed, false);
   assert.deepEqual(no.criteria.map((c) => c.met), [true, false]);
-  assert.equal(no.coaching.question, '"팀원 인사 평가 등급 최종 정하기"가 AI의 답대로 끝내도 되는 일일까요?');
+  assert.equal(no.coaching.question, '"직원 평가 최종 등급 정하기"가 AI의 답대로 끝내도 되는 일일까요?');
   assert.equal(no.coaching.detail, "결과에 책임을 지는 사람이 누구인지 생각해 보세요.");
   // tool1은 옮겨 볼 칸을 알려 주지 않는다.
   assert.equal(no.coaching.to, null);

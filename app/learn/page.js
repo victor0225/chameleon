@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ElementChip, LessonRunner, itemVars } from "@/components/LessonRunner";
 import { GUEST, useAppState } from "@/components/AppState";
+import { ScoreLine } from "@/components/ScoreLine";
 import { LESSONS, XP_PER_LESSON } from "@/data/curriculum";
 import { COURSE, COURSES, findAnyLesson } from "@/data/courses";
 import { courseSignals } from "@/lib/courseSignals";
@@ -129,6 +130,8 @@ function RecordPanel({ record, myLevel, onOpen }) {
           </ul>
         )}
       </div>
+
+      <ScoreLine />
     </aside>
   );
 }

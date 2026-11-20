@@ -104,3 +104,62 @@ test("상태: 저장한 그대로 읽고, 같은 진단(at)은 덮어쓰고, 지
   assert.deepEqual(cleared, { profile: null, survey: null, diagnosis: null, record: null });
   assert.ok(await users.getUser(user.id), "계정은 남는다");
 });
+
+test("랭킹: 강의마다 점수가 있는 첫 기록만 세고, 참여한 사람만 별명으로 보여 준다", { skip }, async () => {
+  const { db, users } = await load();
+  const ranking = await import("../lib/server/ranking.js");
+  const a = await users.createUser({ loginId: `${ID}a`, password: "12345678", name: "가입이름A" });
+  const b = await users.createUser({ loginId: `${ID}b`, password: "12345678", name: "가입이름B" });
+  try {
+    // 점수 칸이 빈 예전 기록은 빼고, 점수가 있는 첫 기록(40)을 쓴다. 다시 푼 100점은 세지 않는다.
+    await users.recordAttempt(a.id, { lessonId: "b1", passed: false, found: [], missed: [] });
+    await users.recordAttempt(a.id, { lessonId: "b1", passed: false, found: [], missed: [], score: 40 });
+    await users.recordAttempt(a.id, { lessonId: "b1", passed: true, found: [], missed: [], score: 100 });
+    await users.recordAttempt(a.id, { lessonId: "mem1", passed: true, found: [], missed: [], score: 88 });
+    await users.recordAttempt(b.id, { lessonId: "ver1", passed: true, found: [], missed: [], score: 75 });
+    await db.query("INSERT INTO profiles (user_id, job) VALUES ($1, 'office')", [a.id]);
+
+    // 참여 전에도 내 점수는 보이고, 순위는 없다.
+    let r = await ranking.loadRanking(a.id, null);
+    assert.equal(r.me.total, 128);
+    assert.equal(r.me.max, 500);
+    assert.equal(r.me.rank, null);
+
+    const nickA = `T${process.pid}`.slice(0, 12);
+    const nickB = `U${process.pid}`.slice(0, 12);
+    assert.deepEqual(await ranking.setRanking(a.id, { ranked: true, nickname: ` ${nickA} ` }), { ok: true });
+    assert.equal((await ranking.setRanking(b.id, { ranked: true, nickname: nickA })).error, "이미 쓰는 별명이에요.");
+    assert.match((await ranking.setRanking(b.id, { ranked: true, nickname: "<b>" })).error, /2~12자|한글/);
+    await ranking.setRanking(b.id, { ranked: true, nickname: nickB });
+
+    r = await ranking.loadRanking(a.id, null);
+    const rowA = r.top.find((t) => t.nickname === nickA);
+    const rowB = r.top.find((t) => t.nickname === nickB);
+    assert.equal(rowA.total, 128);
+    assert.equal(rowA.me, true);
+    assert.equal(rowB.total, 75);
+    assert.ok(rowA.rank < rowB.rank);
+    assert.equal(r.me.rank, rowA.rank);
+    assert.ok(!/가입이름|test\d/.test(JSON.stringify(r)), "가입 이름과 아이디는 랭킹에 나오지 않는다");
+
+    // 직무를 주면 그 직무만 센다(B는 직무가 없다).
+    const office = await ranking.loadRanking(null, "office");
+    assert.equal(office.me, null);
+    assert.ok(office.top.some((t) => t.nickname === nickA));
+    assert.ok(!office.top.some((t) => t.nickname === nickB));
+
+    // 기록을 지우고 다시 풀어도 첫 점수는 그대로다.
+    await users.clearData(a.id);
+    await users.recordAttempt(a.id, { lessonId: "mem1", passed: true, found: [], missed: [], score: 100 });
+    assert.equal((await ranking.loadRanking(a.id, null)).me.total, 128);
+
+    // 빠지면 표에서 사라지고 내 순위도 없다.
+    await ranking.setRanking(a.id, { ranked: false });
+    r = await ranking.loadRanking(a.id, null);
+    assert.equal(r.me.ranked, false);
+    assert.equal(r.me.rank, null);
+    assert.ok(!r.top.some((t) => t.nickname === nickA));
+  } finally {
+    await db.query("DELETE FROM users WHERE id = ANY($1::uuid[])", [[a.id, b.id]]);
+  }
+});

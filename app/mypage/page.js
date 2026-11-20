@@ -5,6 +5,7 @@ import Link from "next/link";
 import { segVar } from "@/components/Anatomy";
 import { useAppState } from "@/components/AppState";
 import { AuthLinks } from "@/components/AuthLinks";
+import { ScoreLine } from "@/components/ScoreLine";
 import { SETTINGS_KEY, applyLargeText } from "@/components/Header";
 import { LESSONS } from "@/data/curriculum";
 import { EXPERIENCE, JOB } from "@/data/jobs";
@@ -166,6 +167,7 @@ function Progress({ record }) {
         <p className="xp">
           <span className="mono">{record.xp}</span>XP
         </p>
+        <ScoreLine />
         <p className="small muted">
           완료한 레슨 <span className="mono">{done}</span> / <span className="mono">{LESSONS.length}</span>
         </p>
@@ -260,7 +262,7 @@ export default function Mypage() {
   }
 
   function clearAll() {
-    const where = user ? " 계정에 저장된 기록도 함께 지워져요." : "";
+    const where = user ? " 계정에 저장된 기록도 함께 지워져요. 랭킹 점수(강의마다 처음 받은 점수)는 남아요." : "";
     if (!window.confirm(`진단 결과, 학습 기록, 페이지 설정을 모두 지울까요?${where} 지우면 되돌릴 수 없어요.`)) return;
     reset();
     try {

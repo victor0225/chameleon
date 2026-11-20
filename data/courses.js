@@ -305,12 +305,12 @@ export const COURSE_LESSONS = [
       { id: "no", title: "AI에게 맡기지 않기" },
     ],
     cards: [
-      { id: "rate", text: "이번 주 원·달러 환율이 얼마나 움직였는지 정리하기", answer: "search" },
-      { id: "rival", text: "경쟁사가 어제 낸 신제품 소식 정리하기", answer: "search" },
-      { id: "contract", text: "받은 계약서에서 위약금 조항 찾기", answer: "file" },
-      { id: "sales", text: "이번 달 매출 엑셀에서 지점별 합계 내기", answer: "file" },
-      { id: "apology", text: "고객에게 보낼 사과 메일 문장 다듬기", answer: "ask" },
-      { id: "grade", text: "팀원 인사 평가 등급 최종 정하기", answer: "no" },
+      { id: "rate", text: "이번 주 환율 변동 정리", answer: "search" },
+      { id: "rival", text: "오늘 발표된 경쟁사 신제품 정리", answer: "search" },
+      { id: "contract", text: "첨부한 계약서에서 위약금 조항 찾기", answer: "file" },
+      { id: "sales", text: "지난달 매출 엑셀에서 가장 많이 팔린 제품", answer: "file" },
+      { id: "apology", text: "거래처에 보낼 사과 메일 문장 다듬기", answer: "ask" },
+      { id: "grade", text: "직원 평가 최종 등급 정하기", answer: "no" },
     ],
     // 6장 중 5장 이상 맞히고, "맡기지 않기" 카드는 꼭 맞혀야 통과
     pass: { min: 5, must: "no" },
