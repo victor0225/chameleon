@@ -9,7 +9,10 @@ const EMPTY_RECORD = {
   completed: [],
   tries: {},
   mastery: { goal: 0, context: 0, constraint: 0, format: 0, criteria: 0 },
+  // history: [{ lessonId, title, passed, tries, xp }] 또는 레벨업 { kind: "levelup", title } 최근 6개
   history: [],
+  // 닫은 레벨업 배너의 단계("초급" 등). 한 번 닫으면 다시 띄우지 않는다.
+  levelUpSeen: [],
 };
 
 export const GUEST = { job: "office", experience: "sometimes", level: "초급" };

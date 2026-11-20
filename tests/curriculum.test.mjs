@@ -41,6 +41,7 @@ test("check는 상태 없는 정규식이고, question은 문장이다", () => {
         assert.ok(!c.check.global && !c.check.sticky, `${l.id} ${c.label}: g·y 플래그는 test 결과를 바꾼다`);
       }
       if ("question" in c) assert.ok(typeof c.question === "string" && c.question.trim());
+      if ("hint" in c) assert.ok(c.question && typeof c.hint === "string" && c.hint.trim(), `${l.id} hint는 question과 함께`);
     }
   }
 });
@@ -76,4 +77,64 @@ test("모범 프롬프트는 통과하고, 강의의 나쁜 예는 통과하지 
     assert.equal(bad.passed, false, `${l.id} 나쁜 예`);
     assert.ok(bad.coaching?.question, `${l.id} 코칭 질문`);
   }
+});
+
+const byId = (id) => LESSONS.find((l) => l.id === id);
+
+test("중급·고급 제목과 요약은 디자인 보드 문안 그대로다", () => {
+  const board = {
+    m1: ["업무 자료를 붙여 넣는 법", "지시와 자료를 나눠서 건네기"],
+    m2: ["예시로 원하는 결과 보여 주기", "말로 설명하기보다 한 줄 보여 주기"],
+    m3: ["긴 업무를 단계로 나누기", "한 번에 말고 순서대로"],
+    m4: ["‘적당히’ 대신 숫자로", "모호한 말과 부딪치는 지시 없애기"],
+    m5: ["쓸모 있는 역할 주기", "‘너는 천재야’ 말고 일에 맞는 관점"],
+    a1: ["반복 업무를 프롬프트 하나로", "바뀌는 부분만 {{빈칸}}으로"],
+    a2: ["AI가 스스로 결과를 검토하게 하기", "보내기 전에 한 번 더 확인하게"],
+    a3: ["개인정보 빼고 맡기기", "이름과 연락처는 가려서"],
+    a4: ["군더더기 덜어내기", "핵심 요청이 묻히지 않게"],
+    a5: ["종합 미션: 업무 하나를 처음부터 끝까지", "배운 것을 한 프롬프트에 모두"],
+  };
+  for (const [id, [title, summary]] of Object.entries(board)) {
+    assert.equal(byId(id).title, title, id);
+    assert.equal(byId(id).summary, summary, id);
+  }
+});
+
+test("강의 예시의 밑줄 표시를 이어 붙이면 예시 문장과 같고, 요소 id만 쓴다", () => {
+  for (const l of LESSONS) {
+    for (const [key, text] of [
+      ["badMarks", l.lecture.bad],
+      ["goodMarks", l.lecture.good],
+    ]) {
+      const marks = l.lecture[key];
+      if (!marks) continue;
+      assert.equal(marks.map(([t]) => t).join(""), text, `${l.id}.${key}`);
+      for (const [, item] of marks) assert.ok(item === null || IDS.includes(item), `${l.id}.${key} ${item}`);
+    }
+  }
+});
+
+test("2-E: m2에 예시와 분량 없이 쓰면 3개 중 1개 충족, 예시 코칭 질문이 나온다", () => {
+  const m2 = byId("m2");
+  const r = ruleEvaluation(m2, "새 텀블러 인스타그램 홍보 문구 써 줘");
+  assert.deepEqual(
+    r.criteria.map((c) => c.met),
+    [true, false, false],
+  );
+  assert.equal(r.coaching.question, "원하는 결과를 한 줄만 직접 보여 준다면 어떤 문장일까요?");
+  assert.equal(r.output, m2.outputs.weak);
+});
+
+test("2-F: a1 보드의 템플릿은 빈칸만 채우고 메일 모양과 확인 기준이 빠졌다", () => {
+  const a1 = byId("a1");
+  const draft =
+    "매주 금요일에 보내는 주간 납품 현황 메일을 써 줘. 받는 사람은 {{거래처명}} 담당자야. 이번 주 납품 내역은 {{납품 내역}}이야. 정중한 말투로 다섯 줄 이내로 써 줘.";
+  const r = ruleEvaluation(a1, draft);
+  assert.deepEqual(
+    r.criteria.map((c) => c.met),
+    [true, false, false],
+  );
+  assert.equal(r.coaching.question, a1.criteria[1].question);
+  const fixed = `${draft}\n제목, 인사, 납품 목록 순서로 쓰고, 보내기 전에 수량과 날짜가 맞는지 확인해 줘.`;
+  assert.equal(ruleEvaluation(a1, fixed).passed, true);
 });
