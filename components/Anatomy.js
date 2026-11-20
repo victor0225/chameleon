@@ -44,11 +44,23 @@ export function ScaleBar({ found }) {
 }
 export function Logo() {
   return (
-    <span className="logo" aria-hidden="true">
-      {ITEMS.map((item) => (
-        <span key={item.id} style={segVar(item.color)} />
-      ))}
-    </span>
+    <svg className="logo" width="53" height="26" viewBox="3 7 45 22" aria-hidden="true">
+      <path
+        d="M12.5 20.2C7 21.2 3.8 17.6 5.6 14.4C7.2 11.6 11.2 12.2 11.2 15C11.2 16.6 9.8 17.2 8.8 16.4"
+        fill="none"
+        stroke="var(--c-goal)"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      />
+      <path d="M14 22C14 17 16.5 12 20.5 10.1V22Z" fill="var(--c-context)" />
+      <rect x="16.2" y="21" width="2.6" height="6" rx="1.3" fill="var(--c-context)" />
+      <path d="M22 9.5Q25.2 8.5 28.5 9.7V22H22Z" fill="var(--c-constraint)" />
+      <path d="M30 10.4C33.5 12 36 16 36 22H30Z" fill="var(--c-format)" />
+      <rect x="31.6" y="21" width="2.6" height="6" rx="1.3" fill="var(--c-format)" />
+      <path d="M37.5 11.8L42.5 12.6C46 13.6 47.6 16.2 46.4 18.4L37.5 21.4Z" fill="var(--c-criteria)" />
+      <circle cx="41.6" cy="15.6" r="1.9" fill="var(--surface)" />
+      <circle cx="42" cy="15.6" r="0.9" fill="var(--ink)" />
+    </svg>
   );
 }
 export function Output({ text }) {
