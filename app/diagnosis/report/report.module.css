@@ -1,0 +1,265 @@
+/* 인쇄용 진단 리포트. 화면에서는 A4 종이처럼 보이고, 인쇄(PDF)에서는 종이 그대로 나온다. */
+
+.wrap {
+  padding: 32px 16px 80px;
+}
+
+.empty {
+  max-width: 480px;
+  margin: 48px auto;
+  display: grid;
+  justify-items: start;
+  gap: 16px;
+}
+
+.toolbar {
+  max-width: 210mm;
+  margin: 0 auto 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sheet {
+  max-width: 210mm;
+  margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 18mm 16mm;
+  color: var(--ink);
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+.sheet,
+.sheet * {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.head {
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 14px;
+}
+
+.brand {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.head h1 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  margin: 4px 0 12px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 28px;
+  margin: 0;
+}
+
+.meta div {
+  display: flex;
+  gap: 8px;
+}
+
+.meta dt {
+  color: var(--ink-2);
+}
+
+.meta dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.levelRow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.label {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.level {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.comment {
+  font-size: 14.5px;
+}
+
+.section {
+  padding: 16px 0 4px;
+  break-inside: avoid;
+}
+
+.section h2 {
+  font-size: 16px;
+  margin: 0 0 10px;
+}
+
+.elements {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.elements li {
+  display: grid;
+  grid-template-columns: 56px 64px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.chip {
+  text-align: center;
+  border-radius: 6px;
+  padding: 2px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--seg) 68%, var(--ink));
+  background: color-mix(in srgb, var(--seg) 12%, var(--surface));
+}
+
+.ok .state {
+  color: color-mix(in srgb, var(--seg) 68%, var(--ink));
+  font-weight: 600;
+}
+
+.no .state,
+.no .chip {
+  color: var(--ink-3);
+}
+
+.no .chip {
+  background: var(--wash);
+}
+
+.hint {
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+
+.task {
+  color: var(--ink-2);
+  margin: 0 0 8px;
+}
+
+.prompt {
+  white-space: pre-wrap;
+  line-height: 2;
+  background: var(--paper);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 0;
+}
+
+.seg {
+  background-image: linear-gradient(var(--seg), var(--seg));
+  background-size: 100% 3px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  padding-bottom: 2px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.legend {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin: 6px 0 0;
+}
+
+.missing {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.missing li {
+  border-left: 3px solid var(--seg);
+  padding-left: 10px;
+}
+
+.missing strong {
+  margin-right: 6px;
+  color: color-mix(in srgb, var(--seg) 68%, var(--ink));
+}
+
+.next {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+}
+
+.foot {
+  margin-top: 20px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+@media (max-width: 640px) {
+  .wrap {
+    padding: 20px 12px 56px;
+  }
+
+  .sheet {
+    padding: 24px 18px;
+  }
+
+  .levelRow {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .elements li {
+    grid-template-columns: 52px 56px 1fr;
+  }
+}
+
+/* 인쇄할 때는 상단 메뉴, 푸터, 도구 막대를 숨기고 종이만 남긴다. */
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  :global(body):has(.sheet) {
+    background: #fff;
+  }
+
+  :global(body):has(.sheet) :global(.topbar),
+  :global(body):has(.sheet) :global(.footer),
+  .toolbar {
+    display: none !important;
+  }
+
+  .wrap {
+    padding: 0;
+  }
+
+  .sheet {
+    border: 0;
+    max-width: none;
+  }
+}
