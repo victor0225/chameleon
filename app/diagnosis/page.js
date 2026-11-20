@@ -17,20 +17,20 @@ export default function Survey() {
   const job = picked.job ?? (JOB[saved?.job] ? saved.job : null);
   const experience = picked.experience ?? (EXPERIENCE[saved?.experience] ? saved.experience : null);
   // 3번은 여러 개를 고르고, 안 골라도 넘어갈 수 있다.
-  const uses = picked.uses ?? (survey?.uses ?? []).filter((id) => AI_USE[id]);
+  const used = picked.used ?? (survey?.used ?? []).filter((id) => AI_USE[id]);
   const answered = Boolean(job && experience);
 
   function toggleUse(id) {
     setPicked((p) => {
-      const now = p.uses ?? uses;
-      return { ...p, uses: now.includes(id) ? now.filter((u) => u !== id) : AI_USES.map((u) => u.id).filter((u) => u === id || now.includes(u)) };
+      const now = p.used ?? used;
+      return { ...p, used: now.includes(id) ? now.filter((u) => u !== id) : AI_USES.map((u) => u.id).filter((u) => u === id || now.includes(u)) };
     });
   }
 
   function next(e) {
     e.preventDefault();
     if (!answered) return;
-    setSurvey({ job, experience, uses });
+    setSurvey({ job, experience, used });
     router.push("/diagnosis/prompt");
   }
 
@@ -91,9 +91,9 @@ export default function Survey() {
               <Choice
                 key={u.id}
                 type="checkbox"
-                name="uses"
+                name="used"
                 value={u.id}
-                checked={uses.includes(u.id)}
+                checked={used.includes(u.id)}
                 onChange={() => toggleUse(u.id)}
                 title={u.title}
                 desc={u.desc}
