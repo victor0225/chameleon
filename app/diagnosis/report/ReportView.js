@@ -57,7 +57,6 @@ export default function ReportView() {
 
   const { level, found, missing, comment, prompt, job, experience, at } = diagnosis;
   const segments = diagnosis.segments ?? analyze(prompt).segments;
-  const task = diagnosis.task ?? JOB[job]?.diagnosisTask;
   const lesson = recommendLesson(level, missing, record.completed);
   const date = new Date(at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
 
@@ -125,7 +124,6 @@ export default function ReportView() {
 
         <section className={styles.section}>
           <h2>내가 쓴 프롬프트</h2>
-          {task && <p className={styles.task}>과제: {task}</p>}
           <p className={styles.prompt}>
             {segments.map((s, i) =>
               s.items.length ? (

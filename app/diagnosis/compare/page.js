@@ -8,7 +8,6 @@ import Link from "next/link";
 import * as api from "@/lib/api";
 import { useAppState } from "@/components/AppState";
 import { COMPARE_SAMPLE } from "@/data/compareSample";
-import { JOB } from "@/data/jobs";
 import { countSentences, markRanges, splitBlanks } from "@/lib/compareText";
 import { ITEM, ITEMS } from "@/lib/items";
 import { RULE_REASONS } from "@/lib/server/guess";
@@ -330,7 +329,6 @@ export default function ComparePage() {
         refined: saved?.refined,
         run: saved?.run,
       };
-  const job = JOB[data.job];
   const done = sample || phase === 3;
   const compared = IDS.filter((id) => data.missing.includes(id));
   const numOf = (id) => compared.indexOf(id) + 1;
@@ -359,12 +357,6 @@ export default function ComparePage() {
           <p className={s.sub}>내가 쓴 프롬프트와 다섯 요소를 채운 프롬프트를 AI에게 똑같이 보내 봤어요.</p>
           {sample && <p className={s.note}>AI가 연결되어 있지 않아 미리 만든 예시 결과를 보여 줘요.</p>}
         </div>
-        {job && (
-          <div className={s.task}>
-            <span className={s.jobChip}>{job.name}</span>
-            <span>{job.diagnosisTask}</span>
-          </div>
-        )}
       </div>
 
       {!done && <Pending phase={fail ? fail.phase : phase} failure={fail} onRetry={() => setFailure(null)} />}

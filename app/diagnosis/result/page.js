@@ -243,7 +243,6 @@ export default function DiagnosisResult() {
 
         <section className={s.section} aria-labelledby="result-prompt">
           <h2 id="result-prompt">내가 쓴 프롬프트</h2>
-          {target && <p className="small muted">과제: {target.diagnosisTask}</p>}
           <AnatomyText text={prompt} segments={segments} className={s.promptBox} />
           <ScaleBar found={found} />
         </section>

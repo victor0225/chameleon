@@ -62,7 +62,8 @@ test("Gemini 결과물에 없는 quote와 잘못된 item은 버리고 최대 5�
   };
   const r = await runGuess(body, { ask });
   assert.equal(sent.system, GUESS_SYSTEM);
-  assert.match(sent.contents, /과제: 팀장님께 드릴 이번 주 업무 보고서/);
+  assert.match(sent.contents, /직무: 사무·행정/);
+  assert.doesNotMatch(sent.contents, /과제:/);
   assert.match(sent.contents, /<request>\n보고서 써줘\n<\/request>/);
   assert.equal(r.source, "ai");
   assert.equal(r.output, OUTPUT);

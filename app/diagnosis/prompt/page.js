@@ -72,7 +72,6 @@ function DiagnosisPrompt() {
       setDiagnosis({
         ...result,
         prompt: draft,
-        task: target.diagnosisTask,
         job,
         experience,
         at: new Date().toISOString(),
@@ -98,7 +97,7 @@ function DiagnosisPrompt() {
       <div className={s.wrap}>
         <div className={s.empty}>
           <h1 className="display">설문부터 답해 주세요</h1>
-          <p className="muted">직무를 골라야 그 직무의 과제로 프롬프트를 써 볼 수 있어요.</p>
+          <p className="muted">직무를 고르면 프롬프트를 써 볼 수 있어요.</p>
           <Link href="/diagnosis" className="btn">
             설문으로 가기
           </Link>
@@ -112,15 +111,11 @@ function DiagnosisPrompt() {
       <Progress step={2} />
       <header className={s.head}>
         <h1 className="display">프롬프트 한 번 써 보기</h1>
-        <p className="lede">정답은 없어요. 평소 AI에게 말하듯 써야 지금 수준이 정확하게 나와요.</p>
+        <p className="lede">정답은 없어요. 평소 AI에게 일을 맡기듯 그대로 써 주세요. 업무 자료가 있으면 같이 붙여도 돼요.</p>
       </header>
 
       <form className={s.form} onSubmit={submit} noValidate>
         <section className={s.question} aria-label="프롬프트 써 보기">
-          <figure className={s.task}>
-            <blockquote>{target.diagnosisTask}</blockquote>
-            <figcaption>{target.name} 직무 과제</figcaption>
-          </figure>
           <div className="field">
             <label htmlFor="diagnosis-prompt">AI에게 보낼 프롬프트</label>
             <textarea
