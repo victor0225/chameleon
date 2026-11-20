@@ -6,7 +6,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ElementChip, LessonRunner, itemVars } from "@/components/LessonRunner";
-import { GUEST, useAppState } from "@/components/AppState";
+import { useAppState } from "@/components/AppState";
 import { ScoreLine } from "@/components/ScoreLine";
 import { Tour } from "@/components/Tour";
 import { LESSONS, XP_PER_LESSON } from "@/data/curriculum";
@@ -351,8 +351,9 @@ function Learn() {
   const courseParam = useSearchParams().get("course");
   const course = COURSE[courseParam] ?? null;
   const { ready, profile, setProfile, record, updateRecord, diagnosis, survey } = useAppState();
-  const me = profile ?? GUEST;
-  const myLevel = LEVELS.includes(me.level) ? me.level : "초급";
+  // 진단 전(프로필 없음)에는 수준을 저장하지 않고 푼 미션으로 계산한다.
+  // 손님용 기본값(GUEST)을 프로필로 저장하면 고르지 않은 직무가 생기기 때문이다.
+  const myLevel = profile ? (LEVELS.includes(profile.level) ? profile.level : "초급") : levelAfter("초급", record.completed);
   // 탭을 직접 고르기 전에는 내 수준 탭을 연다. 저장된 수준은 마운트 뒤에 읽히니 null로 둔다.
   const [tab, setTab] = useState(null);
   const shown = tab ?? myLevel;
@@ -422,7 +423,7 @@ function Learn() {
       };
     });
     if (rose) {
-      setProfile({ ...me, level });
+      if (profile) setProfile({ ...profile, level });
       setTab(null);
     }
   }

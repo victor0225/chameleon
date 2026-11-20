@@ -6,7 +6,7 @@ import * as api from "@/lib/api";
 import { ScaleBar, segVar } from "@/components/Anatomy";
 import { JOB } from "@/data/jobs";
 import { ITEM } from "@/lib/items";
-import { GUEST, useAppState } from "@/components/AppState";
+import { useAppState } from "@/components/AppState";
 import { Tour } from "@/components/Tour";
 const SHAPES = [
   { id: "auto", name: "정하지 않음" },
@@ -49,7 +49,10 @@ async function copyText(text) {
 }
 export default function PromptHelper() {
   const { profile, diagnosis } = useAppState();
-  const me = profile ?? GUEST;
+  // 진단 전이면 직무가 없다. 아무 직무나 고르지 않고, 직무별 예시 대신 직무마다 하나씩 보여 준다(API에는 lib/api.js가 "직무 미정"으로 보낸다).
+  const job = JOB[profile?.job] ? profile.job : null;
+  const level = profile?.level ?? "초급";
+  const examples = job ? JOB[job].examples : Object.values(JOB).map((j) => j.examples[0]);
   const [purpose, setPurpose] = useState("");
   const [reader, setReader] = useState("");
   const [shape, setShape] = useState("auto");
@@ -57,7 +60,7 @@ export default function PromptHelper() {
   const [current, setCurrent] = useState(0);
   const [extra, setExtra] = useState("");
   const [busy, setBusy] = useState("");
-  const [showWhy, setShowWhy] = useState(me.level !== "고급");
+  const [showWhy, setShowWhy] = useState(level !== "고급");
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const shown = versions[current];
@@ -74,7 +77,7 @@ export default function PromptHelper() {
     setError("");
     setBusy("generate");
     try {
-      const prompt = await api.generatePrompt({ job: me.job, level: me.level, purpose, reader, shape });
+      const prompt = await api.generatePrompt({ job, level, purpose, reader, shape });
       setVersions([prompt]);
       setCurrent(0);
     } catch (err) {
@@ -143,8 +146,8 @@ export default function PromptHelper() {
               onChange={(e) => setPurpose(e.target.value)}
               placeholder="예: 이번 주 업무 보고서 작성"
             />
-            <div className="chips" aria-label={`${JOB[me.job].name} 예시`}>
-              {JOB[me.job].examples.map((example) => (
+            <div className="chips" aria-label={job ? `${JOB[job].name} 예시` : "예시"}>
+              {examples.map((example) => (
                 <button key={example} type="button" className="chip chip-sm" onClick={() => setPurpose(example)}>
                   {example}
                 </button>
