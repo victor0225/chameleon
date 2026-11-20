@@ -1,0 +1,658 @@
+/* kind별 실습 칸과 평가 칸(components/Practice.js). 보드 4-1~4-4. 색과 글꼴은 app/globals.css 토큰만 쓴다. */
+
+/* ---------- 평가 머리: 제목, 한 줄, 점수 ---------- */
+
+.head {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 24px;
+  padding: 22px 26px;
+}
+
+.headText {
+  flex: 1 1 400px;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.headTitle {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 24px;
+  overflow-wrap: break-word;
+}
+
+.headText p {
+  color: var(--ink-2);
+  font-size: 15px;
+}
+
+.score {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.scoreNum {
+  font-family: var(--font-mono);
+  font-size: 28px;
+}
+
+.muted {
+  color: var(--ink-2);
+}
+
+.leftover {
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: var(--wash);
+  font-size: 15px;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.footerLinks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+}
+
+.textLink {
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.textLink:focus-visible,
+.linkBtn:focus-visible,
+.kindBtn:focus-visible,
+.sentenceBtn:focus-visible,
+.movable:focus-visible,
+.dropHere:focus-visible,
+.toggle button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ---------- 자료 칸 ---------- */
+
+.material {
+  gap: 10px;
+}
+
+.materialSub {
+  font-weight: 600;
+}
+
+.lines {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font-size: 15px;
+}
+
+.chat {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.chat li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
+.fromMe {
+  background: var(--paper);
+}
+
+.fromAi {
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.who {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-2);
+  padding-top: 2px;
+}
+
+/* ---------- sort: 카드와 칸 ---------- */
+
+.pool {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px dashed var(--ink-3);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.poolTarget {
+  border-color: var(--ink);
+}
+
+.poolHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+
+.poolCards,
+.binCards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.poolCards {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+}
+
+.bins {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.bin {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  min-width: 0;
+}
+
+.binTitle {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.sortCard {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: left;
+  overflow-wrap: break-word;
+}
+
+.movable {
+  cursor: grab;
+}
+
+.movable:hover {
+  border-color: var(--ink-3);
+}
+
+.movable[aria-pressed="true"] {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+  background: var(--surface);
+}
+
+.wrong {
+  background: var(--surface);
+}
+
+.coached {
+  border: 2px solid var(--danger);
+}
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 999px;
+}
+
+.markOk {
+  background: var(--ink);
+}
+
+.markBad {
+  box-shadow: inset 0 0 0 1.5px var(--danger);
+}
+
+.dropHere {
+  height: 40px;
+  border: 1px dashed var(--ink);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dropHere:hover {
+  background: var(--paper);
+}
+
+.ghost {
+  padding: 12px 14px;
+  border: 1.5px dashed var(--danger);
+  border-radius: 12px;
+  color: var(--danger);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* ---------- spot: 문장 고르기 ---------- */
+
+.answer {
+  gap: 12px;
+}
+
+.sentences {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.sentence {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.sentence.picked,
+.missingBox.picked {
+  border-color: var(--ink);
+}
+
+.sentence.missedBox,
+.missingBox.missedBox {
+  border: 2px dashed var(--danger);
+}
+
+.sentenceRow {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.sentenceBtn {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.num {
+  font-family: var(--font-mono);
+  color: var(--ink-2);
+}
+
+.struck {
+  text-decoration: line-through;
+  text-decoration-color: var(--danger);
+}
+
+.plain {
+  color: var(--ink-2);
+}
+
+.kindTag {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.missedTag {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--danger);
+  white-space: nowrap;
+}
+
+.feedback {
+  margin-left: 36px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.pickBox {
+  display: grid;
+  gap: 10px;
+  margin-left: 36px;
+  padding-top: 4px;
+}
+
+.kindRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kindBtn {
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.kindBtn[aria-pressed="true"] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
+.fixLabel {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.fixInput,
+.missingInput {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.fixInput:focus,
+.missingInput:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+
+.linkBtn {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.missingBox {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.missingBox .feedback {
+  margin-left: 0;
+}
+
+.missingLabel {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.missingInput {
+  min-height: 64px;
+  resize: vertical;
+}
+
+/* ---------- file: 파일 실습 ---------- */
+
+.toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--wash);
+}
+
+.toggle button {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.toggle button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 12%, transparent);
+}
+
+.fileInput {
+  min-height: 140px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+}
+
+.sampleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 0 16px 14px;
+}
+
+.sampleChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  font-size: 14px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.sampleChip .muted {
+  font-size: 12px;
+}
+
+.sampleHint {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.preview {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.preview strong {
+  font-size: 14px;
+}
+
+.previewTag {
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+.criteriaList {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.mine {
+  font-size: 15px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.outList {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 10px;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.outText {
+  display: grid;
+  gap: 8px;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.unknownNum {
+  background: transparent;
+  color: inherit;
+  border-bottom: 2px dotted var(--danger);
+}
+
+.unknownTag {
+  margin-left: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.checkNotes {
+  display: grid;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .bins {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- choose: 상황마다 방법 고르기 ---------- */
+
+.situations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.situation {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.situationText {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.situation.coached {
+  border: 2px solid var(--danger);
+}
+
+.situation .kindRow {
+  margin-left: 36px;
+}
+
+.kindBtn[aria-checked="true"] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
+.chosenLine {
+  margin-left: 36px;
+  font-size: 14px;
+  color: var(--ink-2);
+}

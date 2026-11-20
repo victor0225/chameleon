@@ -1,120 +1,24 @@
 "use client";
 
 // 강의 한 개를 강의 → 실습 → 평가·피드백 세 단계로 진행한다. 디자인 보드 2-D(강의), 2-F(실습), 2-E(평가·피드백).
+// 강의 kind가 prompt가 아니면 실습·평가 칸은 components/Practice.js가 그린다(보드 4-1~4-4).
 import { Fragment, useMemo, useRef, useState } from "react";
 import * as api from "@/lib/api";
 import { analyze } from "@/lib/anatomy";
-import { ITEM, ITEMS } from "@/lib/items";
+import { ITEMS } from "@/lib/items";
 import { Output } from "@/components/Anatomy";
+import { CoachCard, ElementChip, foundOf, marksOf, MetIcon, MiniBar, MissIcon, PromptEditor, PromptText } from "./lessonBits";
+import { MaterialPanel, PracticeChoose, PracticeFile, PracticeSort, PracticeSpot } from "./Practice";
 import s from "./lesson.module.css";
+
+export { ElementChip, itemVars, marksOf, MiniBar, PromptText } from "./lessonBits";
 
 const STAGES = [
   { id: "lecture", name: "강의" },
   { id: "practice", name: "실습" },
   { id: "result", name: "평가·피드백" },
 ];
-const BLANK = /(\{\{[^{}\n]+\}\})/;
 const BLANK_NAMES = /\{\{([^{}\n]+)\}\}/g;
-// 글 전체를 한 글자도 빠뜨리지 않고 문장 조각으로 나눈다. 입력 칸 위에 겹쳐 그릴 때 글자가 빠지면 줄이 어긋난다.
-const PIECE = /[^.!?\n]*[.!?]+[ \t]*|[^.!?\n]+|\n+/g;
-
-// 요소 색: 밑줄·막대는 --seg(원래 색), 글자는 --seg-t(글자색을 섞은 색)
-export const itemVars = (id) => ({ "--seg": ITEM[id].color, "--seg-t": ITEM[id].text });
-
-// 조각마다 들어 있는 요소 하나(가장 구체적인 것)를 고른다. [[조각, 요소 id | null], ...]
-export function marksOf(text) {
-  return (text.match(PIECE) ?? []).map((t) => [t, t.trim() ? (analyze(t).found[0] ?? null) : null]);
-}
-
-const foundOf = (marks) => ITEMS.map((item) => item.id).filter((id) => marks.some(([, item]) => item === id));
-
-export function ElementChip({ id }) {
-  return (
-    <span className={s.chip} style={itemVars(id)}>
-      {ITEM[id].name}
-    </span>
-  );
-}
-
-export function MiniBar({ found }) {
-  return (
-    <span className={s.minibar}>
-      <span className={s.cells} aria-hidden="true">
-        {ITEMS.map((item) => (
-          <span key={item.id} style={found.includes(item.id) ? { background: item.color } : undefined} />
-        ))}
-      </span>
-      <span className={s.count}>
-        <span className={s.srOnly}>다섯 요소 중 </span>
-        {found.length}/5
-      </span>
-    </span>
-  );
-}
-
-// 앞뒤 공백은 밑줄 밖에 두고, {{빈칸}}은 점선 칸으로 그린다.
-function Piece({ text, item }) {
-  return text.split(BLANK).map((part, j) => {
-    if (!part) return null;
-    if (BLANK.test(part)) {
-      return (
-        <span key={j} className={s.blank}>
-          {part}
-        </span>
-      );
-    }
-    if (!item || !part.trim()) return <Fragment key={j}>{part}</Fragment>;
-    const [, lead, core, trail] = part.match(/^(\s*)([\s\S]*?)(\s*)$/);
-    return (
-      <Fragment key={j}>
-        {lead}
-        <span className={s.mark} style={itemVars(item)}>
-          {core}
-        </span>
-        {trail}
-      </Fragment>
-    );
-  });
-}
-
-// marks를 주면 그 밑줄을, 없으면 규칙 기반 분석기로 문장마다 요소를 칠한다.
-export function PromptText({ text, marks, className = "" }) {
-  const list = marks ?? marksOf(text);
-  return (
-    <p className={`${s.prompt} ${className}`}>
-      {list.map(([t, item], i) => (
-        <Piece key={i} text={t} item={item} />
-      ))}
-    </p>
-  );
-}
-
-// 투명한 입력 칸 뒤에 같은 글을 밑줄·빈칸 칩과 함께 그린다. 쓰는 대로 칠해진다.
-function PromptEditor({ value, onChange, inputRef, label }) {
-  return (
-    <div className={s.editor}>
-      <div className={`${s.prompt} ${s.mirror}`} aria-hidden="true">
-        {marksOf(value).map(([t, item], i) => (
-          <Piece key={i} text={t} item={item} />
-        ))}
-        {/* 끝에 빈 줄이 있어도 높이가 줄지 않게 */}
-        {"​"}
-      </div>
-      <textarea
-        ref={inputRef}
-        className={s.input}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onScroll={(e) => {
-          e.currentTarget.scrollTop = 0;
-        }}
-        placeholder="AI에게 말하듯 그대로 써 보세요"
-        aria-label={label}
-        spellCheck={false}
-      />
-    </div>
-  );
-}
 
 function Steps({ index }) {
   return (
@@ -196,7 +100,26 @@ function CriteriaTodo({ criteria, plain = false }) {
   );
 }
 
-export function LessonRunner({ lesson, position, total, alreadyDone, isLast, onExit, onAttempt, onNext }) {
+const PRACTICE = { sort: PracticeSort, choose: PracticeChoose, spot: PracticeSpot, file: PracticeFile };
+
+// backLabel: 왼쪽 위 돌아가기 글, metaLabel: 제목 위 위치 글(없으면 "초급 · 01/05"), nextLabel: 통과 뒤 버튼 글
+// onOpenCourse(id): 다른 과정으로 가기(파일 실습 평가의 "과정 4에서" 링크)
+export function LessonRunner({
+  lesson,
+  position,
+  total,
+  alreadyDone,
+  isLast,
+  onExit,
+  onAttempt,
+  onNext,
+  backLabel = "AI 활용 교육",
+  metaLabel,
+  nextLabel,
+  onOpenCourse,
+}) {
+  const kind = lesson.kind ?? "prompt";
+  const Practice = PRACTICE[kind];
   const [stage, setStage] = useState("lecture");
   const [draft, setDraft] = useState("");
   const [grade, setGrade] = useState(null);
@@ -215,26 +138,44 @@ export function LessonRunner({ lesson, position, total, alreadyDone, isLast, onE
     window.scrollTo({ top: 0 });
   }
 
-  async function submit() {
-    if (!draft.trim()) {
+  // extra: { answer }(sort·choose·spot) 또는 { prompt, files, sample }(file). 실패하면 오류를 돌려줘 부른 쪽이 다시 시도할 수 있게 한다.
+  async function submit(extra) {
+    const prompt = kind === "prompt" ? draft : extra?.prompt;
+    if ((kind === "prompt" || kind === "file") && !prompt?.trim()) {
       setError("프롬프트를 써야 평가할 수 있어요.");
-      return;
+      return null;
     }
     setError("");
     setBusy(true);
     let result;
     try {
-      result = await api.gradeAttempt(lesson.id, draft);
+      const options = extra?.answer !== undefined ? { answer: extra.answer } : extra?.files ? { files: extra.files, sample: extra.sample } : {};
+      result = await api.gradeAttempt(lesson.id, prompt, options);
     } catch (err) {
       setError(err?.message || "평가하지 못했어요. 잠시 뒤 다시 시도해 주세요.");
-      return;
+      return err;
     } finally {
       setBusy(false);
     }
     setGrade(result);
     onAttempt(result);
     go("result");
+    return null;
   }
+
+  const runner = {
+    stage,
+    grade,
+    busy,
+    error,
+    wasDone,
+    submit,
+    setError,
+    go,
+    onNext,
+    nextLabel: nextLabel ?? (isLast ? "강의 목록으로" : "다음 강의"),
+    onOpenCourse,
+  };
 
   // 고른 글자가 있으면 그 글자를 빈칸 이름으로, 없으면 커서 자리에 {{빈칸}}을 넣고 이름을 바로 고칠 수 있게 고른다.
   function insertBlank() {
@@ -252,7 +193,7 @@ export function LessonRunner({ lesson, position, total, alreadyDone, isLast, onE
 
   const metCount = grade?.criteria.filter((c) => c.met).length ?? 0;
   const coachCriterion = grade?.coaching ? lesson.criteria.find((c) => c.question === grade.coaching.question) : null;
-  const outputNote = grade?.source === "rule" && !grade.passed ? lesson.outputs.weakNote : null;
+  const outputNote = grade?.source === "rule" && !grade.passed ? lesson.outputs?.weakNote : null;
 
   return (
     <div className={`${s.wrap} ${stage === "lecture" ? s.narrow : ""} ${stage === "result" ? s.result : ""}`}>
@@ -261,7 +202,7 @@ export function LessonRunner({ lesson, position, total, alreadyDone, isLast, onE
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M10 3 5 8l5 5" />
           </svg>
-          AI 활용 교육
+          {backLabel}
         </button>
         <Steps index={stageIndex} />
       </div>
@@ -269,9 +210,9 @@ export function LessonRunner({ lesson, position, total, alreadyDone, isLast, onE
       <div>
         <p className={s.meta}>
           <span className={s.mono}>
-            {lesson.level} · {String(position).padStart(2, "0")}/{String(total).padStart(2, "0")}
+            {metaLabel ?? lesson.level} · {String(position).padStart(2, "0")}/{String(total).padStart(2, "0")}
           </span>
-          <ElementChip id={lesson.focus} />
+          {lesson.focus && <ElementChip id={lesson.focus} />}
         </p>
         <h1 className={s.title}>{lesson.title}</h1>
       </div>
@@ -283,12 +224,22 @@ export function LessonRunner({ lesson, position, total, alreadyDone, isLast, onE
               핵심
             </h2>
             <p className={s.coreText}>{lecture.point}</p>
+            {lecture.points && (
+              <ul className={s.points}>
+                {lecture.points.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+            )}
+            {lecture.note && <p className={s.note}>{lecture.note}</p>}
           </section>
 
-          <div className={s.cols}>
-            <ExampleCard kind="bad" text={lecture.bad} marks={lecture.badMarks} output={lecture.badOutput} note={lecture.badNote} />
-            <ExampleCard kind="good" text={lecture.good} marks={lecture.goodMarks} output={lecture.goodOutput} note={lecture.goodNote} />
-          </div>
+          {lecture.bad && (
+            <div className={s.cols}>
+              <ExampleCard kind="bad" text={lecture.bad} marks={lecture.badMarks} output={lecture.badOutput} note={lecture.badNote} />
+              <ExampleCard kind="good" text={lecture.good} marks={lecture.goodMarks} output={lecture.goodOutput} note={lecture.goodNote} />
+            </div>
+          )}
 
           {lecture.extra && (
             <section className={`${s.card} ${s.extra}`} aria-labelledby="lesson-extra">
@@ -323,7 +274,14 @@ export function LessonRunner({ lesson, position, total, alreadyDone, isLast, onE
         </>
       )}
 
-      {stage === "practice" && (
+      {/* 강의 단계로 돌아가도 고른 것을 남기려고, 다른 kind의 실습 칸은 숨기기만 한다. */}
+      {Practice && (
+        <div hidden={stage === "lecture"} className={s.practiceArea}>
+          <Practice lesson={lesson} runner={runner} />
+        </div>
+      )}
+
+      {stage === "practice" && !Practice && (
         <>
           <section className={`${s.card} ${s.missionCard}`} aria-labelledby="practice-mission">
             <h2 id="practice-mission" className={s.smallTitle}>
@@ -333,6 +291,18 @@ export function LessonRunner({ lesson, position, total, alreadyDone, isLast, onE
           </section>
 
           <div className={s.split}>
+            {/* 자료가 있는 강의(mem2)는 왼쪽에 자료와 통과 기준을 두고 오른쪽에 입력 칸을 둔다. */}
+            {lesson.material && (
+              <div className={s.side}>
+                <MaterialPanel material={lesson.material} />
+                <section className={`${s.card} ${s.sideCard}`} aria-labelledby="practice-criteria">
+                  <h2 id="practice-criteria" className={s.cardTitle}>
+                    통과 기준
+                  </h2>
+                  <CriteriaTodo criteria={lesson.criteria} plain />
+                </section>
+              </div>
+            )}
             <section className={`${s.card} ${s.editorCard} ${s.main}`} aria-labelledby="practice-editor">
               <div className={s.cardHead}>
                 <h2 id="practice-editor" className={s.cardTitle}>
@@ -362,7 +332,7 @@ export function LessonRunner({ lesson, position, total, alreadyDone, isLast, onE
                 <span className={s.pushRight}>쓰는 대로 막대가 바뀌어요</span>
               </div>
               <div className={s.actions}>
-                <button type="button" className={s.primary} onClick={submit} disabled={busy}>
+                <button type="button" className={s.primary} onClick={() => submit()} disabled={busy}>
                   {busy ? "평가하는 중…" : "제출하고 평가 받기"}
                 </button>
                 {template && (
@@ -381,7 +351,7 @@ export function LessonRunner({ lesson, position, total, alreadyDone, isLast, onE
               </div>
             </section>
 
-            <aside className={s.side}>
+            <aside className={s.side} hidden={Boolean(lesson.material)}>
               {template && (
                 <section className={`${s.card} ${s.sideCard}`} aria-labelledby="practice-blanks">
                   <h2 id="practice-blanks" className={s.cardTitle}>
@@ -412,7 +382,7 @@ export function LessonRunner({ lesson, position, total, alreadyDone, isLast, onE
         </>
       )}
 
-      {stage === "result" && grade && (
+      {stage === "result" && grade && !Practice && (
         <>
           <section className={`${s.card} ${s.verdict}`} aria-live="polite" aria-labelledby="verdict">
             <h2 id="verdict" className={s.verdictTitle}>
@@ -445,17 +415,7 @@ export function LessonRunner({ lesson, position, total, alreadyDone, isLast, onE
                 <ul className={s.checks}>
                   {grade.criteria.map((c) => (
                     <li key={c.label} className={c.met ? s.met : s.miss}>
-                      <span className={s.icon}>
-                        {c.met ? (
-                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label="충족">
-                            <path d="M2.5 7.5 5.5 10.5 11.5 3.5" />
-                          </svg>
-                        ) : (
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" role="img" aria-label="미충족">
-                            <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" />
-                          </svg>
-                        )}
-                      </span>
+                      <span className={s.icon}>{c.met ? <MetIcon /> : <MissIcon />}</span>
                       <span className={s.grow}>{c.label}</span>
                       <ElementChip id={c.item} />
                     </li>
@@ -465,18 +425,7 @@ export function LessonRunner({ lesson, position, total, alreadyDone, isLast, onE
 
               {grade.coaching ? (
                 <>
-                  <section className={`${s.card} ${s.coach}`} aria-labelledby="coach">
-                    <h2 id="coach" className={`${s.cardTitle} ${s.smallTitle}`}>
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" />
-                      </svg>
-                      코칭 질문
-                    </h2>
-                    <p className={s.question}>{grade.coaching.question}</p>
-                    <p className={s.hintText}>
-                      {coachCriterion?.hint ?? "정답을 대신 써 드리지 않아요. 이 질문에 답하듯 프롬프트를 고쳐 보세요."}
-                    </p>
-                  </section>
+                  <CoachCard question={grade.coaching.question} hint={coachCriterion?.hint} />
                   <div className={s.actions}>
                     <button type="button" className={s.primary} onClick={() => go("practice")}>
                       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -499,7 +448,7 @@ export function LessonRunner({ lesson, position, total, alreadyDone, isLast, onE
                   </section>
                   <div className={s.actions}>
                     <button type="button" className={s.primary} onClick={onNext}>
-                      {isLast ? "강의 목록으로" : "다음 강의"}
+                      {runner.nextLabel}
                     </button>
                     <button type="button" className={s.secondary} onClick={() => go("lecture")}>
                       강의 다시 보기

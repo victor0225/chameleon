@@ -2,10 +2,11 @@
 // 강의의 kind가 실습 칸 모양과 채점 방법을 정한다.
 //   prompt: 프롬프트를 쓰고 기준으로 채점한다(Gemini, 키가 없으면 check 정규식). material이 있으면 자료 칸을 같이 보여 준다.
 //   sort:   카드를 칸으로 나눈다. 정답표로 채점한다(lib/server/practice.js, LLM 안 씀).
+//   choose: 상황 카드마다 방법을 하나 고른다. 채점은 sort와 같다.
 //   spot:   AI 답변에서 문제 있는 문장을 고르고 빠진 내용을 적는다. 정답표로 채점한다.
 //   file:   파일을 붙이고 프롬프트를 쓴다. 프롬프트는 기준으로, 예시 파일일 때 결과물은 보고서 숫자로 확인한다.
 // 기준의 item이 null이면 다섯 요소가 아닌 기준이다. 색 없이 그리고, 개인화 엔진의 요소 숙련도에 섞지 않는다.
-// 통과 숫자(pass)는 임시다. 팀이 정하면 여기만 고친다.
+// 통과 숫자(pass)는 팀이 정한 값이다(2026-11-20). file1의 "보고서에 없는 숫자"는 표시만 하고 통과에는 넣지 않는다.
 import { FILE_MENTION } from "../lib/fileSignals.js";
 import { LESSONS } from "./curriculum.js";
 
@@ -45,6 +46,8 @@ export const COURSE_LESSONS = [
     ],
     // 8장 중 min장 이상 맞히고, must 칸의 카드는 모두 맞혀야 통과
     pass: { min: 7, must: "never" },
+    // 금지 카드를 놓치면 옮겨 볼 칸을 보여 준다(보드 4-1)
+    showTarget: true,
     criteria: [
       { label: "8장 중 7장 이상 맞게 나눴다", item: null },
       { label: "기억시키면 안 되는 정보는 모두 맞혔다", item: null },
@@ -57,7 +60,7 @@ export const COURSE_LESSONS = [
       "keep>never": { question: "이 정보에 남의 개인정보나 비밀이 들어 있나요?" },
       "once>never": { question: "이 정보에 남의 개인정보나 비밀이 들어 있나요?" },
     },
-    neverDetail: {
+    mustDetail: {
       once: "이번 작업에만 쓰더라도, 대화 기록은 서비스에 남을 수 있어요.",
       keep: "기억시킨 정보는 내가 지우기 전까지 남아 다음 대화에도 쓰여요.",
     },
@@ -277,6 +280,52 @@ export const COURSE_LESSONS = [
       { label: "맞는 문장을 틀렸다고 고른 것이 1개 이하다", item: null },
     ],
   },
+  {
+    id: "tool1",
+    course: "tool",
+    kind: "choose",
+    focus: null,
+    title: "이럴 땐 무엇을 쓸까",
+    summary: "업무 상황 여섯 개에 맞는 방법 고르기",
+    lecture: {
+      point:
+        "AI 서비스에는 그냥 묻는 것 말고도 검색, 파일 분석 같은 기능이 있어요. 일마다 맞는 방법을 고르면 엉뚱한 답이 줄어요.",
+      points: [
+        "그냥 질문: 글 다듬기, 아이디어 내기처럼 AI가 가진 지식으로 되는 일이에요.",
+        "검색 켜기: 오늘 환율, 최근 소식처럼 새로 찾아봐야 하는 일이에요. AI는 배운 뒤에 생긴 일을 모를 수 있어요.",
+        "파일 붙여 분석: 계약서, 엑셀처럼 내 자료를 읽어야 하는 일이에요.",
+        "AI에게 맡기지 않기: 사람을 평가하거나 최종 결정을 내리는 일이에요. 참고는 해도 결정은 사람이 해요.",
+      ],
+    },
+    mission: "업무 상황 카드가 여섯 장 있어요. 상황마다 AI를 어떻게 쓸지 골라 보세요.",
+    bins: [
+      { id: "ask", title: "그냥 질문" },
+      { id: "search", title: "검색 켜기" },
+      { id: "file", title: "파일 붙여 분석" },
+      { id: "no", title: "AI에게 맡기지 않기" },
+    ],
+    cards: [
+      { id: "rate", text: "이번 주 원·달러 환율이 얼마나 움직였는지 정리하기", answer: "search" },
+      { id: "rival", text: "경쟁사가 어제 낸 신제품 소식 정리하기", answer: "search" },
+      { id: "contract", text: "받은 계약서에서 위약금 조항 찾기", answer: "file" },
+      { id: "sales", text: "이번 달 매출 엑셀에서 지점별 합계 내기", answer: "file" },
+      { id: "apology", text: "고객에게 보낼 사과 메일 문장 다듬기", answer: "ask" },
+      { id: "grade", text: "팀원 인사 평가 등급 최종 정하기", answer: "no" },
+    ],
+    // 6장 중 5장 이상 맞히고, "맡기지 않기" 카드는 꼭 맞혀야 통과
+    pass: { min: 5, must: "no" },
+    criteria: [
+      { label: "6장 중 5장 이상 맞게 골랐다", item: null },
+      { label: "AI에게 맡기지 않을 일은 꼭 맞혔다", item: null },
+    ],
+    coaching: {
+      no: { question: "{card} AI의 답대로 끝내도 되는 일일까요?" },
+      search: { question: "이 일에 필요한 정보는 AI가 배울 때 이미 있었을까요?" },
+      file: { question: "AI가 이 일을 하려면 무엇을 읽어야 하나요?" },
+      ask: { question: "이 일에 새로 찾을 정보나 읽을 파일이 꼭 필요할까요?" },
+    },
+    mustDetail: "결과에 책임을 지는 사람이 누구인지 생각해 보세요.",
+  },
 ];
 
 export const ALL_LESSONS = [...LESSONS.map((l) => ({ course: "prompt", kind: "prompt", ...l })), ...COURSE_LESSONS];
@@ -329,15 +378,18 @@ export const COURSES = [
     no: 5,
     title: "AI 도구 활용",
     summary: "작업에 맞는 기능 고르기: 검색, 파일 분석, 그냥 질문",
-    lessons: [],
+    lede: "그냥 질문, 검색, 파일 분석 중에서 일에 맞는 방법을 고르고, AI에게 맡기지 않을 일을 가려내는 법을 배워요.",
+    lessons: ["tool1"],
     related: [],
-    ready: false,
+    ready: true,
   },
   {
     id: "flow",
     no: 6,
     title: "업무 자동화",
     summary: "반복 작업 흐름 짜기: 자료 요약 → 보고서 초안 → 검토",
+    lede: "자료 요약 → 보고서 초안 → 검토처럼 반복되는 일을 흐름으로 짜는 법을 배워요.",
+    // 강의는 준비 중이다. 과정 화면에서 같이 보면 좋은 강의(m3, a1)로 먼저 연습한다.
     lessons: [],
     related: ["m3", "a1"],
     ready: false,

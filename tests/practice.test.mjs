@@ -13,14 +13,15 @@ const file1 = findAnyLesson("file1");
 const mem2 = findAnyLesson("mem2");
 const allRight = () => Object.fromEntries(mem1.cards.map((c) => [c.id, c.answer]));
 
-test("여섯 과정: 강의 id가 모두 있고, 과정 1은 지금 15강 그대로, 5·6은 준비 중", () => {
+test("여섯 과정: 강의 id가 모두 있고, 과정 1은 지금 15강 그대로, 6은 준비 중", () => {
   assert.deepEqual(COURSES.map((c) => c.id), ["prompt", "memory", "file", "verify", "tool", "flow"]);
   assert.deepEqual(COURSE.prompt.lessons, LESSONS.map((l) => l.id));
   for (const c of COURSES) {
     for (const id of [...c.lessons, ...c.related]) assert.ok(findAnyLesson(id), `${c.id}: ${id}`);
     for (const id of c.lessons) assert.equal(findAnyLesson(id).course, c.id);
   }
-  assert.deepEqual(COURSES.filter((c) => !c.ready).map((c) => c.id), ["tool", "flow"]);
+  assert.deepEqual(COURSES.filter((c) => !c.ready).map((c) => c.id), ["flow"]);
+  assert.deepEqual(COURSE.flow.related, ["m3", "a1"]);
   assert.equal(new Set(ALL_LESSONS.map((l) => l.id)).size, ALL_LESSONS.length);
 });
 
@@ -74,6 +75,27 @@ test("mem1 검사: 놓지 않은 카드가 있으면 채점하지 않는다", ()
   assert.equal(validateSort(mem1, allRight()), null);
   assert.ok(validateSort(mem1, { ...allRight(), role: "trash" }));
   assert.ok(validateEvaluation({ lessonId: "mem1", answer: null }));
+});
+
+const tool1 = findAnyLesson("tool1");
+const toolRight = () => Object.fromEntries(tool1.cards.map((c) => [c.id, c.answer]));
+
+test("tool1 고르기: 6장 중 5장 맞히면 통과, '맡기지 않기'를 놓치면 5장이어도 실패", () => {
+  assert.equal(gradeSort(tool1, toolRight()).passed, true);
+  const one = gradeSort(tool1, { ...toolRight(), rate: "ask" });
+  assert.equal(one.passed, true);
+  assert.deepEqual(one.score, { right: 5, total: 6 });
+  const no = gradeSort(tool1, { ...toolRight(), grade: "file" });
+  assert.equal(no.passed, false);
+  assert.deepEqual(no.criteria.map((c) => c.met), [true, false]);
+  assert.equal(no.coaching.question, '"팀원 인사 평가 등급 최종 정하기"가 AI의 답대로 끝내도 되는 일일까요?');
+  assert.equal(no.coaching.detail, "결과에 책임을 지는 사람이 누구인지 생각해 보세요.");
+  // tool1은 옮겨 볼 칸을 알려 주지 않는다.
+  assert.equal(no.coaching.to, null);
+  const two = gradeSort(tool1, { ...toolRight(), rate: "ask", contract: "ask" });
+  assert.equal(two.passed, false);
+  assert.equal(two.coaching.question, "이 일에 필요한 정보는 AI가 배울 때 이미 있었을까요?");
+  assert.match(validateSort(tool1, { rate: "search" }), /고르지 않은 상황이 5개/);
 });
 
 const spotAnswer = (over = {}) => ({
