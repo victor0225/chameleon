@@ -85,15 +85,11 @@ function Skeleton() {
 // 로그인 전에는 이름을 게스트로 둔다.
 const GUEST_NAME = "게스트";
 
+// 기본 프로필: 로고의 카멜레온 머리, 눈동자가 움직이는 GIF(public/avatar-default.gif). 그림은 mypage.module.css에서 넣는다.
 function Avatar() {
   return (
     <span className={styles.avatar} aria-hidden="true">
-      <span className={styles.avatarFace}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-          <circle cx="12" cy="8.5" r="3.8" />
-          <path d="M4.8 20c1.3-3.5 4-5.4 7.2-5.4s5.9 1.9 7.2 5.4" />
-        </svg>
-      </span>
+      <span className={styles.avatarFace} />
     </span>
   );
 }
